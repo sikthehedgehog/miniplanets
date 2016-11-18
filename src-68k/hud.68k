@@ -1,0 +1,176 @@
+;****************************************************************************
+; InitHUD
+; Initializes the HUD.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+InitHUD:
+    bsr     ClearHUD                    ; Clear buffer
+    
+    moveq   #11, d7                     ; Draw X from lives counter
+    moveq   #0, d6
+    bsr     DrawHUDChar
+    
+    move.b  (StageName), d0             ; Draw current stage name
+    move.b  d0, d7
+    lsr.b   #4, d7
+    moveq   #15, d6
+    bsr     DrawHUDChar
+    moveq   #12, d7
+    moveq   #16, d6
+    bsr     DrawHUDChar
+    move.b  d0, d7
+    and.b   #$0F, d7
+    moveq   #17, d6
+    bsr     DrawHUDChar
+    
+    DMA2VRAM HUDBuf+0*40*2, $CC04, 36*2, ($C00004) ; Upload bottom HUD
+    DMA2VRAM HUDBuf+1*40*2, $CC84, 36*2, ($C00004)
+    DMA2VRAM HUDBuf+2*40*2, $CD04, 36*2, ($C00004)
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; ClearHUD
+; Clears the HUD with blank.
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+ClearHUD:
+    lea     (HUDBuf), a6                ; Buffer address
+    
+    moveq   #0, d6                      ; Fill it with zeroes
+    moveq   #40*3/8-1, d7
+@Loop:
+    move.l  d6, (a6)+
+    move.l  d6, (a6)+
+    move.l  d6, (a6)+
+    move.l  d6, (a6)+
+    dbf     d7, @Loop
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawHUD
+; Updates the HUD on screen.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawHUD:
+    bsr     ClearHUD                    ; Clear buffer
+    
+    move.l  (Score), d0                 ; Draw score
+    moveq   #7-1, d1
+@SkipZeroes:
+    rol.l   #4, d0
+    move.b  d0, d7
+    and.b   #$0F, d7
+    bne.s   @NoMoreZeroes
+    dbf     d1, @SkipZeroes
+@NoMoreZeroes:
+    addq.w  #1, d1
+    moveq   #0, d2
+@DrawScore:
+    move.w  d2, d6
+    bsr     DrawHUDChar
+    addq.w  #1, d2
+    rol.l   #4, d0
+    move.b  d0, d7
+    and.b   #$0F, d7
+    dbf     d1, @DrawScore
+    
+    move.b  (Lives), d0                 ; Draw amount of lives left
+    moveq   #18, d1
+    move.b  d0, d7
+    lsr.b   #4, d7
+    beq.s   @LivesUnder10
+    move.w  d1, d6
+    bsr     DrawHUDChar
+    addq.w  #1, d1
+@LivesUnder10:
+    move.b  d0, d7
+    and.b   #$0F, d7
+    move.w  d1, d6
+    bsr     DrawHUDChar
+    
+    move.b  (TimeSecs), d0              ; Blink the time?
+    cmp.b   #$10, d0
+    bhi.s   @NoTimeBlink
+    tst.b   (PlayerWin)
+    bne.s   @NoTimeBlink
+    tst.b   (PlayerDie)
+    bne.s   @NoTimeBlink
+    move.b  (TimeFrames), d7
+    cmp.b   #45, d7
+    bhs.s   @TimeBlink
+    cmp.b   #30, d7
+    bhs.s   @NoTimeBlink
+    cmp.b   #15, d7
+    bhs.s   @TimeBlink
+@NoTimeBlink:
+    
+    move.b  d0, d7                      ; Draw time left
+    lsr.b   #4, d7
+    moveq   #8, d6
+    bsr     DrawHUDChar
+    move.b  d0, d7
+    and.b   #$0F, d7
+    moveq   #9, d6
+    bsr     DrawHUDChar
+@TimeBlink:
+    
+    moveq   #10, d7                     ; Draw key indicator
+    moveq   #16, d6
+    bsr     DrawHUDChar
+    move.b  (KeysLeft), d7              ; Draw number of keys left
+    moveq   #17, d6
+    bsr     DrawHUDChar
+    
+    move.l  (DMABufEnd), a6             ; Upload HUD to VRAM
+    DMA2VRAM HUDBuf+0*40*2, $C084, 36*2, (a6)+
+    DMA2VRAM HUDBuf+1*40*2, $C104, 36*2, (a6)+
+    DMA2VRAM HUDBuf+2*40*2, $C184, 36*2, (a6)+
+    DMA2VRAM HUDBuf+0*40*2+36*2, $CC08, 4*2, (a6)+
+    DMA2VRAM HUDBuf+1*40*2+36*2, $CC88, 4*2, (a6)+
+    DMA2VRAM HUDBuf+2*40*2+36*2, $CD08, 4*2, (a6)+
+    move.l  a6, (DMABufEnd)
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawHUDChar
+; Draws a single character in the HUD.
+;----------------------------------------------------------------------------
+; input d7.b ... Character to draw
+; input d6.w ... Position of digit
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+DrawHUDChar:
+    add.w   d6, d6                      ; Determine where in the buffer to
+    add.w   d6, d6                        ; draw it
+    lea     (HUDBuf), a6
+    lea     (a6,d6.w), a6
+    
+    and.w   #$FF, d7                    ; Determine base tile for this
+    add.w   d7, d7                        ; character
+    move.w  d7, d6
+    add.w   d7, d7
+    add.w   d6, d7
+    add.w   #$8000+VramHUD, d7
+    
+    move.w  d7, d6                      ; Put tiles into the buffer
+    addq.w  #1, d6
+    swap    d7
+    move.w  d6, d7
+    move.l  d7, (a6)
+    add.l   #$00020002, d7
+    move.l  d7, 1*40*2(a6)
+    add.l   #$00020002, d7
+    move.l  d7, 2*40*2(a6)
+    
+    rts                                 ; End of subroutine

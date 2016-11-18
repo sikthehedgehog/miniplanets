@@ -1,0 +1,20 @@
+;****************************************************************************
+; GfxVoid
+; Graphics for the void in the stage intro.
+;****************************************************************************
+
+GfxVoid:
+    incbin  "data/common/void.slz"
+    even
+
+GfxVoidSize: equ filesize("src-data/common/void.4bpp")/$20
+
+;****************************************************************************
+; GfxMiniplanets
+; Graphics for the planets when showing all planelagos. Not compressed
+; because huh it's only five tiles honestly...
+;****************************************************************************
+
+GfxMiniplanets:
+    incbin  "data/common/planets.4bpp"
+    even

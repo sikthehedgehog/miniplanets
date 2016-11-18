@@ -1,0 +1,94 @@
+output "src-data/qisha/side.4bpp"
+input "src-data/qisha/side.png"
+layout tilemap
+tiles 8 1 8 7
+
+output "src-data/qisha/back.4bpp"
+input "src-data/qisha/back.png"
+layout tilemap
+tiles 0 0 8 8
+tiles 0 8 7 7
+tiles 8 8 6 6
+tiles 16 8 5 5
+tiles 0 16 4 4
+layout sprite
+tiles 8 16 3 3
+tiles 12 16 3 3
+tiles 16 16 3 3
+tiles 20 16 3 3
+tiles 0 20 2 2
+tiles 4 20 2 2
+tiles 8 20 2 2
+tiles 12 20 2 2
+tiles 16 20 1 1
+tiles 20 20 1 1
+tiles 24 20 1 1
+tiles 28 20 1 1
+
+output "src-data/qisha/children.4bpp"
+input "src-data/qisha/children.png"
+layout sprite
+tiles 0 0 4 2
+tiles 0 2 4 2
+tiles 4 0 4 2
+tiles 4 2 4 2
+tiles 8 0 4 2
+tiles 8 2 4 2
+tiles 12 0 4 2
+tiles 12 2 4 2
+tiles 16 0 4 2
+tiles 16 2 4 2
+
+tiles 0 4 4 2
+tiles 0 6 4 2
+tiles 4 4 4 2
+tiles 4 6 4 2
+tiles 8 4 4 2
+tiles 8 6 4 2
+tiles 12 4 4 2
+tiles 12 6 4 2
+tiles 16 4 4 2
+tiles 16 6 4 2
+
+tiles 0 8 4 2
+tiles 0 10 4 2
+tiles 4 8 4 2
+tiles 4 10 4 2
+tiles 8 8 4 2
+tiles 8 10 4 2
+tiles 12 8 4 2
+tiles 12 10 4 2
+tiles 16 8 4 2
+tiles 16 10 4 2
+
+tiles 0 12 4 2
+tiles 0 14 4 2
+tiles 4 12 4 2
+tiles 4 14 4 2
+tiles 8 12 4 2
+tiles 8 14 4 2
+tiles 12 12 4 2
+tiles 12 14 4 2
+tiles 16 12 4 2
+tiles 16 14 4 2
+
+tiles 0 16 4 2
+tiles 0 18 4 2
+tiles 4 16 4 2
+tiles 4 18 4 2
+tiles 8 16 4 2
+tiles 8 18 4 2
+tiles 12 16 4 2
+tiles 12 18 4 2
+tiles 16 16 4 2
+tiles 16 18 4 2
+
+output "src-data/qisha/stars.4bpp"
+input "src-data/qisha/stars.png"
+layout tilemap
+tiles 0 0 4 2
+
+output "src-data/qisha/credits.4bpp"
+input "src-data/qisha/credits.png"
+layout sprite
+tiles 0 0 24 4

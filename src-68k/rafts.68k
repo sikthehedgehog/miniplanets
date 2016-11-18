@@ -1,0 +1,150 @@
+;****************************************************************************
+; RunRaftU
+; Executes the game logic of a raft going up.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+RunRaftU:
+    moveq   #0, d0
+    moveq   #-1, d1
+    lea     @TileList(pc), a1
+    bra     RunRaftCommon
+
+@TileList:
+    dc.b    -$10,-$10,   -$10,$00,    -$10,$10
+    dc.b    $00,-$10,    $00,$00,     $00,$10
+    dc.b    TILE_RAFTU1, TILE_RAFTU2, TILE_RAFTU3
+    dc.b    TILE_RAFTU1, TILE_RAFTU2, TILE_RAFTU3
+
+;****************************************************************************
+; RunRaftD
+; Executes the game logic of a raft going down.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+RunRaftD:
+    moveq   #0, d0
+    moveq   #1, d1
+    lea     @TileList(pc), a1
+    bra     RunRaftCommon
+
+@TileList:
+    dc.b    -$10,-$10,   -$10,$00,    -$10,$10
+    dc.b    $00,-$10,    $00,$00,     $00,$10
+    dc.b    TILE_RAFTD1, TILE_RAFTD2, TILE_RAFTD3
+    dc.b    TILE_RAFTD1, TILE_RAFTD2, TILE_RAFTD3
+
+;****************************************************************************
+; RunRaftL
+; Executes the game logic of a raft going left.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+RunRaftL:
+    moveq   #-1, d0
+    moveq   #0, d1
+    lea     @TileList(pc), a1
+    bra     RunRaftCommon
+
+@TileList:
+    dc.b    -$10,-$10,   $00,-$10,    $10,-$10
+    dc.b    -$10,$00,    $00,$00,     $10,$00
+    dc.b    TILE_RAFTL1, TILE_RAFTL2, TILE_RAFTL3
+    dc.b    TILE_RAFTL1, TILE_RAFTL2, TILE_RAFTL3
+
+;****************************************************************************
+; RunRaftR
+; Executes the game logic of a raft going right.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+RunRaftR:
+    moveq   #1, d0
+    moveq   #0, d1
+    lea     @TileList(pc), a1
+    bra     RunRaftCommon
+
+@TileList:
+    dc.b    -$10,-$10,   $00,-$10,    $10,-$10
+    dc.b    -$10,$00,    $00,$00,     $10,$00
+    dc.b    TILE_RAFTR1, TILE_RAFTR2, TILE_RAFTR3
+    dc.b    TILE_RAFTR1, TILE_RAFTR2, TILE_RAFTR3
+
+;****************************************************************************
+; RunRaftCommon
+; Executes the game logic of a raft, for all directions.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+; input a1.l ... Tile list
+; input d0.b ... X speed
+; input d1.b ... Y speed
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+RunRaftCommon:
+    tst.b   OBJ_DATA(a0)                ; Is the raft stuck?
+    beq.s   @IsMoving
+    bmi.s   @StillStuck
+    move.w  (Anim), d7
+    and.w   #$0F, d7
+    move.b  d7, OBJ_DATA(a0)
+    beq.s   @IsMoving
+@StillStuck:
+    rts
+@IsMoving:
+    
+    move.b  OBJ_X(a0), d2               ; Get current raft position
+    move.b  OBJ_Y(a0), d3
+    
+    moveq   #6-1, d4                    ; Clear tiles where we used to be
+@ClearTiles:
+    move.b  d2, d7
+    move.b  d3, d6
+    add.b   (a1)+, d7
+    add.b   (a1)+, d6
+    moveq   #TILE_WA, d5
+    bsr     SetTile
+    dbf     d4, @ClearTiles
+    
+    add.b   d0, d2                      ; Make raft advance
+    add.b   d1, d3
+    move.b  d2, OBJ_X(a0)
+    move.b  d3, OBJ_Y(a0)
+    
+    move.b  d2, d7                      ; Carrying around the player?
+    move.b  d3, d6
+    moveq   #$10, d5
+    moveq   #$10, d4
+    bsr     CollidesPlayer
+    tst.w   d7
+    beq.s   @NotCarrying
+    add.b   d0, (PlayerX)
+    add.b   d1, (PlayerY)
+@NotCarrying:
+    
+    lea     -12(a1), a1                 ; Draw tiles in the new position
+    lea     12(a1), a2
+    moveq   #6-1, d4
+@DrawTiles:
+    move.b  d2, d7
+    move.b  d3, d6
+    add.b   (a1)+, d7
+    add.b   (a1)+, d6
+    move.b  (a2)+, d5
+    bsr     SetTile
+    dbf     d4, @DrawTiles
+    
+    rts                                 ; End of subroutine

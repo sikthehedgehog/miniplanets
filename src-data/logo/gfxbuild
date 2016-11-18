@@ -1,0 +1,11 @@
+output "src-data/logo/logo.4bpp"
+input "src-data/logo/logo.png"
+layout sprite
+tiles 0 0 12 3
+tiles 0 3 12 3
+tiles 0 6 12 3
+tiles 0 9 12 3
+tiles 0 12 12 3
+tiles 0 15 12 3
+tiles 0 18 12 3
+tiles 0 21 12 3

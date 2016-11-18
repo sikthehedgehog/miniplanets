@@ -1,0 +1,5 @@
+input "src-data/credits/foreground.png"
+output "src-data/credits/foreground.4bpp"
+output2 "src-data/credits/foreground.blob"
+layout tilemap
+map 0 0 16 6

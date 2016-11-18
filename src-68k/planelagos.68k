@@ -1,0 +1,252 @@
+;****************************************************************************
+; GeneratePlanelago
+; Generates the graphics for a planelago e.g. in the stage intro.
+;----------------------------------------------------------------------------
+; input d7.b ... First stage of planelago
+; input a6.l ... Buffer to store graphics
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+GeneratePlanelago:
+    ext.w   d7                          ; Get data for first stage
+    lsl.w   #3, d7
+    lea     (StageList), a0
+    lea     (a0,d7.w), a0
+    
+    moveq   #9-1, d0                    ; Go through all planets
+@PlanetLoop:
+    move.l  (a0), a1                    ; Get this planet's layout
+    lea     @Mask(pc), a2               ; Get mask to make it round
+    lea     @Colors(pc), a3             ; Colors for each tile type
+    
+    moveq   #0, d2
+    moveq   #8-1, d6
+@YLoop:
+    moveq   #8-1, d7
+@XLoop:
+    move.b  (a1)+, d2
+    move.b  (a3,d2.w), d2
+    lsl.l   #4, d1
+    or.b    d2, d1
+    dbf     d7, @XLoop
+    and.l   (a2)+, d1
+    move.l  d1, (a6)+
+    addq.l  #8, a1
+    dbf     d6, @YLoop
+    
+    addq.l  #8, a0                      ; Go for next planet
+    dbf     d0, @PlanetLoop
+    
+    rts                                 ; End of subroutine
+
+;----------------------------------------------------------------------------
+
+@Colors:
+    dc.b    $09, $0A, $01, $0E, $0B
+    dc.b    $09, $09, $0B, $09, $0C
+    dc.b    $0C, $07, $07, $07, $07
+    dc.b    $08, $08, $08, $0C, $0B
+    dc.b    $0D, $08, $01
+    even
+
+@Mask:
+    dc.l    $00FFFF00
+    dc.l    $0FFFFFF0
+    dc.l    $FFFFFFFF
+    dc.l    $FFFFFFFF
+    dc.l    $FFFFFFFF
+    dc.l    $FFFFFFFF
+    dc.l    $0FFFFFF0
+    dc.l    $00FFFF00
+
+;****************************************************************************
+; DrawPlanelago
+; Draws a planelago e.g. in the stage intro.
+;----------------------------------------------------------------------------
+; input d7.w ... Origin horizontal coordinate
+; input d6.w ... Origin vertical coordinate
+; input d5.b ... Current angle
+; input d4.w ... Base sprite ID
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawPlanelago:
+    lea     @Table(pc), a4
+    move.w  #1, a5
+    bra.s   DrawPlanelagoCallback
+    
+@Table:
+    dc.b    0,3, 51,3, 102,3, 153,3, 204,3, 0,4, 85,4, 170,4
+
+;****************************************************************************
+; DrawPlanelagoCallback
+; The actual (internal) drawing function for drawing planelagos.
+;----------------------------------------------------------------------------
+; input d7.w ... Origin horizontal coordinate
+; input d6.w ... Origin vertical coordinate
+; input d5.b ... Current angle
+; input d4.w ... Base sprite ID
+; input a4.l ... Look-up table to use
+; input a5.w ... 1 for multiple sprites, 0 for same sprite
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawPlanelagoCallback:
+    subq.w  #4, d7                      ; Ensure sprites are centered
+    subq.w  #4, d6
+    
+    move.w  d4, d2                      ; Put this where this belongs
+    move.w  d7, a0                      ; Because these registers will get
+    move.w  d6, a1                        ; clobbered by AddSprite
+    
+    lea     (Sines), a2                 ; Look-up tables
+    lea     (Cosines), a3
+    
+    and.w   #$FF, d5                    ; Ensure it's inside range
+    moveq   #8-1, d4                    ; Go through all planets
+@Loop:
+    move.w  d5, d7                      ; Calculate current angle
+    add.b   (a4)+, d7
+    add.w   d7, d7
+    
+    move.w  (a2,d7.w), d0               ; Get position within orbit
+    move.w  (a3,d7.w), d1
+    
+    move.b  (a4)+, d7                   ; Calculate distance
+    ext.w   d7
+    asr.w   d7, d0
+    asr.w   d7, d1
+    
+    btst.l  #0, d4                      ; Deform the orbit
+    beq.s   *+4
+    add.w   d0, d0
+    btst.l  #0, d4
+    bne.s   *+4
+    add.w   d1, d1
+    asr.w   #1, d0
+    asr.w   #1, d1
+    
+    add.w   a0, d0                      ; Apply origin
+    add.w   a1, d1
+    
+    moveq   #%0000, d3                  ; Draw planet
+    jsr     (AddSprite).w
+    
+    cmp.b   #3, d4                      ; Going into the inner orbits?
+    bne.s   @NoInnerOrbit
+    add.b   d5, d5
+@NoInnerOrbit:
+    
+    add.w   a5, d2                      ; Go for next planet
+    dbf     d4, @Loop
+    
+    move.w  a0, d0                      ; Last planelago is always at the
+    move.w  a1, d1                        ; center
+    jsr     (AddSprite).w
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawAllPlanelagos
+; Draws all the planelagos (title screen, credits)
+;----------------------------------------------------------------------------
+; input d7.w ... Origin horizontal coordinate
+; input d6.w ... Origin vertical coordinate
+; input d5.b ... Current angle
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawAllPlanelagos:
+    move.w  #VramPlanets, -(sp)         ; Initial tile
+    
+    moveq   #4-1, d0                    ; Go through all planelagos except
+@Loop:                                    ; the middle one
+    movem.l d0/d5-d7, -(sp)
+    
+    if      0
+    moveq   #0, d4                      ; Determine position within orbit
+    move.b  d5, d4
+    add.w   d4, d4
+    lea     (Sines), a6
+    move.w  (a6,d4.w), d1
+    lea     $80(a6), a6
+    move.w  (a6,d4.w), d2
+    
+    btst.l  #0, d0
+    beq.s   @NoDeform
+    btst.l  #1, d0
+    beq.s   *+4
+    asr.w   #1, d1
+    btst.l  #1, d0
+    bne.s   *+4
+    asr.w   #1, d2
+@NoDeform:
+    
+    btst.l  #1, d0
+    beq.s   *+8
+    add.w   d2, d1
+    asr.w   #1, d1
+    neg.w   d1
+    btst.l  #1, d0
+    bne.s   *+6
+    add.w   d1, d2
+    asr.w   #1, d2
+    
+    asr.w   #4, d1
+    asr.w   #4, d2
+    move.w  d1, a0
+    move.w  d2, a1
+    asr.w   #1, d1
+    asr.w   #1, d2
+    add.w   a0, d1
+    add.w   a1, d2
+    
+    add.w   d1, d7
+    add.w   d2, d6
+    
+    else
+    moveq   #0, d4                      ; Determine position within orbit
+    move.b  d5, d4
+    add.w   d4, d4
+    lea     (Sines), a6
+    move.w  (a6,d4.w), d1
+    lea     $80(a6), a6
+    move.w  (a6,d4.w), d2
+    
+    asr.w   #3, d1
+    asr.w   #3, d2
+    add.w   d1, d7
+    add.w   d2, d6
+    
+    asr.w   #1, d2
+    add.w   d2, d7
+    endc
+    
+    move.w  $10(sp), d4                 ; Draw this planelago
+    addq.w  #1, $10(sp)
+    lea     @SmallTable(pc), a4
+    move.w  #0, a5
+    bsr     DrawPlanelagoCallback
+    
+    movem.l (sp)+, d0/d5-d7
+    ;add.w   #$49, d5
+    add.w   #$40, d5
+    dbf     d0, @Loop
+    addq.w  #2, sp
+    
+    moveq   #VramPlanets+4, d4          ; Draw last planelago
+    lea     @SmallTable(pc), a4
+    move.w  #0, a5
+    add.w   #$20, d5
+    bra     DrawPlanelagoCallback
+
+;----------------------------------------------------------------------------
+
+@SmallTable:
+    dc.b    0,5, 51,5, 102,5, 153,5, 204,5, 0,6, 85,6, 170,6
+    
+    even

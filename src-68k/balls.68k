@@ -1,0 +1,160 @@
+;****************************************************************************
+; RunBallUp
+; Executes the game logic of a ball going up.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+RunBallUp:
+    subq.b  #1, OBJ_Y(a0)               ; Move upwards
+    
+    move.b  OBJ_X(a0), d7               ; Hit a wall?
+    move.b  OBJ_Y(a0), d6
+    bsr     GetTile
+    cmp.b   #COLL_WALL, d6
+    bne.s   @DontTurnAround
+    move.b  #OBJTYPE_BALLD, OBJ_TYPE(a0)
+    bsr     BallImpact
+@DontTurnAround:
+    
+    bra     RunBallCommon               ; Common behavior now
+
+;****************************************************************************
+; RunBallDown
+; Executes the game logic of a ball going down.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+RunBallDown:
+    addq.b  #1, OBJ_Y(a0)               ; Move downwards
+    
+    move.b  OBJ_X(a0), d7               ; Hit a wall?
+    move.b  OBJ_Y(a0), d6
+    bsr     GetTile
+    cmp.b   #COLL_WALL, d6
+    bne.s   @DontTurnAround
+    move.b  #OBJTYPE_BALLU, OBJ_TYPE(a0)
+    bsr     BallImpact
+@DontTurnAround:
+    
+    bra     RunBallCommon               ; Common behavior now
+
+;****************************************************************************
+; RunBallLeft
+; Executes the game logic of a ball going left.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+RunBallLeft:
+    subq.b  #1, OBJ_X(a0)               ; Move to the left
+    
+    move.b  OBJ_X(a0), d7               ; Hit a wall?
+    move.b  OBJ_Y(a0), d6
+    bsr     GetTile
+    cmp.b   #COLL_WALL, d6
+    bne.s   @DontTurnAround
+    move.b  #OBJTYPE_BALLR, OBJ_TYPE(a0)
+    bsr     BallImpact
+@DontTurnAround:
+    
+    bra     RunBallCommon               ; Common behavior now
+
+;****************************************************************************
+; RunBallRight
+; Executes the game logic of a ball going right.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+RunBallRight:
+    addq.b  #1, OBJ_X(a0)               ; Move to the right
+    
+    move.b  OBJ_X(a0), d7               ; Hit a wall?
+    move.b  OBJ_Y(a0), d6
+    bsr     GetTile
+    cmp.b   #COLL_WALL, d6
+    bne.s   @DontTurnAround
+    move.b  #OBJTYPE_BALLL, OBJ_TYPE(a0)
+    bsr     BallImpact
+@DontTurnAround:
+    
+    bra     RunBallCommon               ; Common behavior now
+
+;****************************************************************************
+; RunBallCommon
+; Common game logic to all balls.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+RunBallCommon:
+    move.b  OBJ_X(a0), d7               ; Ran over the player?
+    move.b  OBJ_Y(a0), d6
+    moveq   #10, d5
+    moveq   #10, d4
+    bsr     CollidesPlayer
+    tst.w   d7
+    beq.s   @DontHurt
+    bsr     HurtPlayer
+@DontHurt:
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; BallImpact
+; Plays the impact SFX for a ball, but only if it's nearby enough.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+BallImpact:
+    move.b  OBJ_X(a0), d7               ; Get distance to player
+    move.b  OBJ_Y(a0), d6
+    sub.b   (PlayerX), d7
+    sub.b   (PlayerY), d6
+    
+    cmp.b   #$40, d7                    ; Check if the ball is close enough
+    bgt.s   @TooFar                       ; to be visible on screen
+    cmp.b   #-$40, d7
+    blt.s   @TooFar
+    cmp.b   #$40, d6
+    bgt.s   @TooFar
+    cmp.b   #-$40, d6
+    blt.s   @TooFar
+    
+    moveq   #SFX_IMPACT, d7             ; Make noise if so
+    jsr     (PlaySFX).w
+    
+@TooFar:
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawBall
+; Draws a ball.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+DrawBall:
+    move.b  OBJ_X(a0), d7               ; Draw ball sprite
+    move.b  OBJ_Y(a0), d6
+    move.w  #VramBall, d5
+    bsr     Add3DSprite
+    
+    rts                                 ; End of subroutine

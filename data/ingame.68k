@@ -1,0 +1,42 @@
+;****************************************************************************
+; GfxIngame
+; Graphics for common in-game stuff.
+;****************************************************************************
+
+GfxIngame:
+    incbin  "data/ingame/ingame.slz"
+    even
+
+GfxIngameSize: equ filesize("src-data/ingame/ingame.4bpp")/$20
+
+;****************************************************************************
+; BackgroundTilemap
+; Tilemap for the background. 1 bit per tile! (0 = empty, 1 = star)
+;****************************************************************************
+
+BackgroundTilemap:
+    incbin  "data/ingame/background.blob"
+
+;****************************************************************************
+; Settings*
+; Look-up table with the possible values for some settings.
+;****************************************************************************
+
+SettingsTime:
+    dc.b    $30, $45, $60, $75, $90
+    even
+
+Settings1up:
+    dc.l    $10000, $12500, $15000, $20000, $25000
+;    dc.l    $5000, $7500, $10000, $15000, $20000; $30000, $50000
+
+;****************************************************************************
+; *Bonuses
+; Bonuses awarded for completing each stage
+;****************************************************************************
+
+TimeBonuses:
+    dc.w    $200, $150, $100, $75, $50
+
+StageBonuses:
+    dc.l    $5000, $7500, $10000, $25000, $50000, $100000

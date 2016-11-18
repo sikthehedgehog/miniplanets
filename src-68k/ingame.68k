@@ -1,0 +1,438 @@
+;****************************************************************************
+; INGAME_*
+; Different flags indicating the status in-game
+;****************************************************************************
+
+                    rsreset
+INGAME_PAUSE:       rs.b 1              ; Pause game
+INGAME_TALLY:       rs.b 1              ; Inside score tally
+
+;****************************************************************************
+; ENDGAME_*
+; Possible ways in which a stage can end
+;****************************************************************************
+
+                    rsreset
+ENDGAME_NO:         rs.b 1              ; Keep playing!
+ENDGAME_WIN:        rs.b 1              ; Stage has been completed
+ENDGAME_LOSE:       rs.b 1              ; Player has lost
+ENDGAME_RESTART:    rs.b 1              ; Just restart as-is
+
+;****************************************************************************
+; StartGame
+; Starts the game :)
+;----------------------------------------------------------------------------
+; notes: doesn't return
+;****************************************************************************
+
+StartGame:
+    clr.l   (Score)                    ; Start with no score
+    move.b  #$05, (Lives)              ; Start with 5 lives
+    
+    moveq   #0, d7                     ; Determine first 1up bonus
+    move.b  (LifeSetting), d7
+    add.w   d7, d7
+    add.w   d7, d7
+    lea     (Settings1up), a6
+    move.l  (a6,d7.w), (NextLife)
+    
+    ; Now start the game...
+
+;****************************************************************************
+; InGame
+; Main loop for the in-game mode.
+;----------------------------------------------------------------------------
+; notes: doesn't return
+;****************************************************************************
+
+InGame:
+    moveq   #0, d7                      ; Get stage name now before we
+    move.b  (Stage), d7                   ; regret it :P (a sizable chunk of
+    lsl.w   #3, d7                        ; behavior is based on the stage
+    lea     (StageList), a6               ; name, more specifically the
+    lea     (a6,d7.w), a0                 ; substage number)
+    move.b  4(a0), (StageName)
+    
+    move.b  5(a0), d7                   ; Play music
+    jsr     (PlayBGM).w
+    
+    move.b  (StageName), d7             ; Need to show the stage intro?
+    and.b   #$0F, d7
+    cmp.b   #$01, d7
+    bhi.s   @NoIntro
+    bsr     StageIntro
+@NoIntro:
+    
+    jsr     (ResetVideo).w              ; Reset graphics
+    st.b    (FadeInFlag)                ; We want fade in
+    
+    lea     (GfxIngame), a6             ; Decompress in-game graphics
+    lea     (LocalRAM), a5
+    jsr     (DecompressSLZ).w
+    DMA2VRAM LocalRAM, VramBackground*$20, GfxIngameSize*$20, ($C00004)
+    
+    lea     (GfxGlobe), a6              ; Decompress globe graphics
+    lea     (LocalRAM), a5
+    jsr     (DecompressSLZ).w
+    DMA2VRAM LocalRAM, VramGrass*$20, GfxGlobeSize*$20, ($C00004)
+    
+    lea     (PalIngame), a6             ; Load palette
+    lea     (PaletteBuf), a5
+    moveq   #$40/8-1, d7
+@LoadPalette:
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    dbf     d7, @LoadPalette
+    
+    clr.w   (Anim)                      ; Reset animations
+    clr.b   (IngameStatus)              ; Reset in-game status
+    clr.b   (EndGame)                   ; Stage didn't end yet :P
+    clr.b   (ShakeTimer)                ; Not shaking so far
+    
+    moveq   #0, d7                      ; Initialize timer
+    move.b  (TimeSetting), d7             ; Yes, we're giving an extra
+    lea     (SettingsTime), a6            ; second to be generous
+    move.b  (a6,d7.w), (TimeSecs)
+    move.b  #60, (TimeFrames)
+    
+    clr.b   (EndingPhase)               ; Reset ending
+    clr.b   (EndingFade)
+    
+    bsr     InitObjects                 ; Reset object list
+    bsr     InitGlobe                   ; Load level
+    bsr     InitBackground              ; Draw background
+    bsr     InitHUD                     ; Set up HUD
+    bsr     InitPlayer                  ; Reset player
+
+;----------------------------------------------------------------------------
+
+@MainLoop:
+    if      DEBUG_CPUUSAGE              ; Start CPU usage profiling
+    SetCRAMAddr $1A*2, ($C00004)
+    move.w  #$040, ($C00000)
+    endc
+    
+    bsr     ScrollBackground            ; Update background position
+    
+    btst.b  #7, (Joy1Press)             ; Toggle pause with Start
+    beq.s   @NoPauseToggle
+    bchg.b  #INGAME_PAUSE, (IngameStatus)
+    
+    tst.b   (DebugOK)
+    beq.s   @NoPauseToggle
+    btst.b  #INGAME_PAUSE, (IngameStatus)
+    bne.s   @NoPauseToggle
+    move.b  (Joy1Hold), d7
+    and.b   #$70, d7
+    cmp.b   #$70, d7
+    bne.s   @NoPauseToggle
+    move.b  #ENDGAME_WIN, (EndGame)
+@NoPauseToggle:
+    
+    tst.b   (DebugOK)                   ; Debug controls while paused
+    beq     @NoDebugControls
+    btst.b  #INGAME_PAUSE, (IngameStatus)
+    beq.s   @NoDebugControls
+    
+    btst.b  #6, (Joy1Press)             ; A: skip level
+    beq.s   @NoDebugSkip
+    
+    cmp.b   #STAGE_6_0, (Stage)
+    bne.s   @NoDebugEnding
+    move.b  #0, (KeysLeft)
+    moveq   #OBJTYPE_CRYSTAL, d7
+    move.b  (PlayerX), d6
+    move.b  (PlayerY), d5
+    moveq   #0, d4
+    bsr     AddObject
+    clr.b   (PlayerJump)
+    bclr.b  #INGAME_PAUSE, (IngameStatus)
+    bra.s   @NoDebugSkip
+@NoDebugEnding:
+    
+    move.b  #ENDGAME_WIN, (EndGame)
+    bclr.b  #INGAME_PAUSE, (IngameStatus)
+@NoDebugSkip:
+@NoDebugControls:
+    
+    btst.b  #INGAME_PAUSE, (IngameStatus) ; Don't update while paused!
+    bne.s   @Paused
+    
+@LogicLoop:
+    bsr     RunPlayer                   ; Update everything
+    bsr     RunObjects
+    bsr     RunEnding
+    addq.w  #1, (Anim)
+    
+    tst.b   (PlayerWin)                 ; Make sure we're playing before
+    bne.s   @NoTimeOver                   ; messing with the timer...
+    tst.b   (PlayerDie)
+    bne.s   @NoTimeOver
+    tst.b   (EndGame)
+    bne.s   @NoTimeOver
+    tst.b   (EndingPhase)
+    bne.s   @NoTimeOver
+    
+    tst.b   (TimerOK)                   ; Timer disabling cheat
+    beq.s   @NoTimeOver
+    
+    subq.b  #1, (TimeFrames)            ; Reduce time left
+    bne.s   @NoTimeOver
+    move.b  #60, (TimeFrames)
+    move.b  (TimeSecs), d7
+    moveq   #$01, d6
+    and.b   #$00, ccr
+    sbcd.b  d6, d7
+    bcs.s   @TimeOver
+    move.b  d7, (TimeSecs)
+    bra.s   @NoTimeOver
+    
+@TimeOver:
+    bsr     HurtPlayer                  ; Time over! Oh no! :(
+
+@NoTimeOver:
+    clr.b   (Joy1Press)                 ; Do NTSC/PAL speed correction
+    clr.b   (Joy2Press)
+    subq.b  #1, (NumFrames)
+    bne.s   @LogicLoop
+    
+@Paused:
+    jsr     (ClearSprites).w            ; Draw everything
+    bsr     DrawPlayer
+    bsr     DrawObjects
+    bsr     DrawGlobe
+    bsr     AnimGlobe
+    bsr     AnimStage6BG
+    bsr     DrawHUD
+    
+    move.b  (ShakeTimer), d7            ; Is the world shaking?
+    beq.s   @NoShaking
+    subq.b  #1, d7
+    move.b  d7, (ShakeTimer)
+    
+    and.w   #$04, d7                    ; Shake the sprites
+    subq.w  #$02, d7
+    moveq   #80-1, d6
+    lea     (SpriteBuf), a6
+@ApplyShake:
+    add.w   d7, (a6)
+    addq.w  #8, a6
+    dbf     d6, @ApplyShake
+@NoShaking:
+    
+    if      DEBUG_CPUUSAGE              ; End CPU usage profiling
+    SetCRAMAddr $1A*2, ($C00004)
+    move.w  (PaletteBuf+$1A*2), ($C00000)
+    endc
+    
+    jsr     (NextFrame).w               ; Wait for next frame
+    move.b  (EndGame), d0
+    bne.s   @StageOver
+    bra     @MainLoop
+
+;----------------------------------------------------------------------------
+
+@StageOver:
+    cmp.b   #ENDGAME_WIN, d0            ; Won the stage?
+    beq.s   @Won
+    
+    cmp.b   #ENDGAME_LOSE, d0           ; Lost the stage? :/
+    beq.s   @Lost
+    
+    bra     InGame                      ; Eh, just restart it as-is
+    
+@Lost:                                  ; Lost a life
+    move.b  (Lives), d7
+    moveq   #$01, d6
+    and.b   #$00, ccr
+    sbcd.b  d6, d7
+    move.b  d7, (Lives)
+    
+    beq     GameOver                    ; Game over? :(
+    
+    jsr     (FadeOff).w                 ; Oh, keep going then
+    bra     @NoIntro
+    
+@Won:
+    if      DEMO_VERSION
+    cmp.b   #STAGE_1_9, (Stage)
+    else
+    cmp.b   #STAGE_6_0, (Stage)         ; End of the game? :D
+    endc
+    bne.s   @NoGameEnding
+    jsr     (FadeOff).w
+    bsr     StageClear
+    if      DEMO_VERSION
+    bra     TitleScreen
+    else
+    bra     Credits
+    endc
+@NoGameEnding:
+    
+    move.b  (StageName), d7             ; Stage clear? :)
+    and.b   #$0F, d7
+    cmp.b   #$09, d7
+    bne.s   @NoStageClear
+    jsr     (FadeOff).w
+    bsr     StageClear
+@NoStageClear:
+    
+    addq.b  #1, (Stage)                 ; Move onto the next level for real
+    jsr     (FadeOff).w
+    bra     InGame
+
+;****************************************************************************
+; AddScore
+; Adds points to the score.
+;----------------------------------------------------------------------------
+; input d7.l ... Points to add (BCD)
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+AddScore:
+    move.l  (Score), d6                 ; Get current score
+    
+    and.b   #$00, ccr                   ; Add the points
+    abcd.b  d7, d6
+    ror.l   #8, d6
+    ror.l   #8, d7
+    abcd.b  d7, d6
+    ror.l   #8, d6
+    ror.l   #8, d7
+    abcd.b  d7, d6
+    
+    bcc.s   @NoOverflow                 ; Check for overflow
+    move.l  #$99990099, d6
+@NoOverflow:
+    
+    swap    d6                          ; Store new score
+    move.l  d6, (Score)
+    
+    move.l  (NextLife), d7              ; Award extra life?
+    cmp.l   d7, d6
+    bhs.s   @ExtraLife
+    rts
+@ExtraLife:
+    
+    moveq   #0, d6                      ; Determine bonus for the next life
+    move.b  (LifeSetting), d6
+    add.w   d6, d6
+    add.w   d6, d6
+    lea     (Settings1up), a6
+    move.l  (a6,d6.w), d6
+    AddLongBCD d6, d7
+    move.l  d7, (NextLife)
+    
+    moveq   #$01, d6                    ; Increment life count
+    move.b  (Lives), d7
+    AddByteBCD d6, d7
+    bcc.s   @NoManyLives
+    move.b  #$99, d7
+@NoManyLives:
+    move.b  d7, (Lives)
+    
+    moveq   #SFX_1UP, d7                ; Ding!
+    jsr     (PlaySFX).w
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; WinStage
+; Starts the winning sequence for the stage.
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+WinStage:
+    tst.b   (PlayerWin)                 ; Make sure the winning sequence
+    beq.s   @NotWonYet                    ; hasn't started already!
+    rts
+@NotWonYet:
+    
+    move.b  #1, (PlayerWin)             ; Start win animation
+    bset.b  #INGAME_TALLY, (IngameStatus)
+    
+    moveq   #SFX_GOAL, d7               ; Play chime :D
+    jsr     (PlaySFX).w
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; RunTally
+; Executes the score tally when you win a level.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+RunTally:
+    tst.b   (TimeSecs)                  ; Any time left to count?
+    bne.s   @StillTallying
+    bclr.b  #INGAME_TALLY, (IngameStatus)
+    rts
+@StillTallying:
+    
+    moveq   #0, d7                      ; Determine how much to award based
+    move.b  (TimeSetting), d7             ; on the time setting (so players
+    add.w   d7, d7                        ; who set it to 90" don't get a
+    lea     (TimeBonuses), a6             ; higher score)
+    move.w  (a6,d7.w), d7
+    
+    sub.b   #$40, (TimeFrames)          ; Add points for time
+    bcc.s   @NoTimeTallying
+    bsr     AddScore
+    move.b  (TimeSecs), d7
+    moveq   #$01, d6
+    and.b   #$00, ccr
+    sbcd.b  d6, d7
+    move.b  d7, (TimeSecs)
+@NoTimeTallying:
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; RunEnding
+; Updates the ending at the end of stage 6.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+RunEnding:
+    move.b  (EndingPhase), d0             ; Make sure we're in the ending
+    bne.s   @InsideEnding                 ; sequence first
+    rts
+@InsideEnding:
+    
+    cmp.b   #60, (EndingFade)           ; Check if the background needs to
+    beq.s   @NoFadeUpdate                 ; fade to the new one
+    addq.b  #1, (EndingFade)
+@NoFadeUpdate:
+    
+    subq.b  #2, d0                      ; Check if Qisha is waiting
+    bne.s   @NotWaiting
+    subq.b  #1, (EndingTimer)
+    bne.s   @WaitOver
+    addq.b  #1, (EndingPhase)
+    clr.b   (EndingTimer)
+@WaitOver:
+    rts
+@NotWaiting:
+    
+    subq.b  #1, d0                      ; Fleeing from the exploding planet?
+    bne.s   @NotFleeing
+    addq.b  #1, (EndingTimer)
+    
+    cmp.b   #$20, (EndingTimer)         ; Explosions are loud, you know
+    bne.s   @NoKaboom
+    moveq   #SFX_EXPLOSION, d7
+    jsr     (PlaySFX).w
+@NoKaboom:
+    
+    cmp.b   #180, (EndingTimer)         ; Move on?
+    bne.s   @NotFleeing
+    move.b  #ENDGAME_WIN, (EndGame)
+@NotFleeing:
+    
+    rts                                 ; End of subroutine

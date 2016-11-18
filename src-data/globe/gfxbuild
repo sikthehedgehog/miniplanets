@@ -1,0 +1,138 @@
+layout sprite
+output "src-data/globe/globe.4bpp"
+
+input "src-data/globe/grass.png"
+tiles 0 0 2 2
+tiles 2 0 2 2
+input "src-data/globe/dirt.png"
+tiles 0 0 2 2
+input "src-data/globe/brick.png"
+tiles 0 0 2 2
+input "src-data/globe/raft_h.png"
+tiles 0 0 2 2
+input "src-data/globe/raft_v.png"
+tiles 0 0 2 2
+input "src-data/globe/wood.png"
+tiles 0 0 2 2
+input "src-data/globe/goal.png"
+tiles 0 0 2 2
+input "src-data/globe/spring.png"
+tiles 0 0 2 2
+input "src-data/globe/dark.png"
+tiles 0 0 2 2
+input "src-data/globe/metal.png"
+tiles 0 0 2 2
+tiles 2 0 2 2
+input "src-data/globe/visor.png"
+tiles 0 0 2 2
+input "src-data/globe/marble.png"
+tiles 0 0 2 2
+
+input "src-data/globe/ending.png"
+tiles 0 0 2 2
+tiles 0 2 2 2
+tiles 2 0 2 2
+tiles 2 2 2 2
+tiles 4 0 2 2
+tiles 4 2 2 2
+tiles 6 0 2 2
+tiles 6 2 2 2
+tiles 8 0 2 2
+tiles 8 2 2 2
+tiles 10 0 2 2
+tiles 10 2 2 2
+
+output "data/globe/water.4bpp"
+input "src-data/globe/water.png"
+tiles 0 0 2 2
+tiles 2 0 2 2
+tiles 4 0 2 2
+tiles 6 0 2 2
+
+output "src-data/globe/raft.4bpp"
+input "src-data/globe/raft_h.png"
+tiles 0 0 4 2
+tiles 0 2 4 2
+tiles 0 4 4 2
+tiles 0 6 4 2
+tiles 0 8 4 2
+tiles 0 10 4 2
+tiles 0 12 4 2
+tiles 0 14 4 2
+tiles 4 0 4 2
+tiles 4 2 4 2
+tiles 4 4 4 2
+tiles 4 6 4 2
+tiles 4 8 4 2
+tiles 4 10 4 2
+tiles 4 12 4 2
+tiles 4 14 4 2
+input "src-data/globe/raft_v.png"
+tiles 0 0 2 2
+tiles 0 2 2 2
+tiles 2 0 2 2
+tiles 2 2 2 2
+tiles 4 0 2 2
+tiles 4 2 2 2
+tiles 6 0 2 2
+tiles 6 2 2 2
+tiles 8 0 2 2
+tiles 8 2 2 2
+tiles 10 0 2 2
+tiles 10 2 2 2
+tiles 12 0 2 2
+tiles 12 2 2 2
+tiles 14 0 2 2
+tiles 14 2 2 2
+tiles 0 4 2 2
+tiles 0 6 2 2
+tiles 2 4 2 2
+tiles 2 6 2 2
+tiles 4 4 2 2
+tiles 4 6 2 2
+tiles 6 4 2 2
+tiles 6 6 2 2
+tiles 8 4 2 2
+tiles 8 6 2 2
+tiles 10 4 2 2
+tiles 10 6 2 2
+tiles 12 4 2 2
+tiles 12 6 2 2
+tiles 14 4 2 2
+tiles 14 6 2 2
+input "src-data/globe/raft_h.png"
+tiles 8 0 2 2
+tiles 8 2 2 2
+tiles 8 4 2 2
+tiles 8 6 2 2
+input "src-data/globe/raft_v.png"
+tiles 0 8 2 2
+tiles 2 8 2 2
+tiles 4 8 2 2
+tiles 6 8 2 2
+
+output "src-data/globe/belt.4bpp"
+input "src-data/globe/belt.png"
+tiles 0 2 2 2
+tiles 2 2 2 2
+tiles 4 2 2 2
+tiles 6 2 2 2
+tiles 8 2 2 2
+tiles 10 2 2 2
+tiles 12 2 2 2
+tiles 14 2 2 2
+tiles 0 0 2 2
+tiles 2 0 2 2
+tiles 4 0 2 2
+tiles 6 0 2 2
+tiles 8 0 2 2
+tiles 10 0 2 2
+tiles 12 0 2 2
+tiles 14 0 2 2
+
+output "data/globe/fire.4bpp"
+input "src-data/globe/fire.png"
+tiles 2 2 2 2
+tiles 4 2 2 2
+tiles 6 2 2 2
+tiles 8 2 2 2

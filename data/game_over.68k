@@ -1,0 +1,8 @@
+;****************************************************************************
+; GfxGameOver
+; Graphics for the "GAME OVER" message.
+;****************************************************************************
+
+GfxGameOver:
+    incbin  "data/common/game_over.slz"
+    even

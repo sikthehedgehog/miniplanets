@@ -1,0 +1,18 @@
+You will need to get these tools to build this game:
+
+   * mdtiler
+   * tfi2eif
+   * pcm2ewf
+   * mml2esf
+   * slz
+   * uftc
+   * asm68k
+
+Pretty much all but asm68k can be obtained from here:
+
+   https://github.com/sikthehedgehog/mdtools
+
+As for asm68k... I'll leave it up to you. Hopefully I'll adapt the code to
+the new assembler I've been working on, but first I want to get permission
+of the author of the assembler I've forked it from. Once that's done we
+should start work on adapting the source code (or the assembler if feasible).

@@ -1,0 +1,335 @@
+;****************************************************************************
+; Stage 4-1
+;****************************************************************************
+
+StageMap_4_1:
+    StageDef    __,__,GR,GF,GF,GR,__,__,__,__,GR,GF,GF,GR,__,__
+    StageDef    __,__,GR,GR,GR,GR,__,__,__,__,GR,GR,GR,GR,__,__
+    StageDef    GR,GR,GR,GR,GR,GR,GR,GR,GR,GR,GR,GR,GR,GR,GR,GR
+    StageDef    GF,GF,GR,GR,GR,GR,GF,GF,GF,GF,GR,GR,GR,GR,GF,GF
+    StageDef    GF,GF,GR,GR,GR,GR,GF,GF,GF,GF,GR,GR,GR,GR,GF,GF
+    StageDef    GR,GR,GR,GR,GR,GR,GR,GR,GR,GR,GR,GR,GR,GR,GR,GR
+    StageDef    __,__,GR,GR,GR,GR,__,__,__,__,GR,GR,GR,GR,__,__
+    StageDef    go,__,GR,GF,GF,GR,__,__,__,__,GR,GF,GF,GR,__,go
+    StageDef    go,__,GR,GF,GF,GR,__,__,__,__,GR,GF,GF,GR,__,go
+    StageDef    __,__,GR,GR,GR,GR,__,__,__,__,GR,GR,GR,GR,__,__
+    StageDef    __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__
+    StageDef    __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__
+    StageDef    __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__
+    StageDef    __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__
+    StageDef    __,__,GR,GR,GR,GR,__,__,__,__,GR,GR,GR,GR,__,__
+    StageDef    __,__,GR,GF,GF,GR,__,__,__,__,GR,GF,GF,GR,__,__
+    
+    StageObj    BALLU, $70, $C0, $00
+    StageObj    BALLD, $90, $C0, $00
+    StageObj    KEY, $80, $00, $00
+    StageObj    KEY, $80, $80, $00
+    StageEnd
+
+;****************************************************************************
+; Stage 4-2
+;****************************************************************************
+
+StageMap_4_2:
+    StageDef    __,__,GR,GR,GF,GF,GF,GR,GR,GF,GF,GF,GR,GR,__,__
+    StageDef    __,__,GR,GR,GR,GR,GR,GR,GR,GR,GR,GR,GR,GR,__,__
+    StageDef    __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__
+    StageDef    __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__
+    StageDef    __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__
+    StageDef    __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__
+    StageDef    GR,GR,GR,GR,GR,GR,__,__,__,__,GR,GR,GR,GR,GR,GR
+    StageDef    GR,GF,GF,GF,GR,GR,__,go,go,__,GR,GR,GF,GF,GF,GR
+    StageDef    GR,GF,GF,GF,GR,GR,__,go,go,__,GR,GR,GF,GF,GF,GR
+    StageDef    GR,GR,GR,GR,GR,GR,__,__,__,__,GR,GR,GR,GR,GR,GR
+    StageDef    __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__
+    StageDef    __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__
+    StageDef    __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__
+    StageDef    __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__
+    StageDef    __,__,GR,GR,GR,GR,GR,GR,GR,GR,GR,GR,GR,GR,__,__
+    StageDef    __,__,GR,GR,GF,GF,GF,GR,GR,GF,GF,GF,GR,GR,__,__
+    
+    StageObj    BALLR, $40, $30, $00
+    StageObj    BALLL, $40, $50, $00
+    StageObj    BALLR, $C0, $30, $00
+    StageObj    BALLL, $C0, $50, $00
+    StageObj    BALLR, $40, $B0, $00
+    StageObj    BALLL, $40, $D0, $00
+    StageObj    BALLR, $C0, $B0, $00
+    StageObj    BALLL, $C0, $D0, $00
+    StageObj    KEY, $40, $40, $00
+    StageObj    KEY, $C0, $40, $00
+    StageObj    KEY, $40, $C0, $00
+    StageObj    KEY, $C0, $C0, $00
+    StageEnd
+
+;****************************************************************************
+; Stage 4-3
+;****************************************************************************
+
+StageMap_4_3:
+    StageDef    __,__,__,__,__,__,__,GR,GF,GF,GR,GF,GF,GR,__,__
+    StageDef    __,__,GR,__,__,__,__,GR,GR,GR,GR,GR,GR,GR,__,__
+    StageDef    GR,GR,GR,__,__,__,__,GR,__,__,__,__,GR,GR,GR,GR
+    StageDef    GF,GF,GR,__,__,__,__,__,__,go,go,__,GR,GF,GF,GR
+    StageDef    GF,GF,GR,__,__,__,__,__,__,go,go,__,GR,GF,GF,GR
+    StageDef    GR,GR,GR,__,__,__,__,GR,__,__,__,__,GR,GR,GR,GR
+    StageDef    __,__,GR,__,__,__,__,GR,GR,GR,GR,GR,GR,GR,__,__
+    StageDef    __,__,__,__,__,__,__,GR,GF,GF,GR,GF,GF,GR,__,__
+    StageDef    __,__,__,__,__,__,__,GR,GF,GF,GR,GF,GF,GR,__,__
+    StageDef    __,__,GR,__,__,__,__,GR,GR,GR,GR,GR,GR,GR,__,__
+    StageDef    GR,GR,GR,__,__,__,__,GR,__,__,__,__,GR,GR,GR,GR
+    StageDef    GF,GF,GR,__,__,__,__,__,__,__,__,__,GR,GF,GF,GR
+    StageDef    GF,GF,GR,__,__,__,__,__,__,__,__,__,GR,GF,GF,GR
+    StageDef    GR,GR,GR,__,__,__,__,GR,__,__,__,__,GR,GR,GR,GR
+    StageDef    __,__,GR,__,__,__,__,GR,GR,GR,GR,GR,GR,GR,__,__
+    StageDef    __,__,__,__,__,__,__,GR,GF,GF,GR,GF,GF,GR,__,__
+    
+    StageObj    BALLD, $40, $00, $00
+    StageObj    BALLD, $60, $40, $00
+    StageObj    BALLD, $40, $80, $00
+    StageObj    BALLD, $60, $C0, $00
+    StageObj    KEY, $00, $80, $00
+    StageObj    KEY, $A0, $C0, $00
+    StageEnd
+
+;****************************************************************************
+; Stage 4-4
+;****************************************************************************
+
+StageMap_4_4:
+    StageDef    __,__,GR,rv,rv,GR,__,__,__,__,GR,rv,rv,GR,__,__
+    StageDef    __,__,GR,rv,rv,GR,__,__,__,__,GR,rv,rv,GR,__,__
+    StageDef    GR,GR,GR,rv,rv,GR,GR,__,__,GR,GR,rv,rv,GR,GR,GR
+    StageDef    rh,rh,rh,rv,rv,rh,rh,rh,rh,rh,rh,rv,rv,rh,rh,rh
+    StageDef    rh,rh,rh,rv,rv,rh,rh,rh,rh,rh,rh,rv,rv,rh,rh,rh
+    StageDef    __,GR,GR,rv,rv,GR,GR,GR,GR,GR,GR,rv,rv,GR,GR,__
+    StageDef    __,__,GR,rv,rv,GR,__,__,__,__,GR,rv,rv,GR,__,__
+    StageDef    __,__,GR,rv,rv,GR,__,go,go,__,GR,rv,rv,GR,__,__
+    StageDef    __,__,GR,rv,rv,GR,__,go,go,__,GR,rv,rv,GR,__,__
+    StageDef    __,__,GR,rv,rv,GR,__,__,__,__,GR,rv,rv,GR,__,__
+    StageDef    GR,GR,GR,rv,rv,GR,GR,__,__,GR,GR,rv,rv,GR,GR,GR
+    StageDef    rh,rh,rh,rv,rv,rh,rh,rh,rh,rh,rh,rv,rv,rh,rh,rh
+    StageDef    rh,rh,rh,rv,rv,rh,rh,rh,rh,rh,rh,rv,rv,rh,rh,rh
+    StageDef    __,GR,GR,rv,rv,GR,GR,GR,GR,GR,GR,rv,rv,GR,GR,__
+    StageDef    __,__,GR,rv,rv,GR,__,__,__,__,GR,rv,rv,GR,__,__
+    StageDef    __,__,GR,rv,rv,GR,__,__,__,__,GR,rv,rv,GR,__,__
+    
+    StageObj    BALLR, $00, $C0, $00
+    StageObj    BALLR, $80, $C0, $00
+    StageObj    BALLL, $00, $40, $00
+    StageObj    BALLL, $80, $40, $00
+    StageObj    BALLU, $40, $40, $00
+    StageObj    BALLU, $40, $C0, $00
+    StageObj    BALLD, $C0, $40, $00
+    StageObj    BALLD, $C0, $C0, $00
+    StageObj    KEY, $00, $80, $00
+    StageObj    KEY, $80, $00, $00
+    StageEnd
+
+;****************************************************************************
+; Stage 4-5
+;****************************************************************************
+
+StageMap_4_5:
+    StageDef    __,__,rh,rv,rv,GR,__,__,__,__,GR,rv,rv,rh,__,__
+    StageDef    __,__,GR,rv,rv,GR,__,__,__,__,GR,rv,rv,GR,__,__
+    StageDef    GR,GR,__,__,__,__,GR,GR,GR,GR,__,__,__,__,GR,GR
+    StageDef    GF,GR,__,__,__,__,GR,GF,GF,GR,__,__,__,__,GR,GF
+    StageDef    GF,GR,__,__,__,__,GR,GF,GF,GR,__,__,__,__,GR,GF
+    StageDef    GR,GR,__,__,__,__,GR,GR,GR,GR,__,__,__,__,GR,GR
+    StageDef    __,__,GR,rv,rv,GR,__,__,__,__,GR,rv,rv,GR,__,__
+    StageDef    __,__,GR,rv,rv,rh,__,go,go,__,rh,rv,rv,GR,__,__
+    StageDef    __,__,GR,rv,rv,rh,__,go,go,__,rh,rv,rv,GR,__,__
+    StageDef    __,__,GR,rv,rv,GR,__,__,__,__,GR,rv,rv,GR,__,__
+    StageDef    GR,GR,__,__,__,__,GR,GR,GR,GR,__,__,__,__,GR,GR
+    StageDef    GF,GR,__,__,__,__,GR,GF,GF,GR,__,__,__,__,GR,GF
+    StageDef    GF,GR,__,__,__,__,GR,GF,GF,GR,__,__,__,__,GR,GF
+    StageDef    GR,GR,__,__,__,__,GR,GR,GR,GR,__,__,__,__,GR,GR
+    StageDef    __,__,GR,rv,rv,GR,__,__,__,__,GR,rv,rv,GR,__,__
+    StageDef    __,__,rh,rv,rv,GR,__,__,__,__,GR,rv,rv,rh,__,__
+    
+    StageObj    BALLR, $40, $40, $00
+    StageObj    BALLL, $40, $40, $00
+    StageObj    BALLR, $C0, $40, $00
+    StageObj    BALLL, $C0, $40, $00
+    StageObj    BALLR, $40, $C0, $00
+    StageObj    BALLL, $40, $C0, $00
+    StageObj    BALLR, $C0, $C0, $00
+    StageObj    BALLL, $C0, $C0, $00
+    StageObj    KEY, $40, $40, $00
+    StageObj    KEY, $C0, $40, $00
+    StageObj    KEY, $40, $C0, $00
+    StageObj    KEY, $C0, $C0, $00
+    StageEnd
+
+;****************************************************************************
+; Stage 4-6
+;****************************************************************************
+
+StageMap_4_6:
+    StageDef    __,__,GR,GF,GF,GR,__,__,__,__,GR,GF,GF,GR,__,__
+    StageDef    __,__,GR,GR,GR,GR,__,__,__,__,GR,GR,GR,GR,__,__
+    StageDef    WA,WA,__,__,__,__,WA,WA,WA,WA,__,__,__,__,WA,WA
+    StageDef    WA,WA,__,__,__,__,WA,WA,WA,WA,__,__,__,__,WA,WA
+    StageDef    WA,WA,__,__,__,__,WA,WA,WA,WA,__,__,__,__,WA,WA
+    StageDef    WA,WA,__,__,__,__,WA,WA,WA,WA,__,__,__,__,WA,WA
+    StageDef    __,__,GR,GR,GR,GR,__,__,__,__,GR,GR,GR,GR,__,__
+    StageDef    __,__,GR,GF,GF,GR,__,go,go,__,GR,GF,GF,GR,__,__
+    StageDef    __,__,GR,GF,GF,GR,__,go,go,__,GR,GF,GF,GR,__,__
+    StageDef    __,__,GR,GR,GR,GR,__,__,__,__,GR,GR,GR,GR,__,__
+    StageDef    WA,WA,__,__,__,__,WA,WA,WA,WA,__,__,__,__,WA,WA
+    StageDef    WA,WA,__,__,__,__,WA,WA,WA,WA,__,__,__,__,WA,WA
+    StageDef    WA,WA,__,__,__,__,WA,WA,WA,WA,__,__,__,__,WA,WA
+    StageDef    WA,WA,__,__,__,__,WA,WA,WA,WA,__,__,__,__,WA,WA
+    StageDef    __,__,GR,GR,GR,GR,__,__,__,__,GR,GR,GR,GR,__,__
+    StageDef    __,__,GR,GF,GF,GR,__,__,__,__,GR,GF,GF,GR,__,__
+    
+    StageObj    BALLR, $00, $30, $00
+    StageObj    BALLR, $80, $30, $00
+    StageObj    BALLL, $00, $50, $00
+    StageObj    BALLL, $80, $50, $00
+    StageObj    BALLR, $40, $B0, $00
+    StageObj    BALLR, $C0, $B0, $00
+    StageObj    BALLL, $40, $D0, $00
+    StageObj    BALLL, $C0, $D0, $00
+    StageObj    BALLU, $F0, $20, $00
+    StageObj    BALLU, $F0, $A0, $00
+    StageObj    BALLD, $10, $20, $00
+    StageObj    BALLD, $10, $A0, $00
+    StageObj    BALLU, $70, $60, $00
+    StageObj    BALLU, $70, $E0, $00
+    StageObj    BALLD, $90, $60, $00
+    StageObj    BALLD, $90, $E0, $00
+    StageObj    KEY, $40, $40, $00
+    StageObj    KEY, $C0, $40, $00
+    StageObj    KEY, $40, $C0, $00
+    StageObj    KEY, $C0, $C0, $00
+    StageEnd
+
+;****************************************************************************
+; Stage 4-7
+;****************************************************************************
+
+StageMap_4_7:
+    StageDef    __,__,__,__,__,__,GR,GR,GR,GR,__,__,__,__,__,__
+    StageDef    __,__,__,__,__,__,GR,GF,GF,GR,__,__,__,__,__,__
+    StageDef    GR,GR,__,__,__,__,GR,GF,GF,GR,__,__,__,__,GR,GR
+    StageDef    GR,GR,__,__,__,__,GR,GF,GF,GR,__,__,__,__,GR,GR
+    StageDef    GF,GR,__,__,__,__,GR,GR,GR,GR,__,__,__,__,GR,GF
+    StageDef    GF,GR,__,__,__,__,GR,GR,GR,GR,__,__,__,__,GR,GF
+    StageDef    GF,GR,__,__,__,__,__,__,__,__,__,__,__,__,GR,GF
+    StageDef    GR,GR,__,__,__,__,__,go,go,__,__,__,__,__,GR,GR
+    StageDef    GR,GR,__,__,__,__,__,go,go,__,__,__,__,__,GR,GR
+    StageDef    GF,GR,__,__,__,__,__,__,__,__,__,__,__,__,GR,GF
+    StageDef    GF,GR,__,__,__,__,GR,GR,GR,GR,__,__,__,__,GR,GF
+    StageDef    GF,GR,__,__,__,__,GR,GR,GR,GR,__,__,__,__,GR,GF
+    StageDef    GR,GR,__,__,__,__,GR,GF,GF,GR,__,__,__,__,GR,GR
+    StageDef    GR,GR,__,__,__,__,GR,GF,GF,GR,__,__,__,__,GR,GR
+    StageDef    __,__,__,__,__,__,GR,GF,GF,GR,__,__,__,__,__,__
+    StageDef    __,__,__,__,__,__,GR,GR,GR,GR,__,__,__,__,__,__
+    
+    StageObj    BALLD, $30, $00, $00
+    StageObj    BALLU, $40, $20, $00
+    StageObj    BALLD, $50, $40, $00
+    StageObj    BALLD, $30, $80, $00
+    StageObj    BALLU, $40, $A0, $00
+    StageObj    BALLD, $50, $C0, $00
+    StageObj    BALLU, $B0, $40, $00
+    StageObj    BALLD, $C0, $60, $00
+    StageObj    BALLU, $D0, $80, $00
+    StageObj    BALLU, $B0, $C0, $00
+    StageObj    BALLD, $C0, $E0, $00
+    StageObj    BALLU, $D0, $00, $00
+    StageObj    KEY, $40, $40, $00
+    StageObj    KEY, $40, $C0, $00
+    StageObj    KEY, $C0, $40, $00
+    StageObj    KEY, $C0, $C0, $00
+    StageEnd
+
+;****************************************************************************
+; Stage 4-8
+;****************************************************************************
+
+StageMap_4_8:
+    StageDef    __,__,GR,GF,GF,GR,__,__,__,__,GR,GF,GF,GR,__,__
+    StageDef    __,__,GR,GR,GR,GR,__,__,__,__,GR,GR,GR,GR,__,__
+    StageDef    __,__,GR,GR,GR,GR,__,__,__,__,GR,GR,GR,GR,__,__
+    StageDef    __,__,GR,GF,GF,GR,__,__,__,__,GR,GF,GF,GR,__,__
+    StageDef    __,__,GR,GF,GF,GR,__,__,__,__,GR,GF,GF,GR,__,__
+    StageDef    __,__,GR,GR,GR,GR,__,__,__,__,GR,GR,GR,GR,__,__
+    StageDef    __,__,GR,GR,GR,GR,__,__,__,__,GR,GR,GR,GR,__,__
+    StageDef    __,__,GR,GF,GF,GR,__,__,__,__,GR,GF,GF,GR,__,__
+    StageDef    __,__,GR,GF,GF,GR,__,__,__,__,GR,GF,GF,GR,__,__
+    StageDef    __,__,GR,GR,GR,GR,__,__,__,__,GR,GR,GR,GR,__,__
+    StageDef    __,__,GR,GR,GR,GR,__,__,__,__,GR,GR,GR,GR,__,__
+    StageDef    go,__,GR,GF,GF,GR,__,__,__,__,GR,GF,GF,GR,__,go
+    StageDef    go,__,GR,GF,GF,GR,__,__,__,__,GR,GF,GF,GR,__,go
+    StageDef    __,__,GR,GR,GR,GR,__,__,__,__,GR,GR,GR,GR,__,__
+    StageDef    __,__,GR,GR,GR,GR,__,__,__,__,GR,GR,GR,GR,__,__
+    StageDef    __,__,GR,GF,GF,GR,__,__,__,__,GR,GF,GF,GR,__,__
+    
+    StageObj    SWITCH, $00, $80, $04
+    StageObj    BOMB, $40, $00, TILE___
+    StageObj    BOMB, $C0, $40, TILE___
+    StageObj    BOMB, $40, $80, TILE___
+    StageObj    BOMB, $C0, $C0, TILE___
+    StageObj    KEY, $80, $20, $00
+    StageObj    KEY, $80, $60, $00
+    StageObj    KEY, $80, $A0, $00
+    StageObj    KEY, $80, $E0, $00
+    StageObj    BALLR, $80, $10, $00
+    StageObj    BALLL, $80, $30, $00
+    StageObj    BALLR, $80, $50, $00
+    StageObj    BALLL, $80, $70, $00
+    StageObj    BALLR, $80, $90, $00
+    StageObj    BALLL, $80, $B0, $00
+    StageObj    BALLR, $80, $D0, $00
+    StageObj    BALLL, $80, $F0, $00
+    StageEnd
+
+;****************************************************************************
+; Stage 4-9
+;****************************************************************************
+
+StageMap_4_9:
+    StageDef    __,__,rh,rv,rv,GR,__,__,__,__,rh,rv,rv,GR,__,__
+    StageDef    __,__,GR,rv,rv,GR,__,__,__,__,GR,rv,rv,GR,__,__
+    StageDef    rv,GR,__,__,__,__,GR,rv,rv,GR,__,__,__,__,GR,rv
+    StageDef    rv,rh,__,__,__,__,GR,rv,rv,rh,__,__,__,__,GR,rv
+    StageDef    rv,rh,__,__,__,__,GR,rv,rv,rh,__,__,__,__,GR,rv
+    StageDef    rv,GR,__,__,__,__,GR,rv,rv,GR,__,__,__,__,GR,rv
+    StageDef    __,__,GR,rv,rv,GR,__,__,__,__,GR,rv,rv,GR,__,__
+    StageDef    __,__,GR,rv,rv,rh,__,__,__,__,GR,rv,rv,rh,__,__
+    StageDef    __,__,GR,rv,rv,rh,__,__,__,__,GR,rv,rv,rh,__,__
+    StageDef    __,__,GR,rv,rv,GR,__,__,__,__,GR,rv,rv,GR,__,__
+    StageDef    rv,GR,__,__,__,__,GR,rv,rv,GR,__,__,__,__,GR,rv
+    StageDef    rv,GR,__,__,__,__,rh,rv,rv,GR,__,__,__,__,rh,rv
+    StageDef    rv,GR,__,__,__,__,rh,rv,rv,GR,__,__,__,__,rh,rv
+    StageDef    rv,GR,__,__,__,__,GR,rv,rv,GR,__,__,__,__,GR,rv
+    StageDef    __,__,GR,rv,rv,GR,__,__,__,__,GR,rv,rv,GR,__,__
+    StageDef    __,__,rh,rv,rv,GR,__,__,__,__,rh,rv,rv,GR,__,__
+    
+    StageObj    BALLR, $00, $F0, $00
+    StageObj    BALLL, $00, $0F, $00
+    StageObj    BALLR, $80, $F0, $00
+    StageObj    BALLL, $80, $0F, $00
+    StageObj    BALLR, $00, $70, $00
+    StageObj    BALLL, $00, $8F, $00
+    StageObj    BALLR, $80, $70, $00
+    StageObj    BALLL, $80, $8F, $00
+    StageObj    BALLR, $40, $30, $00
+    StageObj    BALLL, $40, $4F, $00
+    StageObj    BALLR, $C0, $30, $00
+    StageObj    BALLL, $C0, $4F, $00
+    StageObj    BALLR, $40, $B0, $00
+    StageObj    BALLL, $40, $FC, $00
+    StageObj    BALLR, $C0, $B0, $00
+    StageObj    BALLL, $C0, $CF, $00
+    StageObj    CRYSTAL, $40, $40, $00
+    StageObj    CRYSTAL, $C0, $40, $00
+    StageObj    CRYSTAL, $40, $C0, $00
+    StageObj    CRYSTAL, $C0, $C0, $00
+    StageObj    CRYSTAL, $80, $00, $00
+    StageObj    CRYSTAL, $00, $80, $00
+    StageObj    CHILD, $80, $80, CHILD_HORU
+    StageEnd

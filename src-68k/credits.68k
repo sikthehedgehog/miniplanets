@@ -1,0 +1,321 @@
+;****************************************************************************
+; Credits
+; Main loop for the credits roll.
+;----------------------------------------------------------------------------
+; notes: doesn't return
+;****************************************************************************
+
+Credits:
+    jsr     (ResetVideo).w              ; Reset graphics
+    st.b    (FadeInFlag)                ; We want fade in
+    
+    jsr     (InitUniverse).w            ; Draw background
+    jsr     (LoadFont).w                ; Load generic font
+    
+    ; Load graphics for the planets
+    DMA2VRAM GfxMiniplanets, VramPlanets*$20, 5*$20, ($C00004)
+    
+    
+    lea     (GfxQishaEnding), a6        ; Load Qisha's graphics
+    lea     (LocalRAM), a5
+    jsr     (DecompressSLZ).w
+    DMA2VRAM LocalRAM, VramCreditsQisha*$20, $60*$20, ($C00004)
+    
+    bsr     DrawCreditsForeground       ; Draw foreground
+    
+    ; Load graphics for the planets
+    ;DMA2VRAM GfxMiniplanets, VramPlanets*$20, 2*$20, ($C00004)
+    
+    lea     (PaletteBuf), a5            ; Load palettes
+    lea     (PalCredits), a6
+    moveq   #$40/8-1, d7
+@LoadPalette:
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    dbf     d7, @LoadPalette
+    move.w  #$4AE, (PaletteBuf+$09*2)
+    
+    clr.b   (CreditsText1)              ; Text not shown yet
+    clr.b   (CreditsText2)
+    clr.b   (CreditsLine)               ; Starting on the first line
+    move.b  #150, (CreditsDelay)        ; Set up delay for first letter
+    move.l  #StaffRoll, (CreditsSrc)    ; Initialize staff roll typewritter
+    move.l  #CreditsText1, (CreditsDest)
+
+;----------------------------------------------------------------------------
+
+    move.w  #-$C0, (CreditsScroll)      ; Initial offset
+    
+@FallLoop:
+    SetVRAMAddr $F800, ($C00004)        ; Make background move
+    move.w  (CreditsScroll), d7
+    neg.w   d7
+    asr.w   #2, d7
+    move.w  d7, ($C00000)
+    ;asr.w   #2, d7
+    ;move.w  d7, ($C00000)
+    move.w  #0, ($C00000)
+    
+@FallLogic:
+    addq.w  #1, (CreditsSpin)
+    addq.w  #1, (CreditsScroll)         ; Update camera
+    beq     @FallEnd
+    cmp.w   #-$40, (CreditsScroll)
+    bne.s   @NoBounceSFX
+    moveq   #SFX_OUCH, d7
+    jsr     (PlaySFX).w
+@NoBounceSFX:
+    subq.b  #1, (NumFrames)             ; Do NTSC/PAL speed correction
+    bne.s   @FallLogic
+    
+    jsr     (ClearSprites).w            ; Draw falling Qisha
+    moveq   #%1111, d3
+    move.w  (CreditsScroll), d1
+    move.w  d1, d0
+    add.w   #$40+$A0, d0
+    add.w   #$40, d1
+    bpl.s   @Bouncing
+    
+    add.w   d1, d1
+    add.w   d1, d1
+    add.w   #174, d1
+    move.w  #$2000+VramCreditsQisha, d2
+    jsr     (AddSprite).w
+    bra.s   @Falling
+    
+@Bouncing:
+    add.w   d1, d1
+    add.w   d1, d1
+    lea     (Sines), a6
+    move.w  (a6,d1.w), d1
+    neg.w   d1
+    asr.w   #2, d1
+    add.w   #174, d1
+    move.w  #$2010+VramCreditsQisha, d2
+    jsr     (AddSprite).w
+    
+@Falling:
+    ;move.w  (CreditsScroll), d7          ; Draw planelagos
+    ;neg.w   d7
+    ;asr.w   #5, d7
+    ;add.w   #96, d7
+    move.w  #96, d7                     ; Draw planelagos
+    move.w  #80, d6
+    move.w  (CreditsSpin), d5
+    lsr.w   #2, d5
+    jsr     (DrawAllPlanelagos).w
+    
+    jsr     (NextFrame).w               ; Wait for next frame
+    bra     @FallLoop
+    
+@FallEnd:
+    SetVRAMAddr $F800, ($C00004)        ; Reset scroll position
+    move.l  #0, ($C00000)
+
+;----------------------------------------------------------------------------
+
+    clr.w   (Anim)
+@LookLoop:
+@LookLogic:
+    addq.w  #1, (Anim)                  ; Update animation
+    addq.w  #1, (CreditsSpin)
+    cmp.w   #$40, (Anim)
+    beq.s   @LookEnd
+    subq.b  #1, (NumFrames)             ; Do NTSC/PAL speed correction
+    bne.s   @LookLogic
+    
+    move.w  (Anim), d7                  ; Determine sprite
+    lsr.w   #2, d7
+    add.w   d7, d7
+    lea     @LookTable(pc), a6
+    move.w  (a6,d7.w),d2
+    
+    jsr     (ClearSprites).w            ; Draw Qisha
+    move.w  #224, d0
+    move.w  #174, d1
+    moveq   #%1111, d3
+    jsr     (AddSprite).w
+    
+    move.w  #96, d7                     ; Draw planelagos
+    move.w  #80, d6
+    move.w  (CreditsSpin), d5
+    lsr.w   #2, d5
+    jsr     (DrawAllPlanelagos).w
+    
+    jsr     (NextFrame).w               ; Wait for next frame
+    bra     @LookLoop
+
+@LookTable:
+    dcb.w   10, $2020+VramCreditsQisha
+    dc.w    $2030+VramCreditsQisha
+    dc.w    $2040+VramCreditsQisha
+    dc.w    $2050+VramCreditsQisha
+    dcb.w   4, $2840+VramCreditsQisha
+
+@LookEnd:
+    jsr     (ClearSprites).w            ; Leave Qisha looking back
+    move.w  #224, d0
+    move.w  #174, d1
+    move.w  #$2840+VramCreditsQisha, d2
+    moveq   #%1111, d3
+    jsr     (AddSprite).w
+
+;----------------------------------------------------------------------------
+
+    moveq   #BGM_ENDING, d7             ; Start playing music
+    jsr     (PlayBGM).w
+    
+    clr.w   (Anim)
+@MainLoop:
+@LogicLoop:
+    bsr     UpdateCreditsText           ; Update everything
+    addq.w  #1, (Anim)
+    addq.w  #1, (CreditsSpin)
+    
+    clr.b   (Joy1Press)                 ; Do NTSC/PAL speed correction
+    clr.b   (Joy2Press)
+    subq.b  #1, (NumFrames)
+    bne.s   @LogicLoop
+    
+    bsr     DrawCreditsText             ; Draw text
+    
+    move.b  #1, (NumSprites)            ; Draw planelagos
+    move.w  #96, d7
+    move.w  #80, d6
+    move.w  (CreditsSpin), d5
+    lsr.w   #2, d5
+    jsr     (DrawAllPlanelagos).w
+    
+    jsr     (NextFrame).w               ; Wait for next frame
+    bra     @MainLoop
+
+;****************************************************************************
+; DrawCreditsForeground
+; Draws the foreground planet in the credits.
+;----------------------------------------------------------------------------
+; breaks: all, local RAM
+;****************************************************************************
+
+DrawCreditsForeground:
+    lea     (GfxCreditsFG), a6          ; Decompress the foreground graphics
+    lea     (LocalRAM), a5
+    jsr     (DecompressSLZ).w
+    DMA2VRAM LocalRAM+(16*6)*2, VramCreditsFG*$20, GfxCreditsFGSize*$20, ($C00004)
+    
+    lea     (LocalRAM), a0              ; Tilemap mappings
+    lea     ($C00000), a1               ; VDP data port
+    
+    move.l  #$20002000+(VramCreditsFG<<16)+VramCreditsFG, d4
+    SetPosA 0, 28-6, 4(a1)
+    moveq   #6-1, d6
+@YLoop:
+    moveq   #64/16-1, d7
+@XLoop1:
+    moveq   #8-1, d3
+@XLoop2:
+    move.l  (a0)+, d5
+    add.l   d4, d5
+    move.l  d5, (a1)
+    dbf     d3, @XLoop2
+    lea     -16*2(a0), a0
+    dbf     d7, @XLoop1
+    lea     16*2(a0), a0
+    dbf     d6, @YLoop
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; UpdateCreditsText
+; Types in the staff roll text.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+UpdateCreditsText:
+    subq.b  #1, (CreditsDelay)          ; Still wait?
+    beq.s   @NoDelay
+    rts
+@NoDelay:
+    
+    move.l  (CreditsSrc), a0            ; Where to read from
+    move.l  (CreditsDest), a1           ; Where to write into
+    
+    move.b  (a0)+, d0                   ; Get next character
+    cmp.b   #$FF, d0
+    bne.s   @NotOver
+    rts
+@NotOver:
+    move.l  a0, (CreditsSrc)
+    
+    cmp.b   #$0C, d0                    ; Formfeed? (because I'm too lazy to
+    bne.s   @NoFormfeed                   ; write actual code to clear the
+    clr.b   (CreditsText1)                ; linebuffers properly)
+    clr.b   (CreditsText2)
+    bra.s   @NoDelay
+    
+@NoFormfeed:
+    cmp.b   #$0D, d0                    ; Carriage return?
+    bne.s   @NoReturn
+    
+    tst.b   (CreditsLine)
+    sne.b   d7
+    and.l   #24, d7
+    add.l   #CreditsText1, d7
+    move.l  d7, (CreditsDest)
+    
+    move.b  #150, (CreditsDelay)
+    rts
+    
+@NoReturn:
+    cmp.b   #$0A, d0                    ; Newline?
+    bne.s   @NoNewline
+    
+    not.b   (CreditsLine)               ; Move onto the second line?
+    beq.s   @NextScreen
+    move.l  #CreditsText2, (CreditsDest)
+    bra.s   @NoDelay
+    
+@NextScreen:                            ; Move onto the next screen?
+    move.l  #CreditsText1, (CreditsDest)
+    move.b  #150, (CreditsDelay)
+    rts
+    
+@NoNewline:
+    move.b  d0, (a1)+                   ; Show character on screen
+    clr.b   (a1)
+    move.l  a1, (CreditsDest)
+    move.b  #6, (CreditsDelay)
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawCreditsText
+; Draws the text being shown in the credits.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawCreditsText:
+    move.l  #CreditsBuffer1, (TextBufAddr) ; Draw first line of text
+    jsr     (ClearText).w
+    moveq   #0, d7
+    lea     (CreditsText1), a6
+    jsr     (DrawText).w
+    move.w  #$6000, d7
+    jsr     (ColorizeText).w
+    move.w  #$C486, d7
+    jsr     (UploadText).w
+    
+    move.l  #CreditsBuffer2, (TextBufAddr) ; Draw second line of text
+    jsr     (ClearText).w
+    moveq   #0, d7
+    lea     (CreditsText2), a6
+    jsr     (DrawText).w
+    move.w  #$4000, d7
+    jsr     (ColorizeText).w
+    move.w  #$C68C, d7
+    jsr     (UploadText).w
+    
+    rts                                 ; End of subroutine

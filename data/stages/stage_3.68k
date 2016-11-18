@@ -1,0 +1,293 @@
+;****************************************************************************
+; Stage 3-1
+;****************************************************************************
+
+StageMap_3_1:
+    StageDef    pl,pl,pl,cd,cd,ME,VI,VI,VI,VI,ME,cd,cd,ME,pl,pl
+    StageDef    pl,pl,ME,cd,cd,ME,ME,ME,ME,ME,ME,cd,cd,ME,pl,pl
+    StageDef    pl,ME,ME,cd,cd,ME,pl,pl,pl,pl,ME,cd,cd,ME,ME,pl
+    StageDef    pl,ME,ME,cd,cd,ME,pl,go,go,pl,pl,cd,cd,ME,ME,pl
+    StageDef    pl,ME,ME,cd,cd,ME,pl,go,go,pl,pl,cd,cd,ME,ME,pl
+    StageDef    pl,ME,ME,cd,cd,ME,pl,pl,pl,pl,ME,cd,cd,ME,ME,pl
+    StageDef    pl,pl,ME,cd,cd,ME,ME,pl,pl,ME,ME,cd,cd,ME,pl,pl
+    StageDef    pl,pl,ME,cd,cd,ME,ME,pl,pl,ME,ME,cd,cd,pl,pl,pl
+    StageDef    pl,pl,ME,cd,cd,ME,ME,pl,pl,ME,ME,cd,cd,pl,pl,pl
+    StageDef    pl,pl,ME,cd,cd,ME,ME,pl,pl,ME,ME,cd,cd,ME,pl,pl
+    StageDef    ME,ME,ME,cd,cd,ME,pl,pl,pl,pl,ME,cd,cd,ME,ME,ME
+    StageDef    VI,VI,ME,cd,cd,pl,pl,pl,pl,pl,ME,cd,cd,ME,VI,VI
+    StageDef    VI,VI,ME,cd,cd,pl,pl,pl,pl,pl,ME,cd,cd,ME,VI,VI
+    StageDef    ME,ME,ME,cd,cd,ME,pl,pl,pl,pl,ME,cd,cd,ME,ME,ME
+    StageDef    pl,pl,ME,cd,cd,ME,ME,ME,ME,ME,ME,cd,cd,ME,pl,pl
+    StageDef    pl,pl,pl,cd,cd,ME,VI,VI,VI,VI,ME,cd,cd,ME,pl,pl
+    
+    StageObj    KEY, $00, $80, $00
+    StageObj    KEY, $80, $C0, $00
+    StageEnd
+
+;****************************************************************************
+; Stage 3-2
+;****************************************************************************
+
+StageMap_3_2:
+    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cu,cu,ME,pl,pl
+    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cu,cu,ME,pl,pl
+    StageDef    ME,ME,ME,cd,cd,ME,ME,pl,pl,ME,ME,cu,cu,ME,ME,ME
+    StageDef    cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,cu,cu,cl,cl,cl
+    StageDef    cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,cu,cu,cl,cl,cl
+    StageDef    ME,ME,ME,cd,cd,ME,ME,ME,ME,ME,ME,cu,cu,ME,ME,ME
+    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cu,cu,ME,pl,pl
+    StageDef    pl,pl,ME,cd,cd,ME,pl,go,go,pl,pl,cu,cu,pl,pl,pl
+    StageDef    pl,pl,ME,cd,cd,ME,pl,go,go,pl,pl,cu,cu,pl,pl,pl
+    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cu,cu,ME,pl,pl
+    StageDef    ME,ME,ME,cd,cd,ME,ME,ME,ME,ME,ME,cu,cu,ME,ME,ME
+    StageDef    cr,cr,cr,cd,cd,cr,cr,cr,cr,cr,cr,cr,cr,cr,cr,cr
+    StageDef    cr,cr,cr,cd,cd,cr,cr,cr,cr,cr,cr,cr,cr,cr,cr,cr
+    StageDef    pl,ME,ME,cd,cd,ME,ME,ME,ME,ME,ME,cu,cu,ME,ME,pl
+    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cu,cu,ME,pl,pl
+    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cu,cu,ME,pl,pl
+    
+    StageObj    KEY, $80, $00, $00
+    StageObj    KEY, $00, $80, $00
+    StageEnd
+
+;****************************************************************************
+; Stage 3-3
+;****************************************************************************
+
+StageMap_3_3:
+    StageDef    pl,pl,ME,VI,VI,ME,pl,go,go,pl,ME,VI,VI,ME,pl,pl
+    StageDef    pl,pl,ME,ME,ME,ME,pl,pl,pl,pl,ME,ME,ME,ME,pl,pl
+    StageDef    cl,cl,cl,PI,PI,cr,cr,cr,cr,cr,cr,PI,PI,cl,cl,cl
+    StageDef    cl,cl,cl,PI,PI,cr,cr,cr,cr,cr,cr,PI,PI,cl,cl,cl
+    StageDef    cl,cl,cl,PI,PI,cr,cr,cr,cr,cr,cr,PI,PI,cl,cl,cl
+    StageDef    cl,cl,cl,PI,PI,cr,cr,cr,cr,cr,cr,PI,PI,cl,cl,cl
+    StageDef    pl,pl,ME,ME,ME,ME,pl,pl,pl,pl,ME,ME,ME,ME,pl,pl
+    StageDef    pl,pl,ME,VI,VI,ME,pl,pl,pl,pl,ME,VI,VI,ME,pl,pl
+    StageDef    pl,pl,ME,VI,VI,ME,pl,pl,pl,pl,ME,VI,VI,ME,pl,pl
+    StageDef    pl,pl,ME,ME,ME,ME,pl,pl,pl,pl,ME,ME,ME,ME,pl,pl
+    StageDef    cr,cr,cr,PI,PI,cl,cl,cl,cl,cl,cl,PI,PI,cr,cr,cr
+    StageDef    cr,cr,cr,PI,PI,cl,cl,cl,cl,cl,cl,PI,PI,cr,cr,cr
+    StageDef    cr,cr,cr,PI,PI,cl,cl,cl,cl,cl,cl,PI,PI,cr,cr,cr
+    StageDef    cr,cr,cr,PI,PI,cl,cl,cl,cl,cl,cl,PI,PI,cr,cr,cr
+    StageDef    pl,pl,ME,ME,ME,ME,pl,pl,pl,pl,ME,ME,ME,ME,pl,pl
+    StageDef    pl,pl,ME,VI,VI,ME,pl,go,go,pl,ME,VI,VI,ME,pl,pl
+    
+    StageObj    KEY, $00, $80, $00
+    StageObj    KEY, $80, $80, $00
+    StageEnd
+
+;****************************************************************************
+; Stage 3-4
+;****************************************************************************
+
+StageMap_3_4:
+    StageDef    go,cr,cr,cr,cr,cr,PI,PI,PI,PI,cr,cr,cr,cr,cr,go
+    StageDef    cr,cr,cr,cr,cr,cr,PI,PI,PI,PI,cr,cr,cr,cr,cr,cr
+    StageDef    PI,PI,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,PI,PI
+    StageDef    PI,PI,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,PI,PI
+    StageDef    PI,PI,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,PI,PI
+    StageDef    PI,PI,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,PI,PI
+    StageDef    cr,cr,cr,cr,cr,cr,PI,PI,PI,PI,cr,cr,cr,cr,cr,cr
+    StageDef    cr,cr,cr,cr,cr,cr,PI,PI,PI,PI,cr,cr,cr,cr,cr,cr
+    StageDef    cr,cr,cr,cr,cr,cr,PI,PI,PI,PI,cr,cr,cr,cr,cr,cr
+    StageDef    cr,cr,cr,cr,cr,cr,PI,PI,PI,PI,cr,cr,cr,cr,cr,cr
+    StageDef    PI,PI,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,PI,PI
+    StageDef    PI,PI,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,PI,PI
+    StageDef    PI,PI,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,PI,PI
+    StageDef    PI,PI,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,PI,PI
+    StageDef    cr,cr,cr,cr,cr,cr,PI,PI,PI,PI,cr,cr,cr,cr,cr,cr
+    StageDef    go,cr,cr,cr,cr,cr,PI,PI,PI,PI,cr,cr,cr,cr,cr,go
+    
+    StageObj    KEY, $80, $40, $00
+    StageObj    KEY, $00, $80, $00
+    StageObj    KEY, $80, $C0, $00
+    StageEnd
+
+;****************************************************************************
+; Stage 3-8 (that one level)
+;****************************************************************************
+
+StageMap_3_8:
+    StageDef    pl,pl,ME,cd,cd,ME,pl,go,go,pl,ME,cd,cd,ME,pl,pl
+    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cd,cd,ME,pl,pl
+    StageDef    ME,ME,ME,ME,ME,ME,ME,pl,pl,ME,ME,ME,ME,ME,ME,ME
+    StageDef    cr,cr,ME,VI,VI,ME,cr,cr,cr,cr,ME,VI,VI,ME,cr,cr
+    StageDef    cr,cr,ME,VI,VI,ME,cr,cr,cr,cr,ME,VI,VI,ME,cr,cr
+    StageDef    ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME
+    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cd,cd,ME,pl,pl
+    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cd,cd,ME,pl,pl
+    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cd,cd,ME,pl,pl
+    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cd,cd,ME,pl,pl
+    StageDef    pl,ME,ME,ME,ME,ME,ME,pl,pl,ME,ME,ME,ME,ME,ME,pl
+    StageDef    cr,cr,ME,VI,VI,ME,cr,cr,cr,cr,ME,VI,VI,ME,cr,cr
+    StageDef    cr,cr,ME,VI,VI,ME,cr,cr,cr,cr,ME,VI,VI,ME,cr,cr
+    StageDef    pl,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,pl
+    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cd,cd,ME,pl,pl
+    StageDef    pl,pl,ME,cd,cd,ME,pl,go,go,pl,ME,cd,cd,ME,pl,pl
+    
+    StageObj    KEY, $80, $80, $00
+    StageObj    SWITCH, $00, $80, $04
+    StageObj    BOMB, $40, $40, TILE_PI
+    StageObj    BOMB, $40, $C0, TILE_PI
+    StageObj    BOMB, $C0, $40, TILE_PI
+    StageObj    BOMB, $C0, $C0, TILE_PI
+    StageEnd
+
+;****************************************************************************
+; Stage 3-5
+;****************************************************************************
+
+StageMap_3_5:
+    StageDef    pl,pl,pl,pl,pl,pl,pl,pl,pl,pl,ME,VI,VI,ME,pl,pl
+    StageDef    pl,pl,ME,pl,pl,ME,pl,pl,pl,pl,ME,VI,VI,ME,pl,pl
+    StageDef    ME,ME,ME,pl,pl,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME
+    StageDef    VI,VI,ME,pl,pl,ME,VI,VI,VI,VI,ME,ME,ME,ME,VI,VI
+    StageDef    VI,VI,ME,pl,pl,ME,VI,VI,VI,VI,ME,ME,ME,ME,VI,VI
+    StageDef    ME,ME,ME,pl,pl,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME
+    StageDef    pl,pl,ME,pl,pl,ME,pl,pl,pl,pl,ME,VI,VI,ME,pl,pl
+    StageDef    pl,pl,pl,pl,pl,pl,pl,go,go,pl,ME,VI,VI,ME,pl,pl
+    StageDef    pl,pl,pl,pl,pl,pl,pl,go,go,pl,ME,VI,VI,ME,pl,pl
+    StageDef    pl,pl,ME,ME,ME,ME,pl,pl,pl,pl,ME,VI,VI,ME,pl,pl
+    StageDef    pl,ME,ME,ME,ME,ME,ME,pl,pl,ME,ME,ME,ME,ME,ME,pl
+    StageDef    pl,ME,ME,VI,VI,ME,ME,pl,pl,pl,pl,pl,pl,pl,pl,pl
+    StageDef    pl,ME,ME,VI,VI,ME,ME,pl,pl,pl,pl,pl,pl,pl,pl,pl
+    StageDef    pl,ME,ME,ME,ME,ME,ME,pl,pl,ME,ME,ME,ME,ME,ME,pl
+    StageDef    pl,pl,ME,ME,ME,ME,pl,pl,pl,pl,ME,VI,VI,ME,pl,pl
+    StageDef    pl,pl,pl,pl,pl,pl,pl,pl,pl,pl,ME,VI,VI,ME,pl,pl
+    
+    StageObj    KEY, $80, $00, $00
+    StageObj    KEY, $00, $80, $00
+    StageObj    ELECTRV, $28, $F8, $00
+    StageObj    ELECTRV, $28, $08, $00
+    StageObj    ELECTRV, $28, $78, $00
+    StageObj    ELECTRV, $28, $88, $00
+    StageObj    ELECTRV, $58, $F8, $00
+    StageObj    ELECTRV, $58, $08, $00
+    StageObj    ELECTRV, $58, $78, $00
+    StageObj    ELECTRV, $58, $88, $00
+    StageObj    ELECTRH, $F8, $D8, $00
+    StageObj    ELECTRH, $08, $D8, $00
+    StageObj    ELECTRH, $F8, $A8, $00
+    StageObj    ELECTRH, $08, $A8, $00
+    StageObj    ELECTRH, $78, $D8, $00
+    StageObj    ELECTRH, $88, $D8, $00
+    StageObj    ELECTRH, $78, $A8, $00
+    StageObj    ELECTRH, $88, $A8, $00
+    StageObj    ELECTRV, $C0, $B8, $00
+    StageObj    ELECTRV, $C0, $C8, $00
+    StageObj    ELECTRH, $38, $40, $00
+    StageObj    ELECTRH, $48, $40, $00
+    StageEnd
+
+;****************************************************************************
+; Stage 3-6
+;****************************************************************************
+
+StageMap_3_6:
+    StageDef    pl,pl,pl,cd,cd,pl,pl,go,go,pl,pl,cd,cd,pl,pl,pl
+    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cd,cd,ME,pl,pl
+    StageDef    ME,ME,ME,cd,cd,ME,ME,ME,ME,ME,ME,cd,cd,ME,ME,ME
+    StageDef    VI,VI,ME,cd,cd,ME,VI,VI,VI,VI,ME,cd,cd,ME,VI,VI
+    StageDef    VI,VI,ME,cd,cd,ME,VI,VI,VI,VI,ME,cd,cd,ME,VI,VI
+    StageDef    ME,ME,ME,cd,cd,ME,ME,ME,ME,ME,ME,cd,cd,ME,ME,ME
+    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cd,cd,ME,pl,pl
+    StageDef    pl,pl,pl,cd,cd,pl,pl,pl,pl,pl,pl,cd,cd,pl,pl,pl
+    StageDef    pl,pl,pl,cd,cd,pl,pl,pl,pl,pl,pl,cd,cd,pl,pl,pl
+    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cd,cd,ME,pl,pl
+    StageDef    ME,ME,ME,cd,cd,ME,ME,ME,ME,ME,ME,cd,cd,ME,ME,ME
+    StageDef    VI,VI,ME,cd,cd,ME,VI,VI,VI,VI,ME,cd,cd,ME,VI,VI
+    StageDef    VI,VI,ME,cd,cd,ME,VI,VI,VI,VI,ME,cd,cd,ME,VI,VI
+    StageDef    ME,ME,ME,cd,cd,ME,ME,ME,ME,ME,ME,cd,cd,ME,ME,ME
+    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cd,cd,ME,pl,pl
+    StageDef    pl,pl,pl,cd,cd,pl,pl,go,go,pl,pl,cd,cd,pl,pl,pl
+    
+    StageObj    KEY, $00, $80, $00
+    StageObj    KEY, $80, $80, $00
+    StageObj    ELECTRH, $38, $40, $00
+    StageObj    ELECTRH, $48, $40, $00
+    StageObj    ELECTRH, $B8, $40, $00
+    StageObj    ELECTRH, $C8, $40, $00
+    StageObj    ELECTRH, $38, $C0, $00
+    StageObj    ELECTRH, $48, $C0, $00
+    StageObj    ELECTRH, $B8, $C0, $00
+    StageObj    ELECTRH, $C8, $C0, $00
+    StageEnd
+
+;****************************************************************************
+; Stage 3-7
+;****************************************************************************
+
+StageMap_3_7:
+    StageDef    pl,pl,ME,ME,pl,pl,pl,pl,cu,cu,ME,ME,cd,cd,pl,pl
+    StageDef    pl,pl,ME,ME,pl,pl,pl,ME,cu,cu,ME,ME,cd,cd,ME,pl
+    StageDef    ME,ME,ME,ME,ME,ME,ME,ME,cu,cu,ME,ME,cd,cd,ME,ME
+    StageDef    ME,ME,ME,ME,ME,ME,ME,ME,cu,cu,ME,ME,cd,cd,ME,ME
+    StageDef    pl,pl,ME,ME,pl,pl,pl,ME,cu,cu,ME,ME,cd,cd,ME,pl
+    StageDef    go,pl,ME,ME,pl,pl,pl,pl,cu,cu,ME,ME,cd,cd,pl,go
+    StageDef    go,pl,ME,ME,pl,pl,pl,pl,cu,cu,ME,ME,cd,cd,pl,go
+    StageDef    pl,ME,ME,ME,ME,pl,pl,ME,cu,cu,ME,ME,cd,cd,ME,pl
+    StageDef    cr,cr,cr,cr,cr,cr,cr,cr,cu,cu,ME,ME,cr,cr,cr,cr
+    StageDef    cr,cr,cr,cr,cr,cr,cr,cr,cu,cu,ME,ME,cr,cr,cr,cr
+    StageDef    ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME
+    StageDef    ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME
+    StageDef    cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,ME,ME,cd,cd,cl,cl
+    StageDef    cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,ME,ME,cd,cd,cl,cl
+    StageDef    pl,ME,ME,ME,ME,pl,pl,ME,cu,cu,ME,ME,cd,cd,ME,pl
+    StageDef    pl,pl,ME,ME,pl,pl,pl,pl,cu,cu,ME,ME,cd,cd,pl,pl
+    
+    StageObj    KEY, $60, $00, $00
+    StageObj    KEY, $60, $60, $00
+    StageObj    ELECTRV, $30, $88, $00
+    StageObj    ELECTRV, $30, $98, $00
+    StageObj    ELECTRV, $30, $C8, $00
+    StageObj    ELECTRV, $30, $D8, $00
+    StageObj    ELECTRH, $88, $30, $00
+    StageObj    ELECTRH, $98, $30, $00
+    StageObj    ELECTRH, $C8, $30, $00
+    StageObj    ELECTRH, $D8, $30, $00
+    StageEnd
+
+;****************************************************************************
+; Stage 3-9
+;****************************************************************************
+
+StageMap_3_9:
+    StageDef    cd,ME,ME,cd,cd,ME,ME,pl,pl,ME,ME,cu,cu,ME,ME,cd
+    StageDef    cd,ME,ME,cd,cd,ME,ME,ME,ME,ME,ME,cu,cu,ME,ME,cd
+    StageDef    cd,ME,ME,cd,cd,ME,ME,ME,ME,ME,ME,cu,cu,ME,ME,cd
+    StageDef    PI,ME,ME,PI,PI,cr,cr,cr,cr,cr,cr,PI,PI,ME,ME,PI
+    StageDef    PI,ME,ME,PI,PI,cr,cr,cr,cr,cr,cr,PI,PI,ME,ME,PI
+    StageDef    ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME
+    StageDef    ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME
+    StageDef    PI,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,PI,PI,ME,ME,PI
+    StageDef    PI,cl,cl,cl,cl,cl,cl,cl,cl,cl,cl,PI,PI,ME,ME,PI
+    StageDef    cd,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,cu,cu,ME,ME,cd
+    StageDef    cd,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,cu,cu,ME,ME,cd
+    StageDef    cd,ME,ME,PI,PI,cl,cl,PI,PI,ME,ME,cu,cu,ME,ME,cd
+    StageDef    cd,ME,ME,PI,PI,cl,cl,PI,PI,ME,ME,cu,cu,ME,ME,cd
+    StageDef    cd,ME,ME,cd,cd,ME,ME,cu,cu,ME,ME,cu,cu,ME,ME,cd
+    StageDef    cd,ME,ME,cd,cd,ME,ME,cu,cu,ME,ME,cu,cu,ME,ME,cd
+    StageDef    cd,ME,ME,cd,cd,ME,ME,pl,pl,ME,ME,cu,cu,ME,ME,cd
+    
+    StageObj    ELECTRH, $F8, $E0, $00
+    StageObj    ELECTRH, $08, $E0, $00
+    StageObj    ELECTRV, $60, $78, $00
+    StageObj    ELECTRV, $60, $88, $00
+    StageObj    ELECTRH, $B8, $E0, $00
+    StageObj    ELECTRH, $C8, $E0, $00
+    StageObj    ELECTRV, $80, $38, $00
+    StageObj    ELECTRV, $80, $48, $00
+    StageObj    ELECTRH, $38, $00, $00
+    StageObj    ELECTRH, $48, $00, $00
+    StageObj    CRYSTAL, $00, $B8, $00
+    StageObj    CRYSTAL, $38, $80, $00
+    StageObj    CRYSTAL, $88, $80, $00
+    StageObj    CRYSTAL, $C0, $B8, $00
+    StageObj    CRYSTAL, $C0, $08, $00
+    StageObj    CRYSTAL, $A8, $40, $00
+    StageObj    CRYSTAL, $68, $40, $00
+    StageObj    CRYSTAL, $40, $18, $00
+    StageObj    CRYSTAL, $40, $E8, $00
+    StageObj    CHILD, $80, $00, CHILD_SHIA
+    StageEnd
+

@@ -1,0 +1,190 @@
+;****************************************************************************
+; InitBackground
+; Initializes the background (draws it).
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+InitBackground:
+    lea     (BackgroundTilemap), a6     ; Tilemap data
+    lea     ($C00000), a5               ; VDP data port
+    
+    cmp.b   #STAGE_5_3, (Stage)         ; Stage 5-3 doesn't have a background
+    bne.s   @HasBackground
+    rts
+@HasBackground:
+    
+    cmp.b   #STAGE_6_0, (Stage)         ; Void has its own background
+    beq     InitStage6Background
+    move.b  (StageName), d7
+    and.b   #$0F, d7
+    cmp.b   #$09, d7
+    beq     InitStage6Background
+    
+    SetVRAMAddr $E000, 4(a5)            ; Set address
+    move.w  #$2000+VramBackground, d1   ; Base tile graphic
+    moveq   #0, d2                      ; So we can use ADDX
+    
+    move.w  #$100-1, d7                 ; Scan all tiles
+@OutLoop:
+    move.b  (a6)+, d0
+    moveq   #8-1, d6
+@InLoop:
+    
+    move.w  d1, d5                      ; Determine tile ID to use
+    add.b   d0, d0
+    addx.w  d2, d5
+    
+    move.w  d5, (a5)                    ; Place tile into tilemap
+    dbf     d6, @InLoop                 ; Go for next tile
+    dbf     d7, @OutLoop
+    
+    move.b  (StageName), d7             ; Stage 5's background is red
+    and.b   #$F0, d7
+    cmp.b   #$50, d7
+    bne.s   @NoRedBG
+    move.l  (PalRedBG+0), (PaletteBuf+$17*2)
+    move.l  (PalRedBG+4), (PaletteBuf+$19*2)
+@NoRedBG:
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; InitStage6Background
+; Initializes the background for stage 6.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+InitStage6Background:
+    lea     ($C00004), a0               ; VDP control port address
+    lea     ($C00000), a1               ; VDP data port address
+    
+    SetVRAMAddr $F802, (a0)             ; Make sure the scroll is reset
+    move.w  #0, (a1)
+    SetVSRAMAddr 2, (a0)
+    move.w  #0, (a1)
+    
+    SetVRAMAddr $E000, d0               ; Get ready to draw it...
+    move.w  #$7000+VramStage6BG+13*20, d1
+    
+    moveq   #14-1, d6                   ; Top half of the background
+@LoopY1:
+    move.l  d0, (a0)
+    bsr     @DrawRow
+    sub.w   #20*2-1, d1
+    add.l   #$80<<16, d0
+    dbf     d6, @LoopY1
+    
+    moveq   #14-1, d6                   ; Bottom half of the background
+    and.w   #$EFFF, d1
+    add.w   #20, d1
+@LoopY2:
+    move.l  d0, (a0)
+    bsr     @DrawRow
+    addq.w  #1, d1
+    add.l   #$80<<16, d0
+    dbf     d6, @LoopY2
+    
+    rts                                 ; End of subroutine
+
+;----------------------------------------------------------------------------
+; @DrawRow
+; Subsubroutine to handle drawing a row of the background.
+;----------------------------------------------------------------------------
+
+@DrawRow:
+    add.w   #$0800+19, d1               ; Left half of the row
+    moveq   #20-1, d7
+@LoopX1:
+    move.w  d1, (a1)
+    subq.w  #1, d1
+    dbf     d7, @LoopX1
+    
+    and.w   #$F7FF, d1                  ; Right half of the row
+    moveq   #20-1, d7
+@LoopX2:
+    addq.w  #1, d1
+    move.w  d1, (a1)
+    dbf     d7, @LoopX2
+    
+    rts                                 ; End of subsubroutine
+
+;****************************************************************************
+; ScrollBackground
+; Updates the scroll position.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+ScrollBackground:
+    cmp.b   #STAGE_6_0, (Stage)         ; Void's background doesn't
+    beq.s   @DontScroll                   ; scroll (since it's different)
+    move.b  (StageName), d7
+    and.b   #$0F, d7
+    cmp.b   #$09, d7
+    beq.s   @DontScroll
+    
+    move.b  (PlayerX), d7               ; Calculate horizontal position
+    ext.w   d7
+    add.w   d7, d7
+    SetVRAMAddr $F802, ($C00004)
+    move.w  d7, ($C00000)
+    
+    move.b  (PlayerY), d7               ; Calculate vertical position
+    ext.w   d7
+    neg.w   d7
+    add.w   d7, d7
+    SetVSRAMAddr 2, ($C00004)
+    move.w  d7, ($C00000)
+    
+@DontScroll:
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; AnimStage6BG
+; Animates the stage 6 background.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+AnimStage6BG:
+    moveq   #0, d7                      ; Determine position within the loop
+    move.w  (Anim), d7
+    lsr.w   #2, d7
+    divu.w  #15, d7
+    swap    d7
+    
+    lea     (PalBoss), a6               ; Determine where palette starts
+    cmp.b   #STAGE_5_9, (Stage)
+    blo.s   @NormalBoss
+    lea     (PalVoid), a6
+@NormalBoss:
+    add.w   d7, d7
+    lea     (a6,d7.w), a6
+    
+    lea     (PaletteBuf+$31*2), a5      ; Copy palette into buffer
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.w  (a6)+, (a5)+
+    
+    moveq   #0, d6                      ; Determine how much of the fading
+    move.b  (EndingFade), d6              ; palette to show in the ending
+    lsr.w   #2, d6
+    beq.s   @NoEnding
+    
+    subq.w  #1, d6                      ; Load the fading palette
+    lea     (PalEndingFade), a6
+    lea     (a6,d7.w), a6
+    lea     -15*2(a5), a5
+@FadePalette:
+    move.w  (a6)+, (a5)+
+    dbf     d6, @FadePalette
+@NoEnding:
+    
+    rts                                 ; End of subroutine

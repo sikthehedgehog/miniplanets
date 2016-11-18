@@ -1,0 +1,457 @@
+;****************************************************************************
+; TITLEOPT_*
+; Title screen menu options
+;****************************************************************************
+
+                        rsreset
+TITLEOPT_START:         rs.b 1      ; Start
+    if !DEMO_VERSION
+TITLEOPT_PASSWORD:      rs.b 1      ; Password
+    endc
+TITLEOPT_OPTIONS:       rs.b 1      ; Options
+
+NUM_TITLEOPT:           rs.b 0
+
+;****************************************************************************
+; TitleScreen
+; Main loop for the title screen mode.
+;----------------------------------------------------------------------------
+; notes: doesn't return
+;****************************************************************************
+
+TitleScreen:
+    jsr     (ResetVideo).w              ; Reset graphics
+    st.b    (FadeInFlag)                ; We want fade in
+    
+    jsr     (InitUniverse).w            ; Draw background
+    
+    ; Load graphics for the planets
+    DMA2VRAM GfxMiniplanets, VramPlanets*$20, 5*$20, ($C00004)
+    
+    lea     (GfxTitleOther), a6         ; Load miscellaneous graphics
+    lea     (LocalRAM), a5
+    jsr     DecompressSLZ
+    DMA2VRAM LocalRAM, VramCopyright*$20, GfxTitleOtherSize*$20, ($C00004)
+    
+    lea     (GfxTitleLogo), a6          ; Decompress logo graphics
+    lea     (TitleLogoOrig), a5
+    jsr     DecompressSLZ
+    
+    moveq   #11-1, d0                   ; Scale logo
+    move.w  #VramTitleLogo*$20, d2
+@ScaleStep:
+    lea     (TitleLogoOrig), a0
+    lea     (TitleLogoScaled), a1
+    moveq   #9-1, d1
+@ScaleLoop:
+    move.l  a0, a6
+    move.l  a1, a5
+    move.w  d0, d7
+    addq.w  #1, d7
+    bsr     ScaleTitleLetter
+    lea     9*$20(a0), a0
+    lea     9*$20(a1), a1
+    dbf     d1, @ScaleLoop
+    move.l  (DMABufEnd), a6
+    move.w  d2, d7
+    DMA2VRAM_D TitleLogoScaled, d7, 9*9*$20, a6
+    move.l  a6, (DMABufEnd)
+    jsr     (FlushDMABuffer).w
+    add.w   #9*9*$20, d2
+    dbf     d0, @ScaleStep
+    
+    lea     (GfxTitleMenu), a6          ; Decompress menu graphics
+    lea     (TitleMenuBuf), a5
+    jsr     DecompressSLZ
+    
+    lea     (PalTitle), a6              ; Load palette
+    lea     (PaletteBuf), a5
+    moveq   #$40/8, d7
+@LoadPalette:
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    dbf     d7, @LoadPalette
+    move.w  #$4AE, (PaletteBuf+$09*2)
+    
+    if      SHOW_COPYRIGHT
+    lea     ($C00000), a6               ; Draw copyright notice
+    SetPosA 38-15, 27-1, 4(a6)
+    move    #$6000+VramCopyright, d6
+    moveq   #15-1, d7
+@DrawCopyright:
+    move.w  d6, (a6)
+    addq.w  #1, d6
+    dbf     d7, @DrawCopyright
+    endc
+    
+    clr.w   (Anim)                      ; Initialize animation
+    clr.b   (TitleOption)               ; Select first option
+    clr.b   (TitleShowMenu)             ; Menu not shown yet
+    
+    clr.l   (TitleCheat)                ; Reset cheat code buffer
+    clr.l   (TitleCheat+4)
+    
+    moveq   #24, d0                     ; Initialize logo animation
+    moveq   #11-1, d7
+    lea     (TitleLogoSize), a6
+@InitLogoSize:
+    move.b  d0, (a6)+
+    addq.b  #6, d0
+    dbf     d7, @InitLogoSize
+    
+    moveq   #BGM_TITLE, d7              ; Start playing music
+    jsr     (PlayBGM).w
+
+;----------------------------------------------------------------------------
+
+@MainLoop:
+    SetVRAMAddr $F802, ($C00004)        ; Make background move
+    move.w  (Anim), d7
+    lsr.w   #4, d7
+    move.w  d7, ($C00000)
+    
+    tst.b   (TitleShowMenu)             ; Option selected?
+    beq.s   @NoMenuYet
+    btst.b  #7, (Joy1Press)
+    bne.s   @Quit
+@NoMenuYet:
+    
+@LogicLoop:
+    bsr     AnimTitleLogo               ; Update animation and menu
+    bsr     RunTitleMenu
+    addq.w  #1, (Anim)
+    
+    clr.b   (Joy1Press)                 ; Do NTSC/PAL speed correction
+    clr.b   (Joy2Press)
+    subq.b  #1, (NumFrames)
+    bne.s   @LogicLoop
+    
+    jsr     (ClearSprites).w            ; Draw everything
+    bsr     DrawTitleLogo
+    bsr     DrawTitleMenu
+    
+    if      !DEMO_VERSION
+    move.w  #160, d7
+    move.w  #96, d6
+    move.w  (Anim), d5
+    lsr.w   #2, d5
+    jsr     (DrawAllPlanelagos).w
+    endc
+    
+    jsr     (NextFrame).w               ; Wait for next frame
+    bra     @MainLoop
+
+;----------------------------------------------------------------------------
+
+@Quit:
+    jsr     (FadeOff).w                 ; Shut off screen
+    
+    tst.b   (DebugOK)                   ; Go to the credits?
+    beq.s   @NoCreditsSkip
+    btst.b  #6, (Joy1Hold)
+    bne     Credits
+@NoCreditsSkip:
+    
+    moveq   #0, d7                      ; Go to the selected screen
+    move.b  (TitleOption), d7
+    add.w   d7, d7
+    add.w   d7, d7
+    lea     @MenuEntries(pc), a6
+    move.l  (a6,d7.w), a6
+    jmp     (a6)
+    
+@MenuEntries:
+    dc.l    @GameStart
+    if      !DEMO_VERSION
+    dc.l    PasswordEntry
+    endc
+    dc.l    OptionsMenu
+
+;----------------------------------------------------------------------------
+
+@GameStart:
+    move.b  #STAGE_1_1, (Stage)         ; Initialize the game status
+    
+    tst.b   (DebugOK)                   ; Start the game!
+    bne     DebugMenu
+    bra     StartGame
+
+;****************************************************************************
+; ScaleTitleLetter
+; Calculates the scaling for a letter in the title screen logo.
+;----------------------------------------------------------------------------
+; input a6.l ... Input graphics
+; input a5.l ... Output buffer
+; input d7.w ... Scaling factor (0..11)
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+ScaleTitleLetter:
+    moveq   #0, d6                      ; Clear the output buffer first
+    moveq   #9-1, d5
+@ClearGraphics:
+    move.l  d6, (a5)+
+    move.l  d6, (a5)+
+    move.l  d6, (a5)+
+    move.l  d6, (a5)+
+    move.l  d6, (a5)+
+    move.l  d6, (a5)+
+    move.l  d6, (a5)+
+    move.l  d6, (a5)+
+    dbf     d5, @ClearGraphics
+    lea     -9*$20(a5), a5
+    
+    lsl.w   #4, d7                      ; Get look-up table to use
+    move.w  d7, d6
+    lsl.w   #3, d7
+    add.w   d6, d7
+    lea     (TitleScaleTable), a4
+    lea     (a4,d7.w), a4
+    
+    move.w  #144-1, d7                  ; Do the scaling (thought this would
+    moveq   #-1, d5                       ; be more complex...)
+    moveq   #$03, d4
+@Loop:
+    moveq   #0, d6
+    move.b  (a4)+, d6
+    cmp.b   d5, d6
+    beq.s   @Skip
+    ror.w   #2, d6
+    add.b   d6, d6
+    rol.w   #2, d6
+    move.b  (a6,d6.w), (a5)
+    move.b  4(a6,d6.w), 4(a5)
+@Skip:
+    addq.w  #1, a5
+    move.b  d7, d6
+    and.b   d4, d6
+    bne.s   @NoNewRow
+    addq.w  #4, a5
+@NoNewRow:
+    dbf     d7, @Loop
+    
+    rts
+
+;****************************************************************************
+; AnimTitleLogo
+; Updates the logo animation in the title screen.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+AnimTitleLogo:
+    tst.b   (TitleShowMenu)             ; Check whether it's worth animating
+    beq.s   @DoAnimation                  ; in the first place
+    rts
+@DoAnimation:
+    
+    moveq   #11-1, d7
+    lea     (TitleLogoSize), a6
+@Loop:
+    move.b  (a6), d6
+    beq.s   @Zoomed
+    subq.b  #1, d6
+@Zoomed:
+    move.b  d6, (a6)+
+    dbf     d7, @Loop
+    
+    tst.b   (TitleLogoSize+10)          ; Animation over?
+    bne.s   @NoMenuLoad
+    st.b    (TitleShowMenu)
+    
+    move.l  (DMABufEnd), a6             ; Load menu graphics
+    DMA2VRAM TitleMenuBuf, VramTitleMenuA*$20, 10*4*$20, (a6)+
+    move.l  a6, (DMABufEnd)
+@NoMenuLoad:
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; RunTitleMenu
+; Handles the title screen menu.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+RunTitleMenu:
+    move.b  (Joy1Press), d0             ; Get joystick input
+    beq.s   @NoKeyEnter
+    
+    move.l  (TitleCheat), d7            ; Add input to the buffer
+    lsl.l   #8, d7
+    move.b  (TitleCheat+4), d7
+    move.l  (TitleCheat+4), d6
+    lsl.l   #8, d6
+    move.b  d0, d6
+    
+    cmp.l   #$01010202, d7              ; Entered cheat code?
+    bne.s   @NoCheat
+    cmp.l   #$04080408, d6
+    bne.s   @NoCheat
+    
+    st.b    (DebugOK)                   ; Woohoo!
+    moveq   #SFX_1UP, d7
+    jsr     (PlaySFX).w
+    
+    clr.l   d7                          ; Reset input
+    clr.l   d6
+@NoCheat:
+    move.l  d7, (TitleCheat)            ; Store updated buffer
+    move.l  d6, (TitleCheat+4)
+    
+@NoKeyEnter:
+    tst.b   (TitleShowMenu)             ; Check if the menu is visible yet
+    bne.s   @MenuVisible
+    btst.l  #7, d0                      ; Make it visible?
+    beq.s   @DontShowMenu
+    st.b    (TitleShowMenu)
+    
+    clr.l   (TitleLogoSize)             ; Reset logo animation as well
+    clr.l   (TitleLogoSize+4)
+    clr.w   (TitleLogoSize+8)
+    clr.b   (TitleLogoSize+10)
+    
+    move.l  (DMABufEnd), a6             ; Load menu graphics
+    DMA2VRAM TitleMenuBuf, VramTitleMenuA*$20, 10*4*$20, (a6)+
+    move.l  a6, (DMABufEnd)
+    
+@DontShowMenu:
+    rts
+
+;----------------------------------------------------------------------------
+
+@MenuVisible:
+    move.b  (TitleOption), d1           ; Get current option
+    
+    btst.l  #1, d0                      ; Next option?
+    beq.s   @NoDown
+    addq.b  #1, d1
+    cmp.b   #NUM_TITLEOPT, d1
+    bne.s   @NoDown
+    moveq   #0, d1
+@NoDown:
+    
+    btst.l  #0, d0                      ; Previous option?
+    beq.s   @NoUp
+    subq.b  #1, d1
+    bge.s   @NoUp
+    moveq   #NUM_TITLEOPT-1, d1
+@NoUp:
+    
+    move.b  d1, (TitleOption)           ; Store new option
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawTitleLogo
+; Draws the logo in the title screen as it zooms in.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawTitleLogo:
+    moveq   #$10, d0                    ; Temp
+    moveq   #$08, d1
+    
+    moveq   #%1010, d3                  ; All sprites are 3x3
+    
+    moveq   #11-1, d4                   ; Scan all letters
+    lea     (TitleLogoSize), a0
+    lea     (@Table), a1
+@Loop:
+    moveq   #0, d5                      ; Which step of the animation we're
+    move.b  (a0)+, d5                     ; on? And should we show up yet?
+    cmp.b   #22, d5
+    bhs.s   @Skip
+    
+    move.w  (a1), d0                    ; Determine horizontal position
+    moveq   #$20, d7
+    sub.w   d5, d7
+    muls.w  d7, d0
+    asr.l   #5, d0
+    add.w   #160, d0
+    
+    moveq   #$28, d1                    ; Determine vertical position
+    add.w   d5, d1
+    
+    move.w  d5, d2                      ; Determine sprite to use
+    lsr.b   #1, d2
+    mulu.w  #9*9, d2
+    add.w   2(a1), d2
+    
+    jsr     (AddSprite).w               ; Draw sprite!
+    
+@Skip:
+    addq.l  #4, a1                      ; Go for next letter
+    dbf     d4, @Loop
+    
+    rts                                 ; End of subroutine
+
+;----------------------------------------------------------------------------
+
+@Table:
+    dc.w    0-116,      $A000+VramTitleLogo         ; M
+    dc.w    16-116,     $A000+VramTitleLogo+9       ; I
+    dc.w    32-116,     $A000+VramTitleLogo+18      ; N
+    dc.w    48-116,     $C000+VramTitleLogo+9       ; I
+    dc.w    64-116,     $A000+VramTitleLogo+27      ; P
+    dc.w    88-116,     $C000+VramTitleLogo+36      ; L
+    dc.w    112-116,    $C000+VramTitleLogo+45      ; A
+    dc.w    136-116,    $C000+VramTitleLogo+18      ; N
+    dc.w    160-116,    $E000+VramTitleLogo+54      ; E
+    dc.w    184-116,    $E000+VramTitleLogo+63      ; T
+    dc.w    208-116,    $E000+VramTitleLogo+72      ; S
+
+;****************************************************************************
+; DrawTitleMenu
+; Draws the menu in the title screen.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawTitleMenu:
+    tst.b   (TitleShowMenu)             ; Is the menu visible yet?
+    bne.s   @DoShow
+    rts
+@DoShow:
+    
+    move.b  (TitleOption), d3           ; Get currently selected option
+    
+    cmp.b   #TITLEOPT_START, d3         ; Check if "START" is selected
+    sne.b   d2
+    ext.w   d2
+    and.w   #$2000, d2
+    or.w    #$4000, d2
+    
+    move.w  #160, d0                    ; Draw "START"
+    move.w  #224-$50, d1
+    lea     (SprTitleStart), a6
+    jsr     (AddMetasprite).w
+    
+    if      !DEMO_VERSION
+    cmp.b   #TITLEOPT_PASSWORD, d3      ; Check if "PASSWORD" is selected
+    sne.b   d2
+    ext.w   d2
+    and.w   #$2000, d2
+    or.w    #$4000, d2
+    
+    move.w  #160, d0                    ; Draw "PASSWORD"
+    move.w  #224-$3C, d1
+    lea     (SprTitlePassword), a6
+    jsr     (AddMetasprite).w
+    endc
+    
+    cmp.b   #TITLEOPT_OPTIONS, d3       ; Check if "OPTIONS" is selected
+    sne.b   d2
+    ext.w   d2
+    and.w   #$2000, d2
+    or.w    #$4000, d2
+    
+    move.w  #160, d0                    ; Draw "OPTIONS"
+    move.w  #224-$28-DEMO_VERSION*$14, d1
+    lea     (SprTitleOptions), a6
+    jsr     (AddMetasprite).w
+    
+    rts                                 ; End of subroutine

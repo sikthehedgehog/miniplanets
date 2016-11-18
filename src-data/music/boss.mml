@@ -1,0 +1,40 @@
+Z t96
+
+!a l16cc+dd+cc+dd+cc+dd+cc+dd+
+!b K1!aK0
+!c K2!aK0
+!d K3!aK0
+!A l16dcccdcccdcccdccc
+!B K1!AK0
+!C K2!AK0
+!D K3!AK0
+!e l32cc+dd+e4.d+dc+cr4.
+!f K1!eK0
+!g K2!eK0
+!h K3!eK0
+!i K4!eK0
+!j r2l16dcccdccc
+
+!Z @5c
+!Y @13c
+!z l16!Z!Y!Y!Y!Z!Y!Y!Y!Z!Y!Y!Y!Z!Y!Y!Y
+!y l16!Z!Y!Y!Y!Z!Y!Y!Y!Z!Y!Y!Y!Z!Z!Z!Z
+
+A @9o3
+B @11o1
+G @4v11o4
+H @4v11o4
+
+A r1r1
+B r1!j
+G !e!e
+H !g!g
+K r1r1
+Z r1r1
+
+A !a!a!b!b!c!c!d!d
+B !A!A!B!B!C!C!D!D
+G !e!e!f!f!e!e!g!g
+H !g!g!h!h!g!g!i!i
+K !z!z!z!z!z!z!z!y
+Z L

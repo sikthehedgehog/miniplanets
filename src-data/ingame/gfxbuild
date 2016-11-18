@@ -1,0 +1,59 @@
+output "src-data/ingame/ingame.4bpp"
+
+input "src-data/ingame/background.png"
+tiles 0 0 2 1
+input "src-data/ingame/hud.png"
+tiles 0 0 2 3
+tiles 2 0 2 3
+tiles 4 0 2 3
+tiles 6 0 2 3
+tiles 8 0 2 3
+tiles 10 0 2 3
+tiles 12 0 2 3
+tiles 14 0 2 3
+tiles 16 0 2 3
+tiles 18 0 2 3
+tiles 20 0 2 3
+tiles 22 0 2 3
+tiles 24 0 2 3
+
+layout sprite
+input "src-data/ingame/key.png"
+tiles 0 0 2 2
+input "src-data/ingame/mace.png"
+tiles 0 0 2 2
+input "src-data/ingame/switch.png"
+tiles 0 0 2 2
+input "src-data/ingame/bomb.png"
+tiles 2 0 8 2
+input "src-data/ingame/electricity.png"
+tiles 2 0 2 2
+tiles 0 0 2 2
+input "src-data/ingame/ball.png"
+tiles 0 0 2 2
+input "src-data/ingame/orb.png"
+tiles 0 0 6 2
+tiles 0 2 6 2
+tiles 0 4 6 2
+tiles 0 6 6 2
+input "src-data/ingame/fireball.png"
+tiles 0 0 8 2
+input "src-data/ingame/crystal.png"
+tiles 0 0 8 2
+tiles 0 2 8 2
+tiles 0 4 8 2
+tiles 0 6 8 2
+tiles 0 8 8 2
+tiles 0 10 8 2
+tiles 0 12 8 2
+tiles 0 14 8 2
+input "src-data/ingame/children.png"
+tiles 0 0 10 2
+tiles 0 2 10 2
+tiles 0 4 10 2
+tiles 0 6 10 2
+tiles 0 8 10 2
+
+layout tilemap
+input "src-data/ingame/stage6_bg.png"
+tiles 0 0 20 14

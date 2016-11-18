@@ -1,0 +1,82 @@
+;****************************************************************************
+; EntryPoint
+; Where the program starts.
+;----------------------------------------------------------------------------
+; notes: doesn't return (d'oh)
+;****************************************************************************
+
+EntryPoint:
+    move.w  #$2700, sr                  ; Disable IRQs
+    
+    move.b  ($A10001), d7               ; Disable TMSS
+    and.b   #$0F, d7
+    beq.s   @NoTMSS
+    move.l  ($100).w, ($A14000)
+@NoTMSS:
+    
+    jsr     (InitRand).w                ; Initialize hardware
+    jsr     (InitJoypads).w
+    jsr     (InitSound).w
+    jsr     (InitVideo).w
+    
+    clr.b   (Muteki)                    ; Disable cheats!
+    st.b    (TimerOK)
+    clr.b   (DebugOK)
+    
+    move.b  #2, (TimeSetting)           ; Reset settings
+    move.b  #2, (LifeSetting)
+    clr.b   (SoundTest)
+    
+    bra     LogoSplash                  ; Go boot!
+
+;****************************************************************************
+; ErrorInt
+; Handler when the program crashes.
+;----------------------------------------------------------------------------
+; notes: doesn't return
+;****************************************************************************
+
+ErrorInt:
+    bra.s   *                           ; Just hang...
+
+;****************************************************************************
+; NextFrame
+; Prepares everything to start the next frame.
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+NextFrame:
+    tst.b   (FadeInFlag)                ; Does the game want fade in? (this
+    beq.s   @NoFadeIn                     ; needs to be done after it's ready
+    clr.b   (FadeInFlag)                  ; to render a frame, hence having
+    jsr     (FadeIn).w                    ; this here)
+    rts
+@NoFadeIn:
+    
+    jsr     (UpdateSprites).w           ; Update sprite table
+    jsr     (VSync).w                   ; Wait for next vblank to start
+    jsr     (FlushDMABuffer).w          ; Send DMA commands to the VDP
+    jsr     (EnableDisplay).w           ; Turn on display
+    jsr     (UpdatePalette).w           ; Update palette again next frame
+    jsr     (ReadJoypads).w             ; Update joypad status
+    jsr     (UpdateSound).w             ; Update sound playback
+    
+    moveq   #0, d7                      ; Generate fake subpixel offset
+    move.w  (Anim), d6
+    rept    8
+    add.b   d6, d6
+    roxr.b  #1, d7
+    endr
+    move.w  d7, (Subpixel)
+    
+    move.b  #1, (NumFrames)             ; Set up stuff to do speed correction
+    btst.b  #0, ($C00004+1)               ; on PAL systems (so the game logic
+    beq.s   @NoPALCorrection              ; can run at the same speed on both
+    subq.b  #1, (PALTimer)                ; NTSC and PAL)
+    bne.s   @NoPALCorrection
+    move.b  #2, (NumFrames)
+    move.b  #5, (PALTimer)
+@NoPALCorrection:
+    
+    rts                                 ; End of subroutine

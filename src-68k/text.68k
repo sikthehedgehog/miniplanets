@@ -1,0 +1,198 @@
+;****************************************************************************
+; LoadFont
+; Loads the game's font.
+;----------------------------------------------------------------------------
+; breaks: all, local RAM too
+;****************************************************************************
+
+LoadFont:
+    lea     (GfxFont), a6               ; Decompress font and load it
+    lea     (LocalRAM), a5
+    jsr     (DecompressSLZ).w
+    DMA2VRAM LocalRAM, VramText*$20, GfxFontSize*$20, ($C00004)
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; ClearText
+; Clears the text buffer.
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+ClearText:
+    move.l  (TextBufAddr), a6           ; Clear buffer
+    moveq   #36*3/12-1, d7
+    moveq   #0, d6
+@Clear:
+    move.l  d6, (a6)+
+    move.l  d6, (a6)+
+    move.l  d6, (a6)+
+    move.l  d6, (a6)+
+    move.l  d6, (a6)+
+    move.l  d6, (a6)+
+    dbf     d7, @Clear
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawText
+; Draws a string in the text buffer.
+;----------------------------------------------------------------------------
+; input d7.w .... Position to draw at
+; input a6.l .... String to draw
+;----------------------------------------------------------------------------
+; ouptut a6.l ... End of string
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a5
+;****************************************************************************
+
+DrawText:
+    add.w   d7, d7                      ; Get where to start drawing
+    move.l  (TextBufAddr), a5
+    lea     (a5,d7.w), a5
+    
+    lea     (FontTable), a4             ; Description of the font
+@Loop:
+    moveq   #0, d7                      ; Get next character
+    move.b  (a6)+, d7
+    beq.s   @End
+    
+    sub.b   #$20, d7                    ; Get base tile
+    add.w   d7, d7
+    moveq   #0, d6
+    move.b  (a4,d7.w), d6
+    cmp.b   #-1, d6
+    beq.s   @Space
+    add.w   #$8000+VramText, d6
+    
+    moveq   #0, d5                      ; Get width and draw character
+    move.b  1(a4,d7.w), d5
+    subq.w  #1, d5
+@ScanWidth:
+    move.w  d6, (a5)
+    addq.w  #1, d6
+    move.w  d6, 2*36(a5)
+    addq.w  #1, d6
+    move.w  d6, 4*36(a5)
+    addq.w  #1, d6
+    addq.w  #2, a5
+    dbf     d5, @ScanWidth
+    
+    bra.s   @Loop                       ; Go for next character
+
+@Space:
+    clr.l   4*36(a5)                    ; Draw a gap
+    clr.l   2*36(a5)
+    clr.l   (a5)+
+    
+    bra.s   @Loop                       ; Go for next character
+    
+@End:
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; ColorizeText
+; Colorizes the entire text by changing its palette. Only do this operation
+; once unless you know what you're doing!
+;----------------------------------------------------------------------------
+; input d7.w ... Palette to use ($0000, $2000, $4000, $6000)
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a5
+;****************************************************************************
+
+ColorizeText:
+    move.l  (TextBufAddr), a6           ; Buffer address
+    
+    moveq   #36*3/4-1, d6               ; Apply coloration to all text
+@Loop:
+    add.w   d7, (a6)+
+    add.w   d7, (a6)+
+    add.w   d7, (a6)+
+    add.w   d7, (a6)+
+    dbf     d6, @Loop
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; UploadText
+; Uploads the text buffer to video memory.
+;----------------------------------------------------------------------------
+; input d7.w ... VRAM address
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+UploadText:
+    move.l  (DMABufEnd), a6             ; We'll make DMA commands
+    move.l  (TextBufAddr), d6           ; Current text buffer address
+    
+    movem.l d6-d7, -(sp)                ; Draw first row
+    DMA2VRAM_SD d6, d7, 36*2, a6
+    movem.l (sp)+, d6-d7
+    
+    add.w   #$80, d7                    ; Draw second row
+    add.l   #36*2, d6
+    movem.l d6-d7, -(sp)
+    DMA2VRAM_SD d6, d7, 36*2, a6
+    movem.l (sp)+, d6-d7
+    
+    add.w   #$80, d7                    ; Draw third row
+    add.l   #36*2, d6
+    DMA2VRAM_SD d6, d7, 36*2, a6
+    
+    move.l  a6, (DMABufEnd)             ; Done with the DMAs
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; BCDToString
+; Turns a BCD value into an ASCIIZ string.
+;----------------------------------------------------------------------------
+; input d7.l ... Value to convert
+; input a6.l ... Pointer to string buffer
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+BCDToString:
+    moveq   #7-1, d6                    ; Skip leading zeroes
+@SkipZeroes:
+    rol.l   #4, d7
+    move.b  d7, d5
+    and.b   #$0F, d5
+    bne.s   @NoMoreZeroes
+    dbf     d6, @SkipZeroes
+@NoMoreZeroes:
+    
+    addq.w  #1, d6                      ; Turn remaining digits into ASCII
+@Loop:                                    ; Only works for 0-9! (sorry, no
+    move.b  d7, d5                        ; hex conversion for you!)
+    and.b   #$0F, d5
+    add.b   #"0", d5
+    move.b  d5, (a6)+
+    rol.l   #4, d7
+    dbf     d6, @Loop
+    
+    clr.b   (a6)                        ; Add nul terminator
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; GetStrLen
+; Computes the length of a string in characters, 'nuff said.
+;----------------------------------------------------------------------------
+; input a6.l .... Pointer to character
+;----------------------------------------------------------------------------
+; output d7.w ... Number of characters
+;----------------------------------------------------------------------------
+; breaks: a6
+;****************************************************************************
+
+GetStrLen:
+    moveq   #0, d7
+@Loop:
+    tst.b   (a6)+
+    beq.s   @End
+    addq.w  #1, d7
+    bra.s   @Loop
+@End:
+    rts

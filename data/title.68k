@@ -1,0 +1,73 @@
+;****************************************************************************
+; GfxTitleLogo
+; Data for the title logo ("MINIPLANETS"). Note that this only includes the
+; graphics at full size, the rest are computed at load time!
+;****************************************************************************
+
+GfxTitleLogo:
+    incbin  "data/title/miniplanets.slz"
+    even
+
+;****************************************************************************
+; GfxTitleMenu
+; Data for the title menu ("START", "PASSWORD", "OPTIONS"). These graphics
+; are loaded once the scaling animation is over.
+;****************************************************************************
+
+GfxTitleMenu:
+    incbin  "data/title/menu.slz"
+    even
+
+;****************************************************************************
+; GfxTitleOther
+; The rest of the title screen graphics :P
+;****************************************************************************
+
+GfxTitleOther:
+    incbin  "data/title/other.slz"
+    even
+
+GfxTitleOtherSize: equ filesize("src-data/title/other.4bpp")/$20
+
+;****************************************************************************
+; TitleScaleTable
+; Look-up table used for scaling the logo letters.
+;****************************************************************************
+
+TitleScaleTable:
+    incbin  "data/title/scaling.lut"
+    even
+
+;****************************************************************************
+; SprTitle*
+; Sprite mappings for the title screen menu options.
+;****************************************************************************
+
+SprTitleStart:
+    dc.w    -$28, $00, VramTitleMenuS, %0101
+    dc.w    -$18, $00, VramTitleMenuT, %0101
+    dc.w    -$08, $00, VramTitleMenuA, %0101
+    dc.w    $08, $00, VramTitleMenuR, %0101
+    dc.w    $18, $00, VramTitleMenuT, %0101
+    dc.w    $8000
+
+SprTitlePassword:
+    dc.w    -$40, $00, VramTitleMenuP, %0101
+    dc.w    -$30, $00, VramTitleMenuA, %0101
+    dc.w    -$20, $00, VramTitleMenuS, %0101
+    dc.w    -$10, $00, VramTitleMenuS, %0101
+    dc.w    $00, $00, VramTitleMenuW, %0101
+    dc.w    $10, $00, VramTitleMenuO, %0101
+    dc.w    $20, $00, VramTitleMenuR, %0101
+    dc.w    $30, $00, VramTitleMenuD, %0101
+    dc.w    $8000
+
+SprTitleOptions:
+    dc.w    -$38, $00, VramTitleMenuO, %0101
+    dc.w    -$28, $00, VramTitleMenuP, %0101
+    dc.w    -$18, $00, VramTitleMenuT, %0101
+    dc.w    -$08, $00, VramTitleMenuI, %0101
+    dc.w    $08, $00, VramTitleMenuO, %0101
+    dc.w    $18, $00, VramTitleMenuN, %0101
+    dc.w    $28, $00, VramTitleMenuS, %0101
+    dc.w    $8000

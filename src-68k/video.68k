@@ -1,0 +1,508 @@
+;****************************************************************************
+; InitVideo
+; Initializes the video hardware.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+InitVideo:
+    lea     ($C00004), a0               ; VDP control port
+    lea     ($C00000), a1               ; VDP data port
+    moveq   #0, d0                      ; This will be useful...
+    
+    tst.w   (a0)                        ; Reset VDP
+    
+    move.w  #$8004, (a0)                ; Set up VDP registers
+    move.w  #$8134, (a0)                  ; Scroll A: $C000
+    move.w  #$8230, (a0)                  ; Scroll B: $E000
+    move.w  #$8334, (a0)                  ; Window: $D000
+    move.w  #$8407, (a0)                  ; Sprites: $F000
+    move.w  #$8578, (a0)                  ; Hscroll: $F800
+    move.w  #$8700, (a0)                  ; Resolution: 320x224
+    move.w  #$8AFF, (a0)                  ; Scroll size: 64x32
+    move.w  #$8B00, (a0)
+    move.w  #$8C81, (a0)
+    move.w  #$8D3E, (a0)
+    move.w  #$8F02, (a0)
+    move.w  #$9001, (a0)
+    move.w  #$9100, (a0)
+    move.w  #$9200, (a0)
+    
+    if DEBUG_INIT
+    SetVRAMAddr $0000, (a0)             ; Fill VRAM with garbage
+    lea     ($C00008), a6
+    move.w  #$10000/$10-1, d7
+@FillGarbage:
+    move.l  (a6), (a1)
+    move.l  (a6), (a1)
+    move.l  (a6), (a1)
+    move.l  (a6), (a1)
+    dbf     d7, @FillGarbage
+    endc
+    
+    SetCRAMAddr $0000, (a0)             ; Clear palette
+    moveq   #$40/$10-1, d7
+@ClearCRAM:
+    move.l  d0, (a1)
+    move.l  d0, (a1)
+    move.l  d0, (a1)
+    move.l  d0, (a1)
+    dbf     d7, @ClearCRAM
+    
+    SetVRAMAddr $0000, (a0)             ; Clear blank tile
+    move.l  d0, (a1)
+    move.l  d0, (a1)
+    move.l  d0, (a1)
+    move.l  d0, (a1)
+    move.l  d0, (a1)
+    move.l  d0, (a1)
+    move.l  d0, (a1)
+    move.l  d0, (a1)
+    
+    SetVRAMAddr $F000, (a0)             ; Clear sprite table
+    move.l  d0, (a1)
+    move.l  d0, (a1)
+    jsr     (ClearSprites).w
+    
+    SetVRAMAddr $F800, (a0)             ; Clear hscroll
+    move.l  d0, (a1)
+    SetVSRAMAddr $0000, (a0)            ; Clear vscroll
+    move.l  d0, (a1)
+    
+    jsr     (ClearDMABuffer).w          ; Reset DMA buffer
+    
+    move.b  #5, (PALTimer)              ; Reset NTSC/PAL correction timer
+    move.b  #1, (NumFrames)
+    
+    move.w  #$2000, sr                  ; Enable IRQs
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; ResetVideo
+; Restores graphics to a safe "init" state (used when entering into a new
+; screen by general rule).
+;****************************************************************************
+
+ResetVideo:
+    jsr     (DisableDisplay).w          ; Ensure display is off
+    move.w  #$8B00, ($C00004)           ; Reset some registers
+    
+    jsr     (ClearPlaneA).w             ; Clear video memory
+    jsr     (ClearPlaneB).w
+    jsr     (ClearHScroll).w
+    jsr     (ClearVScroll).w
+    jsr     (ClearSprites).w
+    jsr     (ClearDMABuffer).w
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; EnableDisplay, DisableDisplay
+; They turn on and off the display, respectively.
+;****************************************************************************
+
+EnableDisplay:
+    move.w  #$8174, ($C00004)           ; Enable display
+    rts                                 ; End of subroutine
+
+DisableDisplay:
+    move.w  #$8134, ($C00004)           ; Disable display
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; VBlank
+; Handler for the vblank interrupt.
+;****************************************************************************
+
+VBlank:
+    st.b    (VBlankFlag)                ; Mark that vblank has started
+    rte                                 ; End of interrupt
+
+;****************************************************************************
+; VSync
+; Waits until the next vblank starts.
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+VSync:
+    clr.b   (VBlankFlag)                ; Wait until vblank starts again
+@Wait:
+    tst.b   (VBlankFlag)
+    beq.s   @Wait
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; ClearDMABuffer
+; Clears the DMA command buffer, discarding everything in it.
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+ClearDMABuffer:
+    move.l  #DMABuf, (DMABufEnd)        ; Clear DMA buffer
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; FlushDMABuffer
+; Flushes the DMA command buffer to the VDP.
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+FlushDMABuffer:
+    lea     (DMABuf), a6                ; Where the DMA buffer starts
+    move.l  (DMABufEnd), a5             ; Where the DMA buffer ends
+    lea     ($C00004), a4               ; VDP control port
+    
+@Loop:                                  ; Send everything in the buffer to
+    cmp.l   a5, a6                        ; the VDP
+    beq.s   @End
+    move.w  (a6)+, (a4)
+    bra.s   @Loop
+    
+@End:
+    move.l  #DMABuf, (DMABufEnd)        ; Clear DMA buffer
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; UpdatePalette
+; Updates the palette in video memory.
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+UpdatePalette:
+    move.l  (DMABufEnd), a6             ; Issues a DMA to load the palette
+    DMA2CRAM PaletteBuf, 0, 4*$10*2, (a6)+
+    move.l  a6, (DMABufEnd)
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; FadeIn, FadeOn (alias)
+; Fades out the screen from black.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+FadeIn:
+FadeOn:
+    lea     @FadeTable(pc), a0          ; Do the fading
+    jsr     (DoFading).w
+    
+    rts                                 ; End of subroutine
+
+;----------------------------------------------------------------------------
+
+@FadeTable:
+    dc.w    $EEE, $CCC, $AAA, $888, $666, $444, $222, $000
+
+;****************************************************************************
+; FadeOut, FadeOff (alias)
+; Fades out the screen to black.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+FadeOut:
+FadeOff:
+    lea     @FadeTable(pc), a0          ; Do the fading
+    jsr     (DoFading).w
+    
+    jsr     (DisableDisplay).w          ; Keep display turned off now
+    rts                                 ; End of subroutine
+
+;----------------------------------------------------------------------------
+
+@FadeTable:
+    dc.w    $000, $222, $444, $666, $888, $AAA, $CCC, $EEE
+
+;****************************************************************************
+; DoFading
+; Actual function that does the fading.
+;----------------------------------------------------------------------------
+; input a0.l ... Fading table
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DoFading:
+    lea     -$80(sp), sp                ; Allocate fading buffer
+    
+    lea     (PaletteBuf), a6            ; Copy current palette into buffer
+    move.l  sp, a5
+    moveq   #$40/8-1, d7
+@CopyToBuffer:
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    dbf     d7, @CopyToBuffer
+    
+    moveq   #8-1, d0                    ; Go through all steps
+@StepLoop:
+    
+    move.w  (a0)+, d2                   ; Fetch next step
+    
+    moveq   #$40-1, d1                  ; Go through all colors
+    move.l  sp, a6
+    lea     (PaletteBuf), a5
+@ColorLoop:
+    move.w  (a6)+, d7                   ; Get next color
+    and.w   #$EEE, d7                   ; Filter out unused bits...
+    
+    eor.w   #$EEE, d7                   ; Use negative so we can just add
+    add.w   d2, d7                      ; Mix color with step
+    
+    move.w  d7, d6                      ; Do clamping
+    and.w   #$1110, d6
+    lsr.w   #3, d6
+    or.w    d6, d7
+    add.w   d6, d6
+    or.w    d6, d7
+    add.w   d6, d6
+    or.w    d6, d7
+    
+    eor.w   #$EEE, d7                   ; Put color back into positive
+    move.w  d7, (a5)+                   ; Store blended color into the buffer
+    dbf     d1, @ColorLoop              ; Go for next color
+    
+    jsr     (NextFrame).w               ; Wait for next step
+    jsr     (NextFrame).w
+    dbf     d0, @StepLoop
+    
+    lea     $80(sp), sp                 ; Deallocate fading buffer
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; ClearPlaneA
+; Clears plane A with zeroed tiles.
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+ClearPlaneA:
+    lea     ($C00000), a6               ; VDP control port
+    moveq   #0, d7                      ; What to clear with
+    
+    move.w  #$40*$20/8-1, d6            ; Fill tilemap with zeroes
+    SetVRAMAddr $C000, 4(a6)
+@Loop:
+    move.l  d7, (a6)
+    move.l  d7, (a6)
+    move.l  d7, (a6)
+    move.l  d7, (a6)
+    dbf     d6, @Loop
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; ClearPlaneB
+; Clears plane B with zeroed tiles.
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+ClearPlaneB:
+    lea     ($C00000), a6               ; VDP control port
+    moveq   #0, d7                      ; What to clear with
+    
+    move.w  #$40*$20/8-1, d6            ; Fill tilemap with zeroes
+    SetVRAMAddr $E000, 4(a6)
+@Loop:
+    move.l  d7, (a6)
+    move.l  d7, (a6)
+    move.l  d7, (a6)
+    move.l  d7, (a6)
+    dbf     d6, @Loop
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; ClearHScroll
+; Clears the hscroll table with zeroed lines.
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+ClearHScroll:
+    lea     ($C00000), a6               ; VDP control port
+    moveq   #0, d7                      ; What to clear with
+    
+    move.w  #224/4-1, d6                ; Fill table with zeroes
+    SetVRAMAddr $F800, 4(a6)
+@Loop:
+    move.l  d7, (a6)
+    move.l  d7, (a6)
+    move.l  d7, (a6)
+    move.l  d7, (a6)
+    dbf     d6, @Loop
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; ClearVScroll
+; Clears the vscroll table with zeroed columns.
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+ClearVScroll:
+    lea     ($C00000), a6               ; VDP control port
+    moveq   #0, d7                      ; What to clear with
+    
+    move.w  #20/4-1, d6                 ; Fill table with zeroes
+    SetVSRAMAddr 0, 4(a6)
+@Loop:
+    move.l  d7, (a6)
+    move.l  d7, (a6)
+    move.l  d7, (a6)
+    move.l  d7, (a6)
+    dbf     d6, @Loop
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; ClearSprites
+; Clears the sprite table.
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+ClearSprites:
+    clr.b   (NumSprites)                ; Reset sprite count
+    clr.l   (SpriteBuf)                 ; Clear first entry in sprite table
+    clr.l   (SpriteBuf+4)
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; AddSprite
+; Adds a sprite to the sprite table.
+;----------------------------------------------------------------------------
+; input d0.w ... X coordinate
+; input d1.w ... Y coordinate
+; input d2.w ... First tile
+; input d3.b ... Sprite size
+;----------------------------------------------------------------------------
+; breaks: d6-d7, a6
+;****************************************************************************
+
+AddSprite:
+    cmp.w   #-32, d0                    ; Check if the sprite is visible in
+    ble.s   @DontDraw                     ; the first place
+    cmp.w   #320, d0
+    bge.s   @DontDraw
+    cmp.w   #-32, d1
+    ble.s   @DontDraw
+    cmp.w   #224, d1
+    bge.s   @DontDraw
+    
+    lea     (SpriteBuf), a6             ; Where the sprite buffer is located
+    
+    move.b  (NumSprites), d7            ; Get current number of sprites
+    beq.s   @First                      ; First sprite?
+    cmp.b   #80, d7                     ; Too many sprites?
+    beq.s   @DontDraw
+    
+    moveq   #0, d6                      ; Get address of new sprite
+    move.b  d7, d6
+    lsl.w   #3, d6
+    lea     (a6,d6.w), a6
+    
+    move.b  d7, -5(a6)                  ; Update link of last sprite
+    
+@First:
+    move.w  #$80, d6                    ; Apply offset to the coordinates
+    add.w   d6, d0
+    add.w   d6, d1
+    
+    move.w  d1, (a6)+                   ; Store sprite in the table
+    move.b  d3, (a6)+
+    move.b  #0, (a6)+
+    move.w  d2, (a6)+
+    move.w  d0, (a6)+
+    
+    sub.w   d6, d0                      ; Undo the offset to preserve the
+    sub.w   d6, d1                        ; register values
+    
+    addq.b  #1, d7                      ; Update sprite count
+    move.b  d7, (NumSprites)
+    
+@DontDraw:
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; AddMetasprite
+; Adds a metasprite (large sprite made out of many smaller ones) to the
+; sprite table.
+;----------------------------------------------------------------------------
+; input d0.w ... X coordinate
+; input d1.w ... Y coordinate
+; input d2.w ... First tile
+; input a6.l ... Sprite mapping
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+AddMetasprite:
+    movem.l d0-d4, -(sp)                ; Save registers
+    
+    move.w  d0, a5                      ; We're really tight on registers
+    move.w  d1, a4
+    
+@Loop:
+    move.w  (a6)+, d7                   ; Get relative coordinates
+    cmp.w   #$8000, d7
+    beq.s   @End
+    move.w  (a6)+, d6
+    move.w  a5, d0
+    move.w  a4, d1
+    add.w   d7, d0
+    add.w   d6, d1
+    
+    move.w  (a6)+, d4                   ; Get tile address
+    move.w  d4, d5
+    and.w   #$07FF, d4
+    and.w   #$F800, d5
+    add.w   d2, d4
+    eor.w   d5, d4
+    
+    move.w  (a6)+, d3                   ; Get sprite size
+    
+    ; To-do: proper metasprite flipping
+    ; Currently flipping isn't handled
+    
+    move.l  a6, -(sp)                   ; Draw sprite
+    exg.l   d4, d2
+    jsr     (AddSprite).w
+    exg.l   d2, d4
+    move.l  (sp)+, a6
+    
+    bra.s   @Loop                       ; Go for next sprite
+
+@End:
+    movem.l (sp)+, d0-d4                ; Restore registers
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; UpdateSprites
+; Loads the sprite table buffer to video memory.
+;----------------------------------------------------------------------------
+; breaks: d6-d7, a6
+;****************************************************************************
+
+UpdateSprites:
+    moveq   #0, d7                      ; Get sprite count
+    move.b  (NumSprites), d7
+    bne.s   @HasSprites
+    moveq   #1, d7
+@HasSprites:
+    
+    lsl.w   #3, d7                      ; Ask for a DMA of the buffer
+    move.l  (DMABufEnd), a6
+    DMA2VRAM_L SpriteBuf, $F000, d7, a6
+    move.l  a6, (DMABufEnd)
+    
+    rts                                 ; End of subroutine

@@ -1,0 +1,177 @@
+;****************************************************************************
+; Decompress1bpp
+; Decompresses 1bpp tiles into 4bpp tiles
+;----------------------------------------------------------------------------
+; input d7.w .... Number of tiles
+; input d6.b .... Foreground color
+; input d5.b .... Background color
+; input a6.l .... Input buffer
+; input a5.l .... Output buffer
+;----------------------------------------------------------------------------
+; output a6.l ... End of input buffer
+; output a5.l ... End of output buffer
+;----------------------------------------------------------------------------
+; breaks: d7
+;****************************************************************************
+
+Decompress1bpp:
+    movem.l d0-d2, -(sp)                ; Save registers
+    
+    lsl.w   #3, d7                      ; Calculate row count
+    subq.w  #1, d7                      ; Substract due to DBF
+@RowLoop:                               ; Go through all rows
+
+    move.b  (a6)+, d0                   ; Get next 1bpp row
+    moveq   #8-1, d2                    ; Go through all pixels
+@ColLoop:
+    lsl.l   #4, d1                      ; Make room for next pixel
+    add.b   d0, d0                      ; Read next pixel
+    bcc.s   @BGColor                    ; Background or foreground?
+    
+    or.b    d6, d1                      ; Foreground color
+    bra.s   @ColorSet
+@BGColor:
+    or.b    d5, d1                      ; Background color
+@ColorSet:
+    dbf     d2, @ColLoop                ; Go for next pixel
+    
+    move.l  d1, (a5)+                   ; Store 4bpp row
+    dbf     d7, @RowLoop                ; Go for next row
+    
+    movem.l (sp)+, d0-d2                ; Restore registers
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DecompressSLZ
+; Decompresses SLZ data into memory
+;----------------------------------------------------------------------------
+; input a6.l .... Input buffer
+; input a5.l .... Output buffer
+;----------------------------------------------------------------------------
+; output a6.l ... End of input buffer
+; output a5.l ... End of output buffer
+;----------------------------------------------------------------------------
+; breaks: d5-d7
+;****************************************************************************
+
+DecompressSLZ:
+    move.w  d3, -(sp)               ; Save registers
+    move.w  d4, -(sp)
+
+    move.b  (a6)+, d7               ; Get uncompressed size
+    lsl.w   #8, d7
+    move.b  (a6)+, d7
+
+    moveq   #1, d6                  ; Cause code to fetch new token data
+                                    ; as soon as it starts
+@MainLoop:
+    tst.w   d7                      ; Did we read all the data?
+    beq     @End                      ; If so, we're done with it!
+
+    subq.w  #1, d6                  ; Check if we need more tokens
+    bne.s   @HasTokens
+    move.b  (a6)+, d5
+    moveq   #8, d6
+@HasTokens:
+
+    add.b   d5, d5                  ; Get next token type
+    bcc.s   @Uncompressed             ; 0 = uncompressed, 1 = compressed
+
+    move.b  (a6)+, d3               ; Compressed? Read string info
+    lsl.w   #8, d3                    ; d3 = distance
+    move.b  (a6)+, d3                 ; d4 = length
+    move.b  d3, d4
+    lsr.w   #4, d3
+    and.w   #$0F, d4
+
+    subq.w  #3, d7                  ; Length is offset by 3
+    sub.w   d4, d7                  ; Now that we know the string length,
+                                      ; discount it from the amount of data
+                                      ; to be read
+
+    addq.w  #3, d3                  ; Distance is offset by 3
+    neg.w   d3                      ; Make distance go backwards
+
+    add.w   d4, d4                  ; Copy bytes using Duff's device
+    add.w   d4, d4                    ; MUCH faster than a loop, due to lack
+    eor.w   #$0F<<2, d4               ; of iteration overhead
+    jmp     @Duff(pc,d4.w)
+@Duff:
+    rept    $10+2
+    move.b  (a5,d3.w), (a5)+
+    endr
+
+    bra     @MainLoop               ; Keep processing data
+
+@Uncompressed:
+    move.b  (a6)+, (a5)+            ; Uncompressed? Read as is
+    subq.w  #1, d7                  ; It's always one byte long
+    bra     @MainLoop               ; Keep processing data
+
+@End:
+    move.w  (sp)+, d4               ; Restore registers
+    move.w  (sp)+, d3
+    rts                             ; End of subroutine
+
+;****************************************************************************
+; DecompressUFTC
+; Decompresses UFTC data
+;----------------------------------------------------------------------------
+; input a6.l .... Pointer to UFTC data
+; input a5.l .... Pointer to output buffer
+; input d7.w .... ID of first tile to decompress (counting from 0)
+; input d6.w .... How many tiles to decompress
+;----------------------------------------------------------------------------
+; output a5.l ... Right after output buffer
+;----------------------------------------------------------------------------
+; breaks: d5, d6, d7, a4, a6
+;****************************************************************************
+
+DecompressUFTC:
+    move.l  a2, -(sp)                   ; Save registers
+    move.l  a3, -(sp)
+    
+    moveq   #0, d5                      ; Get size of dictionary
+    move.w  (a6)+, d5
+    
+    lea     (a6,d5.l), a4               ; Get address of data with first tile
+    and.l   #$FFFF, d7                    ; to be decompressed (using a dword
+    lsl.l   #3, d7                        ; so we can have up to 8192 tiles)
+    lea     (a4,d7.l), a4
+    
+    bra.s   @LoopEnd                    ; Start decompressing
+@Loop:
+    move.w  (a4)+, d5                   ; Fetch addresses of dictionary
+    lea     (a6,d5.l), a3                 ; entries for the first two 4x4
+    move.w  (a4)+, d5                     ; blocks of this tile
+    lea     (a6,d5.l), a2
+    
+    move.w  (a3)+, (a5)+                ; Decompress first pair of 4x4 blocks
+    move.w  (a2)+, (a5)+                  ; into the output buffer
+    move.w  (a3)+, (a5)+
+    move.w  (a2)+, (a5)+
+    move.w  (a3)+, (a5)+
+    move.w  (a2)+, (a5)+
+    move.w  (a3)+, (a5)+
+    move.w  (a2)+, (a5)+
+    
+    move.w  (a4)+, d5                   ; Fetch addresses of dictionary
+    lea     (a6,d5.l), a3                 ; entries for the last two 4x4
+    move.w  (a4)+, d5                     ; blocks of this tile
+    lea     (a6,d5.l), a2
+    
+    move.w  (a3)+, (a5)+                ; Decompress last pair of 4x4 blocks
+    move.w  (a2)+, (a5)+                  ; into the output buffer
+    move.w  (a3)+, (a5)+
+    move.w  (a2)+, (a5)+
+    move.w  (a3)+, (a5)+
+    move.w  (a2)+, (a5)+
+    move.w  (a3)+, (a5)+
+    move.w  (a2)+, (a5)+
+    
+@LoopEnd:
+    dbf     d6, @Loop                   ; Go for next tile
+    
+    move.l  (sp)+, a3                   ; Restore registers
+    move.l  (sp)+, a2
+    rts                                 ; End of subroutine

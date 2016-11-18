@@ -1,0 +1,186 @@
+;****************************************************************************
+; GfxGlobe
+; Graphics for the globe sprites
+;****************************************************************************
+
+GfxGlobe:
+    incbin  "data/globe/globe.slz"
+    even
+
+GfxGlobeSize: equ filesize("src-data/globe/globe.4bpp")/$20
+
+;****************************************************************************
+; Graphics for animated tiles
+;****************************************************************************
+
+GfxWater:           incbin  "data/globe/water.4bpp"
+GfxFire:            incbin  "data/globe/fire.4bpp"
+GfxRaft:            incbin  "data/globe/raft.uftc"
+GfxBelt:            incbin  "data/globe/belt.uftc"
+
+;****************************************************************************
+; Possible tile types
+;****************************************************************************
+
+            rsreset
+TILE___:    rs.b 1      ; Dirt
+TILE_GR:    rs.b 1      ; Grass
+TILE_GF:    rs.b 1      ; Flower
+TILE_WA:    rs.b 1      ; Water
+TILE_GO:    rs.b 1      ; Goal
+TILE_RH:    rs.b 1      ; Stuck raft (horizontal)
+TILE_RV:    rs.b 1      ; Stuck vertical (horizontal)
+TILE_BR:    rs.b 1      ; Brick
+TILE_WO:    rs.b 1      ; Wood
+TILE_SP:    rs.b 1      ; Spring
+TILE_FS:    rs.b 1      ; Fake spring
+TILE_CU:    rs.b 1      ; Conveyor belt (up)
+TILE_CD:    rs.b 1      ; Conveyor belt (down)
+TILE_CL:    rs.b 1      ; Conveyor belt (left)
+TILE_CR:    rs.b 1      ; Conveyor belt (right)
+TILE_PI:    rs.b 1      ; Pit
+TILE_KW:    rs.b 1      ; Black (wall)
+TILE_KF:    rs.b 1      ; Black (floor)
+TILE_FI:    rs.b 1      ; Fire
+TILE_ME:    rs.b 1      ; Metal wall
+TILE_PL:    rs.b 1      ; Metal plate
+TILE_VI:    rs.b 1      ; Visor
+TILE_MA:    rs.b 1      ; Marble
+
+;----------------------------------------------------------------------------
+
+TILE_RAFTU1:        rs.b 1      ; Raft going up (top)
+TILE_RAFTU2:        rs.b 1      ; Raft going up (middle)
+TILE_RAFTU3:        rs.b 1      ; Raft going up (bottom)
+TILE_RAFTD1:        rs.b 1      ; Raft going down (top)
+TILE_RAFTD2:        rs.b 1      ; Raft going down (middle)
+TILE_RAFTD3:        rs.b 1      ; Raft going down (bottom)
+TILE_RAFTL1:        rs.b 1      ; Raft going left (left)
+TILE_RAFTL2:        rs.b 1      ; Raft going left (middle)
+TILE_RAFTL3:        rs.b 1      ; Raft going left (right)
+TILE_RAFTR1:        rs.b 1      ; Raft going right (left)
+TILE_RAFTR2:        rs.b 1      ; Raft going right (middle)
+TILE_RAFTR3:        rs.b 1      ; Raft going right (right)
+
+;****************************************************************************
+; Possible collision types
+;****************************************************************************
+
+                rsreset
+COLL_FLOOR:     rs.b 1      ; No collision
+COLL_WALL:      rs.b 1      ; Blocking collision
+COLL_HAZARD:    rs.b 1      ; Hazard when stepping
+
+;****************************************************************************
+; GlobeTiles
+; Sprites used for each possible tile in a globe (includes palette)
+;****************************************************************************
+
+GlobeTiles:
+    dc.w    $2000+VramDirt              ; TILE___
+    dc.w    $2000+VramGrass             ; TILE_GR
+    dc.w    $2000+VramFlower            ; TILE_GF
+    dc.w    $2000+VramWater             ; TILE_WA
+    dc.w    $4000+VramGoal              ; TILE_GO
+    dc.w    $2000+VramRaftH             ; TILE_RH
+    dc.w    $2000+VramRaftV             ; TILE_RV
+    dc.w    $0000+VramBrick             ; TILE_BR
+    dc.w    $2000+VramWood              ; TILE_WO
+    dc.w    $0000+VramSpring            ; TILE_SP
+    dc.w    $0000+VramSpring            ; TILE_FS
+    dc.w    $4000+VramBeltU             ; TILE_CU
+    dc.w    $4000+VramBeltD             ; TILE_CD
+    dc.w    $4000+VramBeltL             ; TILE_CL
+    dc.w    $4000+VramBeltR             ; TILE_CR
+    dc.w    $0000+VramDark              ; TILE_PI
+    dc.w    $0000+VramDark              ; TILE_KW
+    dc.w    $0000+VramDark              ; TILE_KF
+    dc.w    $0000+VramFire              ; TILE_FI
+    dc.w    $0000+VramMetal             ; TILE_ME
+    dc.w    $4000+VramPlate             ; TILE_PL
+    dc.w    $2000+VramVisor             ; TILE_VI
+    dc.w    $0000+VramMarble            ; TILE_MA
+    
+    dc.w    $2000+VramRaftU             ; TILE_RAFTU1
+    dc.w    $2008+VramRaftU             ; TILE_RAFTU2
+    dc.w    $2004+VramRaftU             ; TILE_RAFTU3
+    dc.w    $2000+VramRaftD             ; TILE_RAFTD1
+    dc.w    $2008+VramRaftD             ; TILE_RAFTD2
+    dc.w    $2004+VramRaftD             ; TILE_RAFTD3
+    dc.w    $2000+VramRaftL             ; TILE_RAFTL1
+    dc.w    $2008+VramRaftL             ; TILE_RAFTL2
+    dc.w    $2004+VramRaftL             ; TILE_RAFTL3
+    dc.w    $2000+VramRaftR             ; TILE_RAFTR1
+    dc.w    $2008+VramRaftR             ; TILE_RAFTR2
+    dc.w    $2004+VramRaftR             ; TILE_RAFTR3
+
+;****************************************************************************
+; CollTiles
+; Collision types for every tile
+;****************************************************************************
+
+CollTiles:
+    dc.b    COLL_FLOOR                  ; TILE___
+    dc.b    COLL_WALL                   ; TILE_GR
+    dc.b    COLL_WALL                   ; TILE_GF
+    dc.b    COLL_HAZARD                 ; TILE_WA
+    dc.b    COLL_FLOOR                  ; TILE_GO
+    dc.b    COLL_FLOOR                  ; TILE_RH
+    dc.b    COLL_FLOOR                  ; TILE_RV
+    dc.b    COLL_WALL                   ; TILE_BR
+    dc.b    COLL_FLOOR                  ; TILE_WO
+    dc.b    COLL_FLOOR                  ; TILE_SP
+    dc.b    COLL_FLOOR                  ; TILE_FS
+    dc.b    COLL_FLOOR                  ; TILE_CU
+    dc.b    COLL_FLOOR                  ; TILE_CD
+    dc.b    COLL_FLOOR                  ; TILE_CL
+    dc.b    COLL_FLOOR                  ; TILE_CR
+    dc.b    COLL_HAZARD                 ; TILE_PI
+    dc.b    COLL_WALL                   ; TILE_KW
+    dc.b    COLL_FLOOR                  ; TILE_KF
+    dc.b    COLL_HAZARD                 ; TILE_FI
+    dc.b    COLL_WALL                   ; TILE_ME
+    dc.b    COLL_FLOOR                  ; TILE_PL
+    dc.b    COLL_WALL                   ; TILE_VI
+    dc.b    COLL_WALL                   ; TILE_MA
+    
+    dc.b    COLL_FLOOR                  ; TILE_RAFTU1
+    dc.b    COLL_FLOOR                  ; TILE_RAFTU2
+    dc.b    COLL_FLOOR                  ; TILE_RAFTU3
+    dc.b    COLL_FLOOR                  ; TILE_RAFTD1
+    dc.b    COLL_FLOOR                  ; TILE_RAFTD2
+    dc.b    COLL_FLOOR                  ; TILE_RAFTD3
+    dc.b    COLL_FLOOR                  ; TILE_RAFTL1
+    dc.b    COLL_FLOOR                  ; TILE_RAFTL2
+    dc.b    COLL_FLOOR                  ; TILE_RAFTL3
+    dc.b    COLL_FLOOR                  ; TILE_RAFTR1
+    dc.b    COLL_FLOOR                  ; TILE_RAFTR2
+    dc.b    COLL_FLOOR                  ; TILE_RAFTR3
+
+;****************************************************************************
+; GlobeTable
+; Massive look-up tables used to determine the position of the sprites that
+; make up the globe at every possible angle (!!).
+;****************************************************************************
+
+GlobeTable:
+    incbin  "data/globe/table.lut"
+
+;****************************************************************************
+; ObjectTable
+; Another massive look-up table, this time to position the 3D objects on the
+; globe (e.g. the keys).
+;****************************************************************************
+
+ObjectTable:
+    incbin  "data/globe/objects.lut"
+
+
+;****************************************************************************
+; EndingGlobeTable
+; Yet another look-up table, used for the globe scaling (and explosion!) in
+; the ending sequence.
+;****************************************************************************
+
+EndingGlobeTable:
+    incbin  "data/globe/ending.lut"

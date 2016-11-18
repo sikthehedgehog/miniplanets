@@ -1,0 +1,25 @@
+;****************************************************************************
+; InitUniverse
+; Initializes the universe background (draws it).
+;----------------------------------------------------------------------------
+; breaks: all, local RAM
+;****************************************************************************
+
+InitUniverse:
+    lea     (GfxUniverse), a6           ; Decompress graphics
+    lea     (LocalRAM), a5
+    jsr     (DecompressSLZ).w
+    
+    DMA2VRAM LocalRAM, VramUniverse*$20, 24*$20, ($C00004) ; Load tiles
+    
+    lea     ($C00000), a6               ; Draw tilemap
+    lea     (LocalRAM+24*$20), a5
+    SetPosB 0, 0, 4(a6)
+    moveq   #0, d6
+    move.w  #$40*$20-1, d7
+@DrawTilemap:
+    move.b  (a5)+, d6
+    move.w  d6, (a6)
+    dbf     d7, @DrawTilemap
+    
+    rts                                 ; End of subroutine

@@ -1,0 +1,28 @@
+Z t96
+
+!a l8cedfegfa
+!b r16l8dfegfagb
+!B r2&r4&r8&r16
+!c c4.d4.e4
+!d d4.e4.f4
+!e c4.e2r8
+!f e4.g2r8
+!g d4.f2r8
+!h f4.a2r8
+!i l16crcr8.crcr8.l32ed+dc+c8
+!j l16erer8.erer8.l32g+gf+fe8
+!k l16ce(((
+!l l16df(((
+!k r4!k!k!k!kr
+!l r4&r32!l!l!l!lr
+!m l8rcc4cc4.
+
+A @0o5
+B @0o5
+G @4v12o4
+H @4v12o4
+
+A !a!c!c!d!d!m!k
+B !b!Br1r1r1r1!l
+G r1!e!e!g!gr8!ir128
+H r1!f!f!h!hr8!jr128

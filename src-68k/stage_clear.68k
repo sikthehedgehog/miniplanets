@@ -1,0 +1,592 @@
+;****************************************************************************
+; CLPHASE_*
+; Stage Clear screen phases
+;****************************************************************************
+
+                    rsreset
+CLPHASE_INTRO:      rs.b 1      ; Qisha dashes in
+CLPHASE_BONUS:      rs.b 1      ; Bonus tallying
+CLPHASE_MESSAGE:    rs.b 1      ; Encouragement message
+CLPHASE_OUTRO:      rs.b 1      ; Qisha goes away
+CLPHASE_QUIT:       rs.b 1      ; Keep going
+
+;****************************************************************************
+; StageClear
+; Shows the tally when a stage is completed.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+StageClear:
+    jsr     (ResetVideo).w              ; Reset graphics
+    st.b    (FadeInFlag)                ; We want fade in
+    move.w  #$8B02, ($C00004)           ; Scroll per tile
+    
+    jsr     (InitUniverse).w            ; Draw background
+    jsr     (LoadFont).w                ; Load generic font
+    
+    lea     (GfxQishaSide), a6          ; Decompress Qisha flying
+    lea     (LocalRAM), a5
+    jsr     (DecompressSLZ).w
+    DMA2VRAM LocalRAM, VramClearQisha*$20, 8*7*$20, ($C00004)
+    
+    lea     (GfxQishaChildren), a6      ; Decompress the children flying
+    lea     (LocalRAM), a5
+    jsr     (DecompressSLZ).w
+    DMA2VRAM LocalRAM, VramClearQua*$20, 4*4*5*5*$20, ($C00004)
+    
+    lea     (GfxQishaTrail), a6         ; Decompress Qisha's trail
+    lea     (LocalRAM), a5
+    jsr     (DecompressSLZ).w
+    DMA2VRAM LocalRAM, VramClearTrail*$20, 8*$20, ($C00004)
+    
+    subq.w  #2, sp                      ; Make string for stage number
+    move.b  (StageName), d7
+    lsr.b   #4, d7
+    add.b   #"0", d7
+    move.b  d7, (sp)
+    clr.b   1(sp)
+    
+    move.l  #ClearTitleBuf, (TextBufAddr) ; Draw header
+    jsr     (ClearText).w
+    lea     (StrStageClear), a6
+    moveq   #18-13, d7
+    jsr     (DrawText).w
+    move.l  sp, a6
+    moveq   #18-1, d7
+    jsr     (DrawText).w
+    move.w  #$6000, d7
+    jsr     (ColorizeText).w
+    move.w  #$C104, d7
+    jsr     (UploadText).w
+    addq.w  #2, sp
+    
+    lea     (PaletteBuf), a5            ; Load palettes
+    lea     (PalStageClear), a6
+    moveq   #$40/8-1, d7
+@LoadPalette:
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    dbf     d7, @LoadPalette
+    
+    move.b  (StageName), d7             ; Determine bonus for this stage
+    lsr.w   #2, d7
+    and.w   #$0F<<2, d7
+    subq.w  #1<<2, d7
+    lea     (StageBonuses), a6
+    move.l  (a6,d7.w), StageBonus
+    
+    move.w  #-$180, (ClearQishaPos)     ; Reset Qisha's location
+    clr.b   (ClearPhase)                ; Reset status of the screen
+    clr.b   (ClearTimer)
+    
+    moveq   #BGM_TALLY, d7              ; Play jingle
+    jsr     (PlayBGM).w
+
+;----------------------------------------------------------------------------
+
+@MainLoop:
+@LogicLoop:
+    bsr     UpdateClearAll              ; Update everything
+    addq.w  #1, (Anim)
+    
+    clr.b   (Joy1Press)                 ; Do NTSC/PAL speed correction
+    clr.b   (Joy2Press)
+    subq.b  #1, (NumFrames)
+    bne.s   @LogicLoop
+    
+    cmp.b   #CLPHASE_QUIT, (ClearPhase) ; Stage Clear done?
+    beq.s   @Quit
+    
+    jsr     (ClearSprites).w            ; Draw everything
+    bsr     DrawClearQisha
+    bsr     DrawClearChildren
+    bsr     DrawClearScroll
+    bsr     DrawClearBonus
+    bsr     DrawClearMessage
+    
+    jsr     (NextFrame).w               ; Wait for next frame
+    bra     @MainLoop
+
+;----------------------------------------------------------------------------
+
+@Quit:
+    jsr     (FadeOut).w                 ; Resume gameplay
+    rts
+
+;****************************************************************************
+; UpdateClearAll
+; Updates the Stage Clear screen.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+UpdateClearAll:
+    moveq   #0, d7                      ; Jump to the handler for this phase
+    move.b  (ClearPhase), d7
+    add.w   d7, d7
+    add.w   d7, d7
+    lea     @List(pc), a6
+    move.l  (a6,d7.w), a6
+    jmp     (a6)
+
+;----------------------------------------------------------------------------
+
+@List:
+    dc.l    UpdateClearIntro            ; CLPHASE_INTRO
+    dc.l    UpdateClearBonus            ; CLPHASE_BONUS
+    dc.l    UpdateClearMessage          ; CLPHASE_MESSAGE
+    dc.l    UpdateClearOutro            ; CLPHASE_OUTRO
+    dc.l    @Dummy                      ; CLPHASE_QUIT
+
+@Dummy:
+    rts
+
+;****************************************************************************
+; UpdateClearIntro
+; Updates when Qisha comes into the Stage Clear.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+UpdateClearIntro:
+    tst.w   (ClearQishaPos)             ; Is Qisha way too back?
+    bge.s   @NotTooBack
+    addq.w  #4, (ClearQishaPos)
+    
+    bne.s   @NotTooBack                 ; Did Qisha reach the destination?
+    addq.b  #1, (ClearPhase)
+    clr.b   (ClearTimer)
+@NotTooBack:
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; UpdateClearBonus
+; Updates when the stage bonus is being tallied.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+UpdateClearBonus:
+    move.b  (ClearTimer), d0            ; Get current timer value
+    move.l  (StageBonus), d1            ; Get bonus left to award
+    
+    addq.b  #1, d0                      ; Time to award score?
+    cmp.b   #120, d0
+    bne.s   @DontAward
+    tst.l   d1
+    beq.s   @DontAward
+    
+    move.l  #$500, d7                   ; Give the player some score
+    bsr     AddScore
+    move.l  #$500, d7
+    SubLongBCD d7, d1
+    move.l  d1, (StageBonus)
+    
+    subq.b  #3, d0                      ; Wait a bit!
+@DontAward:
+    
+    cmp.b   #240, d0                    ; Done tallying?
+    bne.s   @NotDone
+    addq.b  #1, (ClearPhase)
+    clr.b   (ClearTimer)
+@NotDone:
+    
+    move.b  d0, (ClearTimer)            ; Update timer
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; UpdateClearMessage
+; Updates when the encouragement message appears in the Stage Clear.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+UpdateClearMessage:
+;    cmp.b   #STAGE_6_0, (Stage)         ; No message in stage 6
+;    beq.s   @SkipStage6
+    
+    addq.b  #1, (ClearTimer)            ; Make text blink
+    
+    cmp.b   #$80, (ClearTimer)          ; Done with the message?
+    bne.s   @NotDone
+@SkipStage6:
+    addq.b  #1, (ClearPhase)
+    clr.b   (ClearTimer)
+@NotDone:
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; UpdateClearOutro
+; Updates when Qisha goes away from the Stage Clear.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+UpdateClearOutro:
+    cmp.b   #$20, (ClearTimer)          ; Wait a bit first
+    beq.s   @NotWaiting
+    addq.b  #1, (ClearTimer)
+    rts
+@NotWaiting
+    
+    addq.w  #4, (ClearQishaPos)         ; Make Qisha go forwards
+    
+    cmp.w   #$180, (ClearQishaPos)      ; Did Qisha go away?
+    blt.s   @NotTooFar
+    addq.b  #1, (ClearPhase)
+    clr.b   (ClearTimer)
+@NotTooFar:
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawClearScroll
+; Updates the scrolling in the stage clear screen.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawClearScroll:
+    moveq   #0, d7                      ; Reset foreground scrolling
+    move.w  #28/4-1, d6
+    lea     (ClearScrollABuf), a6
+    move.l  a6, a5
+@ResetForeground:
+    move.w  d7, (a5)+
+    move.w  d7, (a5)+
+    move.w  d7, (a5)+
+    move.w  d7, (a5)+
+    dbf     d6, @ResetForeground
+    
+    move.w  (Anim), d7                  ; Make the starfield move
+    lsl.w   #2, d7
+    neg.w   d7
+    lea     (ClearScrollBBuf), a6
+    moveq   #28/4-1, d6
+@MoveBackground:
+    move.w  d7, (a6)+
+    move.w  d7, (a6)+
+    move.w  d7, (a6)+
+    move.w  d7, (a6)+
+    dbf     d6, @MoveBackground
+    
+    move.l  (DMABufEnd), a6             ; Let DMA queue take care of loading
+    move.w  #$8F20, (a6)+
+    DMA2VRAM ClearScrollABuf, $F802, 28*2, (a6)+
+    DMA2VRAM ClearScrollBBuf, $F802, 28*2, (a6)+
+    move.w  #$8F02, (a6)+
+    move.l  a6, (DMABufEnd)
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawClearQisha
+; Draws Qisha flying around in the stage clear screen.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawClearQisha:
+    move.w  (Anim), d7                  ; Decide angle at which to scale
+    lsl.w   #1+1, d7                      ; Qisha's sprite (kind of convulted
+    move.w  d7, d6                        ; to work around quirks of the
+    lsr.w   #2, d6                        ; sines table, ugh)
+    add.w   d6, d7
+    and.w   #$FF<<1, d7
+    lea     (Sines), a0
+    move.w  (a0,d7.w), d7
+    tst.w   d7
+    spl.b   d6
+    ext.w   d6
+    add.w   d6, d7
+    add.w   #$100, d7
+    asr.w   #6, d7
+    and.w   #$07, d7
+    lsl.w   #3, d7
+    
+    lea     @ScaleTable(pc), a0
+    lea     (a0,d7.w), a0
+    lea     (a0), a1
+    
+    move.w  #160-32, d0                 ; Initial position
+    move.w  #88-24, d1
+    move.w  #$A000+VramClearQisha, d2   ; First tile ID
+    moveq   #%0000, d3                  ; All sprites are 8x8
+    
+    add.w   (ClearQishaPos), d0         ; Ensure Qisha is at the correct
+                                          ; position when travelling around
+                                          ; the screen :P
+    
+    move.w  (Anim), d7                  ; Make Qisha wobble
+    add.w   d7, d7
+    move.w  d7, d6
+    lsr.w   #1, d6
+    sub.w   d6, d7
+    lsl.w   #2, d7
+    and.w   #$FF<<1, d7
+    lea     (Sines), a6
+    move.w  (a6,d7.w), d7
+    asr.w   #4, d7
+    add.w   d7, d0
+    
+    moveq   #7-1, d5                    ; Go through entire image
+@YLoop:
+    
+    move.b  (a1)+, d7                   ; Do vertical scaling
+    ext.w   d7
+    add.w   d7, d1
+    
+    moveq   #8-1, d4                    ; Go through entire row
+    move.w  d0, -(sp)
+@XLoop:
+    move.b  (a0)+, d7                   ; Do horizontal scaling
+    ext.w   d7
+    add.w   d7, d0
+    
+    jsr     (AddSprite).w               ; Draw sprite
+    
+    addq.w  #8, d0                      ; Go for next sprite
+    addq.w  #1, d2
+    dbf     d4, @XLoop
+    
+    move.w  (sp)+, d0                   ; Go for next row
+    addq.w  #8, d1
+    lea     -8(a0), a0
+    dbf     d5, @YLoop
+    
+    rts                                 ; End of subroutine
+
+;----------------------------------------------------------------------------
+
+@ScaleTable:
+    dc.b    0, 0, 0, 0, 0, 0, 0, 0
+    dc.b    0, 0, 0, 0, -1, 0, 0, 0
+    dc.b    1, 0, -1, 0, 0, -1, 0, 0
+    dc.b    1, -1, 0, 0, -1, 0, 0, -1
+    dc.b    2, -1, 0, -1, 0, -1, 0, -1
+    dc.b    2, -1, 0, -1, -1, 0, -1, -1
+    dc.b    3, -1, -1, -1, 0, -1, -1, -1
+    dc.b    3, -1, -1, -1, -1, -1, -1, -1
+
+;****************************************************************************
+; DrawClearChildren
+; Draws Qisha's children in the stage clear screen.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawClearChildren:
+    lea     @Properties(pc), a0         ; Sprite properties for each children
+    lea     (Sines), a1                 ; Sines look-up table
+    lea     $80(a1), a2                 ; Cosines look-up table
+    lea     @Animation(pc), a3          ; Animation sequence
+    
+    moveq   #0, d4                      ; Determine how many children to show
+    move.b  (StageName), d4               ; (only show those that were
+    lsr.w   #4, d4                        ; rescued so far)
+    subq.w  #1, d4
+@Loop:
+    move.w  (a0)+, d2                   ; Get base tile ID
+    
+    move.w  (ClearQishaPos), d0         ; Base position for all sprites
+    add.w   #168, d0
+    move.w  #88, d1
+    add.w   (a0)+, d0                   ; Apply offset for this sprite
+    add.w   (a0)+, d1
+    
+    move.w  (a0)+, d5                   ; Get intended angle
+    add.w   (Anim), d5
+    
+    moveq   #0, d7                      ; Add wobble
+    move.b  d5, d7
+    add.w   d7, d7
+    add.w   d7, d7
+    and.w   #$FF<<1, d7
+    move.w  (a1,d7.w), d6
+    asr.w   #5, d6
+    add.w   d6, d0
+    add.w   d7, d7
+    and.w   #$FF<<1, d7
+    move.w  (a2,d7.w), d6
+    asr.w   #6, d6
+    add.w   d6, d1
+    
+    moveq   #0, d7                      ; Add scaling
+    move.w  d5, d7
+    lsr.w   #2, d7
+    and.w   #$1F, d7
+    move.b  (a3,d7.w), d7
+    lea     @Mapping1(pc), a6
+    tst.b   d7
+    bpl.s   @EvenSize
+    lea     17*2(a6), a6
+    and.b   #$7F, d7
+@EvenSize:
+    lsl.w   #4, d7
+    add.w   d7, d2
+    
+    jsr     (AddMetasprite).w           ; Draw sprite
+    
+    dbf     d4, @Loop                   ; Go for next child
+    rts                                 ; End of subroutine
+
+;----------------------------------------------------------------------------
+
+@Properties:
+    dc.w    $C000+VramClearQua, -128, 20, -20
+    dc.w    $A000+VramClearIyan, -96, -32, 20
+    dc.w    $A000+VramClearShia, -96, 32, 40
+    dc.w    $A000+VramClearHoru, -128, -17, 60
+    dc.w    $A000+VramClearAxar, -64, 0, 100
+
+@Animation:
+;    dc.b    0, 0, 0, 1, 1, 2, 3, 3, 4, 4, 4, 3, 3, 2, 1, 1
+    dc.b    $00, $00, $00, $81, $81, $01, $01, $82
+    dc.b    $02, $83, $03, $03, $84, $84, $04, $04
+    dc.b    $04, $04, $04, $84, $84, $03, $03, $83
+    dc.b    $02, $82, $01, $01, $81, $81, $00, $00
+
+@Mapping1:
+    dc.w    -$10, -$10, 0, %0101
+    dc.w    $00, -$10, 4, %0101
+    dc.w    -$10, $00, 8, %0101
+    dc.w    $00, $00, 12, %0101
+    dc.w    $8000
+
+@Mapping2:
+    dc.w    -$0F, -$0F, 0, %0101
+    dc.w    $00, -$0F, 4, %0101
+    dc.w    -$0F, $00, 8, %0101
+    dc.w    $00, $00, 12, %0101
+    dc.w    $8000
+
+;****************************************************************************
+; DrawClearBonus
+; Draws the stage bonus.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawClearBonus:
+    cmp.b   #CLPHASE_BONUS, (ClearPhase)  ; Ensure bonus should be shown
+    beq.s   @ShowMessage
+    rts
+@ShowMessage:
+    
+    lea     -10(sp), sp                 ; Get a buffer for storing number
+                                          ; strings (which need 9 bytes)
+    
+    move.l  (StageBonus), d7            ; Get bonus left to award
+    move.l  sp, a6
+    jsr     (BCDToString).w
+    
+    move.l  #ClearLine1Buf, (TextBufAddr) ; Draw stage bonus label
+    jsr     (ClearText).w
+    moveq   #0, d7
+    lea     (StrStageBonus), a6
+    jsr     (DrawText).w
+    
+    move.l  sp, a6                      ; Draw stage bonus value
+    jsr     (GetStrLen).w
+    add.w   d7, d7
+    neg.w   d7
+    add.w   #36, d7
+    move.l  sp, a6
+    jsr     (DrawText).w
+    
+    move.w  #$C000, d7                  ; Get it on screen
+    jsr     (ColorizeText).w
+    move.w  #$C904, d7
+    jsr     (UploadText).w
+    
+    move.l  (Score), d7                 ; Turn score into a string
+    move.l  sp, a6
+    jsr     (BCDToString).w
+    
+    move.l  #ClearLine2Buf, (TextBufAddr) ; Draw total label
+    jsr     (ClearText).w
+    moveq   #0, d7
+    lea     (StrTotal), a6
+    jsr     (DrawText).w
+    
+    move.l  sp, a6                      ; Draw current score value
+    jsr     (GetStrLen).w
+    add.w   d7, d7
+    neg.w   d7
+    add.w   #36, d7
+    move.l  sp, a6
+    jsr     (DrawText).w
+    
+    move.w  #$C000, d7                  ; Get it on screen
+    jsr     (ColorizeText).w
+    move.w  #$CB04, d7
+    jsr     (UploadText).w
+    
+    lea     10(sp), sp                  ; Get rid of buffer
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawClearMessage
+; Draws the encouragement message at the end of the stage tally.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawClearMessage:
+    cmp.b   #CLPHASE_MESSAGE, (ClearPhase) ; Ensure message should be shown
+    beq.s   @ShowMessage
+    rts
+@ShowMessage:
+    
+    move.b  (ClearTimer), d0            ; Determine whether to flash or not
+    and.b   #$10, d0                      ; $00 = don't flash
+    
+    move.b  (StageName), d7             ; Get name of rescued character
+    sub.w   #$10, d7                      ; Actually it's the whole "<NAME>
+    and.w   #$F0, d7                      ; RESCUED" string but eh
+    lsr.w   #1, d7
+    lea     @Messages(pc), a6
+    lea     (a6,d7.w), a0
+    
+    move.l  #ClearLine1Buf, (TextBufAddr) ; Draw first line
+    jsr     (ClearText).w
+    tst.b   d0
+    bne.s   @Blink1
+    moveq   #4, d7
+    move.l  (a0)+, a6
+    jsr     (DrawText).w
+    move.w  #$C000, d7
+    jsr     (ColorizeText).w
+@Blink1:
+    move.w  #$C904, d7
+    jsr     (UploadText).w
+    
+    move.l  #ClearLine2Buf, (TextBufAddr) ; Draw second line
+    jsr     (ClearText).w
+    tst.b   d0
+    bne.s   @Blink2
+    moveq   #10, d7
+    move.l  (a0)+, a6
+    jsr     (DrawText).w
+    move.w  #$C000, d7
+    jsr     (ColorizeText).w
+@Blink2:
+    move.w  #$CB04, d7
+    jsr     (UploadText).w
+    
+    rts                                 ; End of subroutine
+
+;----------------------------------------------------------------------------
+
+@Messages:
+    dc.l    StrQuaRescued,      StrGoQishaGo
+    dc.l    StrIyanRescued,     StrGoQishaGo
+    dc.l    StrShiaRescued,     StrGoQishaGo
+    dc.l    StrHoruRescued,     StrGoQishaGo
+    dc.l    StrAxarRescued,     StrGoQishaGo
+    dc.l    StrVoidSealedBack,  StrLetsGoHome

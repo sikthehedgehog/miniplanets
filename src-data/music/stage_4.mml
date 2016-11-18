@@ -1,0 +1,30 @@
+!a e8r16c8r16e8e8c8c8r8
+!b e8r16c8r16e8e8c8c16r16c8
+!c e8r16c8r16e8e8c8c16r16d8
+!d e8r16e8r16c8e8c8e8r8
+!e d+8r16d+8r16c8d+8c8d+8r8
+!f d-8r16d-8r16c8d-8c8d-8r8
+!g d8r16d8r16c8d8c8d8r8
+
+!h ereereerereereer
+!i crccrccrcrccrccr
+!j drddrddrdrddrddr
+
+!Y @13c
+!Z @5c
+!y l4rrrl16!Y!Y!Y!Y
+!z !Z8!Y16!Z8!Z8!Y16!Z8!Z4.
+
+A @2v14r128
+B @11v15r128r1r1r1r1
+G @4v9r128r1r1r1r1
+H @4v9r128r1r1r1r1
+K r128r1r1r1!y
+Z r128r1r1r1r1L
+
+A o2!a!b!a!b
+A !a!b!a!c!a!b!a!c!d!e!f!g!d!e!f!g
+B o1l16!h!h!i!j!h!h!i!j!h!h!i!j!h!h!i!j
+G o3r1r1r1r1r1r1r1r1e1d1c1d1e1d1c1d1
+H o3r1r1r1r1r1r1r1r1g1f1e1f1g1f1e1f1
+K !z!z!z!z!z!z!z!z!z!z!z!z!z!z!z!z

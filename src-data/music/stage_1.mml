@@ -1,0 +1,45 @@
+Z t128
+
+!a l16e8cdcdce8cd8c8d8
+!b l16e8cdcdce8cd8c4
+!c l16e8cc8c8de8e8e4
+
+!d c2.e8c8
+!e r2e8c8d4
+!f l16erddrccrccr4.
+!g l16freerddrccr4.
+
+!D e2.g8e8
+!E r2g8e8f4
+!F l16grffreereer4.
+!G l16arggrffreer4.
+
+!i l16c8cd8cedc8cd&r4
+!j l16c8cd8cedc8cd8ee8
+
+!z @12c8r16r16c8r16r16c8r16c8c8r16
+!z @12c8r16r16c8r16r16c8r16c8c8.
+!Z l16r8n4n4r8n4n4r8n4r8r8n4
+!y @12c8r16r16c8r16r16c8r16c8c16c16c16
+!Y l16r8n4n4r8n4n4r8n4r8r16r16r16
+
+A @0v11o5
+B @19v14o5
+C @19v13o5
+D @11v12o2
+J @14v14
+
+A !a!b!a!c
+B r1r1r1r1
+C r1r1r1r1
+D r1r1r1r1
+J r1r1r1r1
+K r1r1r1r1
+Z r1r1r1r1L
+
+A !a!b!a!c!a!b!a!c!a!b!a!c!a!b!a!c!a!b!a!c!a!b!a!c
+B !d!e!fr1!d!e!gr1!d!e!fr1!d!e!gr1!f!e!gr1!f!e!gr1
+C !D!E!Fr1!D!E!Gr1!D!E!Fr1!D!E!Gr1!F!E!Gr1!F!E!Gr1
+D !i!j!i!j!i!j!i!j!i!j!i!j!i!j!i!j!i!j!i!j!i!j!i!j
+J !Z!Y!Z!Y!Z!Y!Z!Y!Z!Y!Z!Y!Z!Y!Z!Y!Z!Y!Z!Y!Z!Y!Z!Y
+K !z!y!z!y!z!y!z!y!z!y!z!y!z!y!z!y!z!y!z!y!z!y!z!y

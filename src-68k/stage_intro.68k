@@ -1,0 +1,386 @@
+;****************************************************************************
+; StageIntro
+; Shows the intro before a stage starts.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+StageIntro:
+    jsr     (ResetVideo).w              ; Reset graphics
+    st.b    (FadeInFlag)                ; We want fade in
+    
+    lea     (GfxQishaBack), a6          ; Decompress Qisha graphics
+    lea     (LocalRAM), a5
+    jsr     (DecompressSLZ).w
+    DMA2VRAM LocalRAM, VramIntroQisha*$20, VramIntroQishaSize*$20, ($C00004)
+    
+    lea     (GfxVoid), a6               ; Decompress void graphics
+    lea     (LocalRAM), a5
+    jsr     (DecompressSLZ).w
+    DMA2VRAM LocalRAM, VramIntroVoid*$20, GfxVoidSize*$20, ($C00004)
+    
+    move.b  (Stage), d7                 ; Generate planelago graphics
+    cmp.b   #STAGE_6_0, d7
+    beq.s   @VoidIsNotPlanelago
+    lea     (LocalRAM), a6
+    jsr     (GeneratePlanelago).w
+    DMA2VRAM LocalRAM, VramIntroPlanelago*$20, 9*$20, ($C00004)
+@VoidIsNotPlanelago:
+    
+    lea     (PaletteBuf), a5            ; Load palettes
+    lea     (PalStageIntro), a6
+    moveq   #$40/8-1, d7
+@LoadPalette:
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    dbf     d7, @LoadPalette
+    
+    cmp.b   #STAGE_4_1, (Stage)         ; Stage 4 has dried grass (orange)
+    bne.s   @NoDryGrass
+    move.w  #$4AE, (PaletteBuf+$0A*2)
+@NoDryGrass:
+    
+    cmp.b   #STAGE_5_1, (Stage)         ; Stage 5 has lava, not water
+    bne.s   @NoRedWater
+    move.w  #$00E, (PaletteBuf+$0E*2)
+@NoRedWater:
+    
+    subq.w  #6, sp                      ; We need some buffer room
+    
+    move.b  (StageName), d7             ; Turn stage name into a string
+    lsr.b   #4, d7
+    add.b   #"0", d7
+    move.b  d7, (sp)
+    clr.b   1(sp)
+    
+    move.l  #LocalRAM, (TextBufAddr)    ; Draw planelago number
+    jsr     (ClearText).w
+    moveq   #0, d7
+    lea     (StrPlanelago), a6
+    jsr     (DrawText).w
+    moveq   #20, d7
+    move.l  sp, a6
+    jsr     (DrawText).w
+    move.w  #$6000, d7
+    jsr     (ColorizeText).w
+    move.w  #$CA08, d7
+    jsr     (UploadText).w
+    jsr     (FlushDMABuffer).w
+    
+    jsr     (ClearText).w               ; Draw planelago name
+    move.b  (StageName), d7
+    and.w   #$F0, d7
+    lsr.w   #2, d7
+    subq.w  #1<<2, d7
+    lea     @StageNames(pc), a6
+    move.l  (a6,d7.w), a6
+    moveq   #0, d7
+    jsr     (DrawText).w
+    move.w  #$4000, d7
+    jsr     (ColorizeText).w
+    move.w  #$CB8E, d7
+    jsr     (UploadText).w
+    jsr     (FlushDMABuffer).w
+    
+    cmp.b   #STAGE_1_1, (Stage)         ; Stage 1-1 has no password
+    beq     @NoPassword
+    
+    move.b  (StageName), d7             ; Generate string for the password
+    and.w   #$F0, d7
+    sub.w   #$10, d7
+    lsr.w   #2, d7
+    lea     PasswordList, a6
+    move.w  (a6,d7.w), d7
+    move.l  sp, a6
+    moveq   #4-1, d6
+@MakePassword:
+    rol.w   #4, d7
+    move.b  d7, d5
+    and.b   #$0F, d5
+    add.b   #"0", d5
+    move.b  d5, (a6)+
+    dbf     d6, @MakePassword
+    clr.b   (a6)
+    
+    jsr     (ClearText).w               ; Draw password
+    lea     (StrPassword), a6
+    moveq   #9, d7
+    jsr     (DrawText).w
+    move.l  sp, a6
+    moveq   #28, d7
+    jsr     (DrawText).w
+    move.w  #$4000, d7
+    jsr     (ColorizeText).w
+    move.w  #$C084, d7
+    jsr     (UploadText).w
+    jsr     (FlushDMABuffer).w
+    
+@NoPassword:
+    addq.w  #6, sp                      ; Readjust stack
+    
+    jsr     (InitUniverse).w            ; Draw background
+    jsr     (LoadFont).w                ; Load generic font
+    
+    clr.w   (Anim)                      ; Initialize animation
+
+;----------------------------------------------------------------------------
+
+@MainLoop:
+    move.w  (Anim), d7                  ; Make the background move
+    lsr.w   #4, d7
+    SetVRAMAddr $F802, ($C00004)
+    move.w  d7, ($C00000)
+    
+    btst.b  #7, (Joy1Press)             ; Quit intro?
+    bne.s   @Quit
+    cmp.w   #300, (Anim)
+    bhs.s   @Quit
+    
+@LogicLoop:
+    addq.w  #1, (Anim)
+    
+    clr.b   (Joy1Press)                 ; Do NTSC/PAL speed correction
+    clr.b   (Joy2Press)
+    subq.b  #1, (NumFrames)
+    bne.s   @LogicLoop
+    
+    jsr     (ClearSprites).w            ; Draw everything
+    bsr     DrawIntroQisha
+    
+    cmp.b   #STAGE_6_0, (Stage)         ; Draw planelago
+    beq.s   @NoPlanelagoHere
+    move.w  #160, d7
+    move.w  #128, d6
+    move.w  (Anim), d5
+    move.w  d5, d4
+    add.w   d4, d5
+    add.w   d4, d5
+    asr.w   #2+1, d5
+    move.w  #VramIntroPlanelago, d4
+    jsr     (DrawPlanelago).w
+    bra.s   @NoVoidHere
+@NoPlanelagoHere:
+    bsr     DrawIntroVoid
+@NoVoidHere:
+    
+    jsr     (NextFrame).w               ; Wait for next frame
+    bra     @MainLoop
+
+;----------------------------------------------------------------------------
+
+@Quit:
+    jsr     (FadeOut).w                 ; Turn off display
+    rts                                 ; End of subroutine
+
+;----------------------------------------------------------------------------
+
+@StageNames:
+    dc.l    StrLafto                    ; Stage 1
+    dc.l    StrEpoin                    ; Stage 2
+    dc.l    StrVeleet                   ; Stage 3
+    dc.l    StrObor                     ; Stage 4
+    dc.l    StrKastar                   ; Stage 5
+    dc.l    StrTheVoid                  ; Stage 6
+
+;****************************************************************************
+; DrawIntroQisha
+; Draws Qisha in the stage intro screen.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawIntroQisha:
+    moveq   #0, d0                      ; Get Qisha's location
+    moveq   #0, d1
+    move.w  (Anim), d7
+    
+    sub.w   #$80, d7
+    bge.s   @Ongoing
+    moveq   #0, d7
+@Ongoing:
+    sub.w   #$20, d7
+    
+    cmp.w   #$40, d7                    ; Make sure Qisha is visible too...
+    blt.s   @StillVisible
+    rts
+@StillVisible:
+    
+    move.w  d7, d4                      ; Determine Qisha's size
+    bpl.s   @NoSizeUnderflow              ; $00 = smallest size
+    moveq   #0, d4                        ; $3F = largest size
+@NoSizeUnderflow:
+    eor.w   #$3F, d4
+    
+    lsl.w   #2, d7                      ; Determine Qisha's angle
+    and.w   #$FF<<1, d7
+    lea     (Sines), a0
+    lea     $80(a0), a1
+    
+    move.w  (a0,d7.w), d6               ; Calculate offset in the largest
+    asr.w   #2, d6                        ; axis of the arc
+    add.w   d6, d0
+    add.w   d6, d1
+    asr.w   #1, d6
+    add.w   d6, d0
+    
+    move.w  (a1,d7.w), d6               ; Calculate offset in the shortest
+    asr.w   #5, d6                        ; axis of the arc
+    sub.w   d6, d0
+    add.w   d6, d1
+    
+    move.w  (Anim), d7                  ; Make Qisha wobble
+    lsl.w   #3, d7
+    and.w   #$FF<<1, d7
+    move.w  (a0,d7.w), d7
+    asr.w   #7, d7
+    sub.w   d7, d1
+    
+    add.w   #160, d0                    ; Apply origin
+    add.w   #128, d1
+    move.w  d0, (IntroQishaX)           ; Store Qisha's position
+    move.w  d1, (IntroQishaY)
+
+;----------------------------------------------------------------------------
+
+    cmp.w   #24, d4                     ; Using large or small sprites?
+    bge.s   @NotTiny
+    
+    moveq   #0, d2                      ; We need these bits clear
+    
+    and.w   #$FFFE, d4                  ; Retrieve sprite offset and size
+    lea     @Prescaled(pc), a6            ; X and Y are already in d0 and d1
+    lea     (a6,d4.w), a6
+    move.b  (a6)+, d2
+    move.b  (a6)+, d3
+    
+    add.w   #$2000+VramIntroQishaEtc, d2 ; Apply base sprite ID now
+    
+    jsr     (AddSprite).w               ; Draw sprite
+    rts                                 ; End of subroutine
+
+@Prescaled:
+    dc.b    55, %0000
+    dc.b    54, %0000
+    dc.b    53, %0000
+    dc.b    52, %0000
+    dc.b    48, %0101
+    dc.b    44, %0101
+    dc.b    40, %0101
+    dc.b    36, %0101
+    dc.b    27, %1010
+    dc.b    18, %1010
+    dc.b    9, %1010
+    dc.b    0, %1010
+
+;----------------------------------------------------------------------------
+
+@NotTiny:
+    sub.w   #24, d4                     ; Adjust minimum size
+    
+    move.w  d4, d7                      ; Determine scaling factor
+    and.l   #$07, d7
+    addq.w  #1, d7
+    lsl.w   #5, d7
+    add.w   #$700, d7
+    lsl.l   #8, d7
+    move.l  d7, a1
+    
+    move.w  d4, d7                      ; Get base sprite ID
+    lsr.w   #1, d7
+    and.w   #$FFFC, d7
+    lea     @SpriteTable(pc), a0
+    lea     (a0,d7.w), a0
+    move.w  (a0)+, d2
+    
+    moveq   #0, d0                      ; Get Qisha's position
+    moveq   #0, d1
+    move.w  (IntroQishaX), d0
+    move.w  (IntroQishaY), d1
+    bset.l  #31, d0
+    bset.l  #31, d1
+    
+    moveq   #%0000, d3
+    move.w  (a0), d5
+@YLoop:
+    
+    move.l  d0, -(sp)
+    move.w  (a0), d4
+@XLoop:
+    
+    jsr     (AddSprite).w
+    addq.w  #1, d2
+    
+    swap    d0
+    add.l   a1, d0
+    swap    d0
+    dbf     d4, @XLoop
+    
+    move.l  (sp)+, d0
+    swap    d1
+    add.l   a1, d1
+    swap    d1
+    dbf     d5, @YLoop
+    
+    rts                                 ; End of subroutine
+
+;----------------------------------------------------------------------------
+
+@SpriteTable:
+    dc.w    $2000+VramIntroQisha32, 4-1     ; 24~31
+    dc.w    $2000+VramIntroQisha40, 5-1     ; 32~39
+    dc.w    $2000+VramIntroQisha48, 6-1     ; 40~47
+    dc.w    $2000+VramIntroQisha56, 7-1     ; 48~55
+    dc.w    $2000+VramIntroQisha64, 8-1     ; 56~63
+
+;****************************************************************************
+; DrawIntroVoid
+; Draws the void in the stage intro for stage 6-0.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawIntroVoid:
+    move.w  #160-16, d0                 ; Position and size
+    move.w  #128-24, d1
+    moveq   #%1111, d3
+    
+    move.w  (Anim), d2                  ; Determine animation offset
+    add.w   d2, d2
+    add.w   d2, d2
+    and.w   #$03<<5, d2
+    
+    add.w   #$4000+VramIntroVoid, d2    ; Draw inner layer
+    jsr     (AddSprite).w
+    add.w   #$2010, d2                  ; Draw outer layer
+    jsr     (AddSprite).w
+    
+    move.w  (Anim), d7                  ; Determine frame within palette
+    lsr.w   #2, d7                        ; animation
+    ext.l   d7
+    divu.w  #12, d7
+    swap    d7
+    add.w   d7, d7
+    
+    lea     (PalInnerVoid), a6          ; Load palette for the inner part
+    lea     (PaletteBuf+$24*2), a5
+    lea     (a6,d7.w), a6
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    
+    lea     (PalOuterVoid), a6          ; Load palette for the outer part
+    lea     (PaletteBuf+$34*2), a5
+    lea     (a6,d7.w), a6
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    
+    rts                                 ; End of subroutine

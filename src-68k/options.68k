@@ -1,0 +1,462 @@
+;****************************************************************************
+; OPTION_*
+; IDs for every option in the option menu
+;****************************************************************************
+
+                    rsreset
+OPTION_TIME:        rs.b 1      ; Levels last ... seconds
+OPTION_1UP:         rs.b 1      ; 1up every ... points
+OPTION_SOUND:       rs.b 1      ; Sound test
+OPTION_EXIT:        rs.b 1      ; Quit menu :P
+
+NUM_OPTION:         rs.b 0
+
+;****************************************************************************
+; OptionsMenu
+; Main loop for the options menu screen.
+;----------------------------------------------------------------------------
+; notes: doesn't return
+;****************************************************************************
+
+OptionsMenu:
+    jsr     (ResetVideo).w              ; Reset graphics
+    st.b    (FadeInFlag)                ; We want fade in
+    
+    jsr     (InitUniverse).w            ; Draw background
+    jsr     (LoadFont).w                ; Load generic font
+    
+    lea     (PalMenu), a6               ; Load palette
+    lea     (PaletteBuf), a5
+    moveq   #$40/8, d7
+@LoadPalette:
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    dbf     d7, @LoadPalette
+    
+    clr.b   (OptionSelected)            ; Select first option
+    clr.b   (OptionQuit)                ; No quitting yet!
+    
+    jsr     (StopBGM).w                 ; Stop title music
+
+;----------------------------------------------------------------------------
+
+@MainLoop:
+    SetVRAMAddr $F802, ($C00004)        ; Make background move
+    move.w  (Anim), d7
+    lsr.w   #4, d7
+    move.w  d7, ($C00000)
+    moveq   #0, d7
+    move.b  (NumFrames), d7
+    add.w   d7, (Anim)
+    
+    move.b  (Joy1Press), d0             ; Get current presses
+    move.b  (OptionSelected), d1        ; Current option
+    
+    btst.l  #1, d0                      ; Next option?
+    beq.s   @NoDown
+    addq.b  #1, d1
+    cmp.b   #NUM_OPTION, d1
+    bne.s   @NoDown
+    clr.b   d1
+@NoDown:
+    
+    btst.l  #0, d0                      ; Previous option?
+    beq.s   @NoUp
+    subq.b  #1, d1
+    bge.s   @NoUp
+    move.b  #NUM_OPTION-1, d1
+@NoUp:
+    
+    btst.l  #7, d0                      ; Quit menu immediately?
+    beq.s   @NoStart
+    st.b    (OptionQuit)
+@NoStart:
+    
+    move.b  d1, (OptionSelected)        ; Update selected option
+    
+    ext.w   d1                          ; Get offset in the handler lists
+    add.w   d1, d1
+    add.w   d1, d1
+    
+    btst.l  #3, d0                      ; Next value?
+    beq.s   @NoRight
+    lea     @FuncRight(pc), a6
+    move.l  (a6,d1.w), a6
+    jsr     (a6)
+@NoRight:
+    
+    btst.l  #2, d0                      ; Previous value?
+    beq.s   @NoLeft
+    lea     @FuncLeft(pc), a6
+    move.l  (a6,d1.w), a6
+    jsr     (a6)
+@NoLeft:
+    
+    and.b   #$70, d0                    ; Triggered an action?
+    beq.s   @NoTrigger
+    lea     @FuncTrigger(pc), a6
+    move.l  (a6,d1.w), a6
+    jsr     (a6)
+@NoTrigger:
+    
+    tst.b   (OptionQuit)                ; Quit menu?
+    bne.s   @Quit
+    
+    bsr     DrawOptionTime              ; Draw menu
+    bsr     DrawOption1up
+    bsr     DrawOptionSound
+    bsr     DrawOptionExit
+    
+    jsr     (NextFrame).w               ; Wait for next frame
+    bra     @MainLoop
+
+;----------------------------------------------------------------------------
+
+@Quit:
+    jsr     (FadeOut).w                 ; Return to the title screen
+    bra     TitleScreen
+
+;----------------------------------------------------------------------------
+
+@FuncRight:
+    dc.l    IncTimeSetting              ; Time
+    dc.l    Inc1upSetting               ; 1up at
+    dc.l    IncSoundTest                ; Sound
+    dc.l    @Dummy                      ; Exit
+
+@FuncLeft:
+    dc.l    DecTimeSetting              ; Time
+    dc.l    Dec1upSetting               ; 1up at
+    dc.l    DecSoundTest                ; Sound
+    dc.l    @Dummy                      ; Exit
+
+@FuncTrigger:
+    dc.l    @Dummy                      ; Time
+    dc.l    @Dummy                      ; 1up at
+    dc.l    PlaySoundTest               ; Sound
+    dc.l    QuitOptions                 ; Exit
+
+@Dummy:
+    rts
+
+;****************************************************************************
+; IncTimeSetting
+; Increments the time setting.
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+IncTimeSetting:
+    move.b  (TimeSetting), d7           ; Increment setting
+    addq.b  #1, d7
+    
+    cmp.b   #4, d7                      ; Check for wraparound
+    bls.s   @NoOverflow
+    clr.b   d7
+@NoOverflow:
+    
+    move.b  d7, (TimeSetting)           ; Store new setting
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DecTimeSetting
+; Decrements the time setting.
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+DecTimeSetting:
+    move.b  (TimeSetting), d7           ; Decrement setting
+    subq.b  #1, d7
+    
+    bge.s   @NoOverflow                 ; Check for wraparound
+    move.b  #4, d7
+@NoOverflow:
+    
+    move.b  d7, (TimeSetting)           ; Store new setting
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawOptionTime
+; Draws the level time setting in the options menu.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawOptionTime:
+    move.l  #OptionTimeBuf, (TextBufAddr)
+    jsr     (ClearText).w               ; Clear buffer
+    
+    moveq   #4, d7                      ; Draw label
+    lea     (StrTime), a6
+    jsr     (DrawText).w
+    moveq   #32-6, d7
+    lea     (StrSec), a6
+    jsr     (DrawText).w
+    
+    moveq   #0, d7                      ; Get current time setting
+    move.b  (TimeSetting), d7
+    lea     (SettingsTime), a6
+    move.b  (a6,d7.w), d7
+    
+    move.b  d7, d6                      ; Generate string for value
+    lsr.b   #4, d7
+    and.b   #$0F, d6
+    subq.w  #4, sp
+    add.b   #"0", d7
+    add.b   #"0", d6
+    move.b  d7, (sp)
+    move.b  d6, 1(sp)
+    clr.b   2(sp)
+    
+    moveq   #32-12, d7                  ; Draw number of seconds
+    move.l  sp, a6
+    jsr     (DrawText).w
+    addq.w  #4, sp
+    
+    move.b  #OPTION_TIME, d7            ; Fix palette
+    bsr     FixOptionpalette
+    move.w  #$C204, d7                  ; Show text on screen
+    jsr     (UploadText).w
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; Inc1upSetting
+; Increments the 1up setting.
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+Inc1upSetting:
+    move.b  (LifeSetting), d7           ; Increment setting
+    addq.b  #1, d7
+    
+    cmp.b   #4, d7                      ; Check for wraparound
+    bls.s   @NoOverflow
+    clr.b   d7
+@NoOverflow:
+    
+    move.b  d7, (LifeSetting)           ; Store new setting
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; Dec1upSetting
+; Decrements the 1up setting.
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+Dec1upSetting:
+    move.b  (LifeSetting), d7           ; Decrement setting
+    subq.b  #1, d7
+    
+    bge.s   @NoOverflow                 ; Check for wraparound
+    move.b  #4, d7
+@NoOverflow:
+    
+    move.b  d7, (LifeSetting)           ; Store new setting
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawOption1up
+; Draws the 1up interval setting in the options menu.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawOption1up:
+    move.l  #Option1upBuf, (TextBufAddr)
+    jsr     (ClearText).w               ; Clear buffer
+    
+    moveq   #4, d7                      ; Draw label
+    lea     (Str1upAt), a6
+    jsr     (DrawText).w
+    
+    moveq   #0, d7                      ; Get current 1up setting
+    move.b  (LifeSetting), d7
+    add.w   d7, d7
+    add.w   d7, d7
+    lea     (Settings1up), a6
+    move.l  (a6,d7.w), d7
+    
+    swap    d7                          ; Generate string
+    subq.w  #6, sp
+    move.l  sp, a6
+    moveq   #5-1, d6
+@Loop:
+    move.b  d7, d5
+    and.b   #$0F, d5
+    add.b   #"0", d5
+    move.b  d5, (a6)+
+    rol.l   #4, d7
+    dbf     d6, @Loop
+    clr.b   (a6)
+    
+    moveq   #32-10, d7                  ; Draw points needed
+    move.l  sp, a6
+    jsr     (DrawText).w
+    addq.w  #6, sp
+    
+    move.b  #OPTION_1UP, d7             ; Fix palette
+    bsr     FixOptionpalette
+    move.w  #$C404, d7                  ; Show text on screen
+    jsr     (UploadText).w
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; IncSoundTest
+; Increments the sound test ID.
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+IncSoundTest:
+    move.b  (SoundTest), d7             ; Increment ID
+    addq.b  #1, d7
+    
+    cmp.b   #SOUNDTEST_MAX-1, d7        ; Check for wraparound
+    bls.s   @NoOverflow
+    clr.b   d7
+@NoOverflow:
+    
+    move.b  d7, (SoundTest)             ; Store new ID
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DecSoundTest
+; Decrements the sound test ID.
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+DecSoundTest:
+    move.b  (SoundTest), d7             ; Decrement ID
+    subq.b  #1, d7
+    
+    bge.s   @NoOverflow                 ; Check for wraparound
+    move.b  #SOUNDTEST_MAX-1, d7
+@NoOverflow:
+    
+    move.b  d7, (SoundTest)             ; Store new ID
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; PlaySoundTest
+; Plays the selected sound in the sound test.
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+PlaySoundTest:
+    move.b  (SoundTest), d7             ; Get currently selected sound
+    
+    bne.s   @NotZero                    ; Is it $00? (i.e. nothing)
+    rts
+@NotZero:
+    
+    cmp.b   #NUM_BGM, d7                ; Is it a BGM?
+    bhs.s   @NotBGM
+    clr.b   (CurrentBGM)
+    jsr     (PlayBGM).w
+    rts
+@NotBGM:
+    
+    sub.b   #NUM_BGM-1, d7              ; Play as a SFX then
+    clr.b   (CurrentSFX)
+    jsr     (PlaySFX).w
+    rts
+
+;****************************************************************************
+; DrawOptionSound
+; Draws the sound test setting in the options menu.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawOptionSound:
+    move.l  #OptionSoundBuf, (TextBufAddr)
+    jsr     (ClearText).w               ; Clear buffer
+    
+    moveq   #4, d7                      ; Draw label
+    lea     (StrSound), a6
+    jsr     (DrawText).w
+    
+    move.b  (SoundTest), d7             ; Split sound ID into digits
+    divu.w  #10, d7
+    move.w  d7, d6
+    swap    d7
+    
+    add.b   #"0", d7                    ; Generate string with sound ID
+    add.b   #"0", d6
+    subq.w  #4, sp
+    move.b  d6, (sp)
+    move.b  d7, 1(sp)
+    clr.b   2(sp)
+    
+    move.l  sp, a6                      ; Draw selected sound ID
+    moveq   #32-4, d7
+    jsr     (DrawText).w
+    addq.w  #4, sp
+    
+    move.b  #OPTION_SOUND, d7           ; Fix palette
+    bsr     FixOptionpalette
+    move.w  #$C604, d7                  ; Show text on screen
+    jsr     (UploadText).w
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; QuitOptions
+; Quits the options menu.
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+QuitOptions:
+    st.b    (OptionQuit)                ; Tell the main loop to quit
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawOptionExit
+; Draws the quit menu entry in the options menu.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawOptionExit:
+    move.l  #OptionExitBuf, (TextBufAddr)
+    jsr     (ClearText).w               ; Clear buffer
+    
+    moveq   #4, d7                      ; Draw label
+    lea     (StrExit), a6
+    jsr     (DrawText).w
+    
+    move.b  #OPTION_EXIT, d7            ; Fix palette
+    bsr     FixOptionpalette
+    move.w  #$C904, d7                  ; Show text on screen
+    jsr     (UploadText).w
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; FixOptionPalette
+; Fixes the palette of the option being drawn right now.
+;----------------------------------------------------------------------------
+; input d7.b ... ID of option
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+FixOptionPalette:
+    cmp.b   (OptionSelected), d7        ; Determine palette to use
+    seq.b   d7
+    ext.w   d7
+    and.w   #$2000, d7
+    or.w    #$4000, d7
+    
+    jsr     (ColorizeText).w            ; Apply palette
+    rts                                 ; End of subroutine

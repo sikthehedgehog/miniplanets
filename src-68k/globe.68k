@@ -1,0 +1,524 @@
+;****************************************************************************
+; TOLOAD_*
+; Flags indicating which graphics to stream. Used for graphics which are
+; expensive to stream (e.g. because of decompression).
+;****************************************************************************
+
+                        rsreset
+TOLOAD_RAFTU:           rs.b 1          ; Raft going up
+TOLOAD_RAFTD:           rs.b 1          ; Raft going down
+TOLOAD_RAFTL:           rs.b 1          ; Raft going left
+TOLOAD_RAFTR:           rs.b 1          ; Raft going right
+TOLOAD_BELTU:           rs.b 1          ; Belt going up
+TOLOAD_BELTD:           rs.b 1          ; Belt going down
+TOLOAD_BELTL:           rs.b 1          ; Belt going left
+TOLOAD_BELTR:           rs.b 1          ; Belt going right
+
+;****************************************************************************
+; InitGlobe
+; Initializes the level data.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+InitGlobe:
+    clr.b   (AnimToLoad)                ; Reset animations to stream
+    clr.b   (KeysLeft)                  ; No keys so far...
+    
+    moveq   #0, d7                      ; Get address of stage data
+    move.b  (Stage), d7
+    lsl.w   #3, d7
+    lea     (StageList), a6
+    lea     (a6,d7.w), a0
+    
+    lea     (GlobeMap), a6              ; Load map data
+    move.l  (a0), a1
+    moveq   #$100/$10-1, d7
+@LoadMap:
+    move.l  (a1)+, (a6)+
+    move.l  (a1)+, (a6)+
+    move.l  (a1)+, (a6)+
+    move.l  (a1)+, (a6)+
+    dbf     d7, @LoadMap
+    
+@LoadObjects:                           ; Load all objects in the map
+    move.b  (a1)+, d7
+    bmi.s   @ObjectsEnd
+    move.b  (a1)+, d6
+    move.b  (a1)+, d5
+    move.b  (a1)+, d4
+    bsr     AddObject
+    bra.s   @LoadObjects
+@ObjectsEnd:
+    
+    move.b  (StageName), d7             ; Stage 4 looks like autumn
+    and.b   #$F0, d7
+    cmp.b   #$40, d7
+    bne.s   @NoAutumn
+    move.l  (PalAutumn+0*2), (PaletteBuf+$11*2)
+    move.w  (PalAutumn+2*2), (PaletteBuf+$13*2)
+@NoAutumn:
+    
+    move.b  (StageName), d7             ; Animate belts in stage 3
+    and.b   #$F0, d7                      ; To-do: scan every belt type
+    cmp.b   #$30, d7                      ; Though we have spare CPU time
+    bne.s   @NoBelts                      ; anyway so it doesn't matter?
+    bset.b  #TOLOAD_BELTU, (AnimToLoad)
+    bset.b  #TOLOAD_BELTD, (AnimToLoad)
+    bset.b  #TOLOAD_BELTL, (AnimToLoad)
+    bset.b  #TOLOAD_BELTR, (AnimToLoad)
+@NoBelts:
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawGlobe
+; Draws the globe (which eats up 64 sprites...).
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawGlobe:
+    cmp.b   #3, (EndingPhase)           ; Going kaboom?
+    beq     DrawEndingGlobe
+    
+    lea     (GlobeTable), a0            ; Look-up tables
+    lea     (GlobeMap), a3              ; Tilemap data
+    lea     (GlobeTiles), a4            ; Mappings table
+    
+    moveq   #0, d7                      ; Calculate entry to use
+    move.b  (PlayerX), d7
+    move.b  (PlayerY), d6
+    and.b   #$0F, d7
+    lsl.b   #4, d6
+    or.b    d6, d7
+    lsl.w   #6, d7
+    lea     (a0,d7.w), a0
+    lea     $4000(a0), a1
+    lea     $4000(a1), a2
+    
+    moveq   #0, d5                      ; Calculate tile-level offset
+    move.b  (PlayerY), d5                 ; (i.e. not pixel-level)
+    lsl.w   #4, d5
+    move.b  (PlayerX), d5
+    lsr.b   #4, d5
+    
+    moveq   #%0101, d3                  ; All sprites are 2x2
+    moveq   #$40-1, d4                  ; Go through all sprites
+@Loop:
+    move.b  (a0)+, d0                   ; Retrieve coordinates
+    move.b  (a1)+, d1
+    ext.w   d0
+    ext.w   d1
+    add.w   #160-8, d0
+    add.w   #112-8, d1
+    
+    moveq   #0, d7                      ; Get sprite for this tile
+    move.b  (a2)+, d7
+    lsl.w   #4, d7
+    lsr.b   #4, d7
+    add.w   d5, d7
+    and.w   #$0F0F, d7
+    lsl.b   #4, d7
+    lsr.w   #4, d7
+    move.b  (a3,d7.w), d7
+    add.w   d7, d7
+    move.w  (a4,d7.w), d2
+    
+    jsr     (AddSprite).w               ; Draw this sprite
+    dbf     d4, @Loop                   ; Go for next sprite
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawEndingGlobe
+; Draws the exploding globe in the ending.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawEndingGlobe:
+    lea     (EndingGlobeTable), a0      ; Look-up tables
+    
+    moveq   #0, d4                      ; Get current part of the animation
+    move.b  (EndingTimer), d4
+    cmp.w   #$40, d4
+    blo.s   @NotGoneYet
+    rts
+@NotGoneYet:
+    
+    move.w  d4, d7                      ; Determine entry to use
+    lsl.w   #6, d7
+    lea     (a0,d7.w), a0
+    lea     $1000(a0), a1
+    lea     $1000(a1), a2
+    
+    moveq   #%0101, d3                  ; All sprites are 2x2
+    moveq   #$40-1, d4                  ; Go through all sprites
+@Loop:
+    move.b  (a0)+, d0                   ; Retrieve coordinates
+    move.b  (a1)+, d1
+    ext.w   d0
+    ext.w   d1
+    add.w   #160-8, d0
+    add.w   #112-8, d1
+    
+    moveq   #0, d2                      ; Get graphic for this tile
+    move.b  (a2)+, d2
+    btst.l  #2, d2
+    bne.s   *+6
+    or.w    #$2000, d2
+    add.w   #VramEndingGlobe, d2
+    
+    jsr     (AddSprite).w               ; Draw this sprite
+    dbf     d4, @Loop                   ; Go for next sprite
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; AnimGlobe
+; Updates the tile animations.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+AnimGlobe:
+    move.l  (DMABufEnd), a6             ; Update water graphics
+    moveq   #0, d7
+    move.w  (Anim), d7
+    and.w   #$03<<3, d7
+    lsl.w   #7-3, d7
+    add.l   #GfxWater, d7
+    move.w  #$20*2*2, d6
+    DMA2VRAM_SL d7, VramWater*$20, d6, a6
+    move.l  a6, (DMABufEnd)
+
+;----------------------------------------------------------------------------
+
+    move.l  (DMABufEnd), a6             ; Update fire graphics
+    moveq   #0, d7
+    move.w  (Anim), d7
+    and.w   #$03<<2, d7
+    lsl.w   #7-2, d7
+    add.l   #GfxFire, d7
+    move.w  #$20*2*2, d6
+    DMA2VRAM_SL d7, VramFire*$20, d6, a6
+    move.l  a6, (DMABufEnd)
+
+;----------------------------------------------------------------------------
+
+    tst.b   (KeysLeft)                  ; Animate goal when all keys were
+    bne.s   @NoGoalAnim                   ; retrieved
+    move.w  (Anim), d7
+    lsr.w   #2, d7
+    and.w   #$03<<1, d7
+    lea     (PalGoal), a6
+    move.l  (a6,d7.w), (PaletteBuf+$21*2)
+    move.l  4(a6,d7.w), (PaletteBuf+$23*2)
+@NoGoalAnim:
+
+;----------------------------------------------------------------------------
+
+    move.b  (AnimToLoad), d0            ; Now check expensive animations...
+
+;----------------------------------------------------------------------------
+
+    btst.l  #TOLOAD_RAFTU, d0           ; Stream rafts going up?
+    beq.s   @NoRaftUp
+    
+    move.w  (Anim), d7
+    neg.w   d7
+    and.w   #$0F, d7
+    lsl.w   #3, d7
+    add.w   #$80, d7
+    moveq   #8, d6
+    lea     (GfxRaft), a6
+    lea     (RaftBuf+(0*12+0)*$20), a5
+    jsr     DecompressUFTC
+    
+    move.w  (Anim), d7
+    neg.w   d7
+    and.w   #$03, d7
+    lsl.w   #2, d7
+    add.w   #$110, d7
+    moveq   #4, d6
+    lea     (GfxRaft), a6
+    jsr     DecompressUFTC
+    
+    move.l  (DMABufEnd), a6
+    DMA2VRAM RaftBuf+0*12*$20, VramRaftU*$20, 12*$20, (a6)+
+    move.l  a6, (DMABufEnd)
+@NoRaftUp:
+
+;----------------------------------------------------------------------------
+
+    btst.l  #TOLOAD_RAFTD, d0           ; Stream rafts going down?
+    beq.s   @NoRaftDown
+    
+    move.w  (Anim), d7
+    and.w   #$0F, d7
+    lsl.w   #3, d7
+    add.w   #$80, d7
+    moveq   #8, d6
+    lea     (GfxRaft), a6
+    lea     (RaftBuf+(1*12+0)*$20), a5
+    jsr     DecompressUFTC
+    
+    move.w  (Anim), d7
+    and.w   #$03, d7
+    lsl.w   #2, d7
+    add.w   #$110, d7
+    moveq   #4, d6
+    lea     (GfxRaft), a6
+    jsr     DecompressUFTC
+    
+    move.l  (DMABufEnd), a6
+    DMA2VRAM RaftBuf+1*12*$20, VramRaftD*$20, 12*$20, (a6)+
+    move.l  a6, (DMABufEnd)
+@NoRaftDown:
+
+;----------------------------------------------------------------------------
+
+    btst.l  #TOLOAD_RAFTL, d0           ; Stream rafts going left?
+    beq.s   @NoRaftLeft
+    
+    move.w  (Anim), d7
+    neg.w   d7
+    and.w   #$0F, d7
+    lsl.w   #3, d7
+    moveq   #8, d6
+    lea     (GfxRaft), a6
+    lea     (RaftBuf+(2*12+0)*$20), a5
+    jsr     DecompressUFTC
+    
+    move.w  (Anim), d7
+    neg.w   d7
+    and.w   #$03, d7
+    lsl.w   #2, d7
+    add.w   #$100, d7
+    moveq   #4, d6
+    lea     (GfxRaft), a6
+    jsr     DecompressUFTC
+    
+    move.l  (DMABufEnd), a6
+    DMA2VRAM RaftBuf+2*12*$20, VramRaftL*$20, 12*$20, (a6)+
+    move.l  a6, (DMABufEnd)
+@NoRaftLeft:
+
+;----------------------------------------------------------------------------
+
+    btst.l  #TOLOAD_RAFTR, d0           ; Stream rafts going right?
+    beq.s   @NoRaftRight
+    
+    move.w  (Anim), d7
+    and.w   #$0F, d7
+    lsl.w   #3, d7
+    moveq   #8, d6
+    lea     (GfxRaft), a6
+    lea     (RaftBuf+(3*12+0)*$20), a5
+    jsr     DecompressUFTC
+    
+    move.w  (Anim), d7
+    and.w   #$03, d7
+    lsl.w   #2, d7
+    add.w   #$100, d7
+    moveq   #4, d6
+    lea     (GfxRaft), a6
+    jsr     DecompressUFTC
+    
+    move.l  (DMABufEnd), a6
+    DMA2VRAM RaftBuf+3*12*$20, VramRaftR*$20, 12*$20, (a6)+
+    move.l  a6, (DMABufEnd)
+@NoRaftRight:
+
+;----------------------------------------------------------------------------
+
+    btst.l  #TOLOAD_BELTU, d0           ; Stream belts going up?
+    beq.s   @NoBeltUp
+    
+    move.w  (Anim), d7
+    neg.w   d7
+    and.w   #$07, d7
+    addq.w  #8, d7
+    add.w   d7, d7
+    add.w   d7, d7
+    moveq   #4, d6
+    lea     (GfxBelt), a6
+    lea     (BeltBuf+0*4*$20), a5
+    jsr     DecompressUFTC
+    
+    move.l  (DMABufEnd), a6
+    DMA2VRAM BeltBuf+0*4*$20, VramBeltU*$20, 4*$20, (a6)+
+    move.l  a6, (DMABufEnd)
+@NoBeltUp:
+
+;----------------------------------------------------------------------------
+
+    btst.l  #TOLOAD_BELTD, d0           ; Stream belts going down?
+    beq.s   @NoBeltDown
+    
+    move.w  (Anim), d7
+    and.w   #$07, d7
+    addq.w  #8, d7
+    add.w   d7, d7
+    add.w   d7, d7
+    moveq   #4, d6
+    lea     (GfxBelt), a6
+    lea     (BeltBuf+1*4*$20), a5
+    jsr     DecompressUFTC
+    
+    move.l  (DMABufEnd), a6
+    DMA2VRAM BeltBuf+1*4*$20, VramBeltD*$20, 4*$20, (a6)+
+    move.l  a6, (DMABufEnd)
+@NoBeltDown:
+
+;----------------------------------------------------------------------------
+
+    btst.l  #TOLOAD_BELTL, d0           ; Stream belts going left?
+    beq.s   @NoBeltLeft
+    
+    move.w  (Anim), d7
+    neg.w   d7
+    and.w   #$07, d7
+    add.w   d7, d7
+    add.w   d7, d7
+    moveq   #4, d6
+    lea     (GfxBelt), a6
+    lea     (BeltBuf+2*4*$20), a5
+    jsr     DecompressUFTC
+    
+    move.l  (DMABufEnd), a6
+    DMA2VRAM BeltBuf+2*4*$20, VramBeltL*$20, 4*$20, (a6)+
+    move.l  a6, (DMABufEnd)
+@NoBeltLeft:
+
+;----------------------------------------------------------------------------
+
+    btst.l  #TOLOAD_BELTR, d0           ; Stream belts going right?
+    beq.s   @NoBeltRight
+    
+    move.w  (Anim), d7
+    and.w   #$07, d7
+    add.w   d7, d7
+    add.w   d7, d7
+    moveq   #4, d6
+    lea     (GfxBelt), a6
+    lea     (BeltBuf+3*4*$20), a5
+    jsr     DecompressUFTC
+    
+    move.l  (DMABufEnd), a6
+    DMA2VRAM BeltBuf+3*4*$20, VramBeltR*$20, 4*$20, (a6)+
+    move.l  a6, (DMABufEnd)
+@NoBeltRight:
+
+;----------------------------------------------------------------------------
+
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; GetTile
+; Gets the tile from the globe at the specified coordinates.
+;----------------------------------------------------------------------------
+; input d7.b .... X coordinate
+; input d6.b .... Y coordinate
+;----------------------------------------------------------------------------
+; output d7.b ... Tile type
+; output d6.b ... Collision type
+;----------------------------------------------------------------------------
+; breaks: a6
+;****************************************************************************
+
+GetTile:
+    lsr.b   #4, d7                      ; Get tile at this position
+    and.b   #$F0, d6
+    or.b    d6, d7
+    and.w   #$FF, d7
+    lea     (GlobeMap), a6
+    move.b  (a6,d7.w), d7
+    
+    lea     (CollTiles), a6             ; Get its collision type
+    move.b  (a6,d7.w), d6
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; SetTile
+; Changes the tile from the globe at the specified coordinates.
+;----------------------------------------------------------------------------
+; input d7.b .... X coordinate
+; input d6.b .... Y coordinate
+; input d5.b .... New tile value
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a6
+;****************************************************************************
+
+SetTile:
+    lsr.b   #4, d7                      ; Get location of tile
+    and.b   #$F0, d6
+    or.b    d6, d7
+    and.w   #$FF, d7
+    lea     (GlobeMap), a6
+    
+    move.b  d5, (a6,d7.w)               ; Store new tile
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; Add3DSprite
+; Adds a sprite object to the 3D world.
+;----------------------------------------------------------------------------
+; input d7.b ... X coordinate (absolute)
+; input d6.b ... Y coordinate (absolute)
+; input d5.w ... Sprite tile ID
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+Add3DSprite:
+    sub.b   (PlayerX), d7               ; Account for camera
+    sub.b   (PlayerY), d6
+    
+    cmp.b   #-$40, d7                   ; Do clipping
+    ble.s   @Skip
+    cmp.b   #$40, d7
+    bge.s   @Skip
+    cmp.b   #-$40, d6
+    ble.s   @Skip
+    cmp.b   #$40, d6
+    blt.s   @Add
+@Skip:
+    rts
+@Add:
+    
+    add.b   #$40, d7                    ; Convert positions to 3D
+    add.b   #$40, d6
+    lsl.w   #8, d7
+    move.b  d6, d7
+    
+    add.b   d7, d7                      ; (x position)
+    lsr.w   #1, d7
+    lea     (ObjectTable), a6
+    lea     (a6,d7.w), a5
+    
+    add.w   d7, d7                      ; (y position)
+    lsr.b   #1, d7
+    rol.w   #8, d7
+    add.b   d7, d7
+    lsr.w   #1, d7
+    lea     (a6,d7.w), a6
+    
+    move.b  (a6), d7                    ; (fetch values)
+    move.b  (a5), d6
+    ext.w   d7
+    ext.w   d6
+    add.w   #160-8, d7
+    add.w   #112-8, d6
+    
+    movem.l d0-d3, -(sp)
+    move.w  d7, d0                      ; For now... (this will work as long
+    move.w  d6, d1                        ; as there isn't overlap)
+    move.w  d5, d2
+    moveq   #%0101, d3
+    jsr     (AddSprite).w
+    movem.l (sp)+, d0-d3
+    
+    rts                                 ; End of subroutine

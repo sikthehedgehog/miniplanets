@@ -1,0 +1,10 @@
+;****************************************************************************
+; GfxLogo
+; Graphics for the logo splash screen
+;****************************************************************************
+
+GfxLogo:
+    incbin  "data/logo/logo.slz"
+    even
+
+GfxLogoSize: equ filesize("src-data/logo/logo.4bpp")/$20

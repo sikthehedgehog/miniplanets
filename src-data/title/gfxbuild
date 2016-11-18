@@ -1,0 +1,23 @@
+output "src-data/title/miniplanets.4bpp"
+input "src-data/title/miniplanets.png"
+layout sprite
+tiles 0 0 3 3
+tiles 3 0 3 3
+tiles 6 0 3 3
+tiles 0 3 3 3
+tiles 3 3 3 3
+tiles 6 3 3 3
+tiles 0 6 3 3
+tiles 3 6 3 3
+tiles 6 6 3 3
+
+output "src-data/title/menu.4bpp"
+input "src-data/title/menu.png"
+layout sprite
+tiles 0 0 10 2
+tiles 0 2 10 2
+
+output "src-data/title/other.4bpp"
+input "src-data/title/copyright.png"
+layout tilemap
+tiles 0 0 15 1

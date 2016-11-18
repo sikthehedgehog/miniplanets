@@ -1,0 +1,41 @@
+;****************************************************************************
+; GfxPlayer*
+; Graphics for the player
+;****************************************************************************
+
+GfxPlayerH:     incbin  "data/player/player_h.uftc"     ; Horizontal
+GfxPlayerV:     incbin  "data/player/player_v.uftc"     ; Vertical
+GfxPlayerD:     incbin  "data/player/player_d.uftc"     ; Diagonal
+GfxPlayerX:     incbin  "data/player/player_x.uftc"     ; Angle-independent
+
+;****************************************************************************
+; TilemapPlayer*
+; Tilemap arrangements for the player graphics
+; H = horizontal flip, V = vertical flip
+;****************************************************************************
+
+    cnop    0, 2*$10
+
+TilemapPlayer:
+    dc.w    $8000+VramPlayer, $8001+VramPlayer, $8002+VramPlayer, $8003+VramPlayer
+    dc.w    $8004+VramPlayer, $8005+VramPlayer, $8006+VramPlayer, $8007+VramPlayer
+    dc.w    $8008+VramPlayer, $8009+VramPlayer, $800A+VramPlayer, $800B+VramPlayer
+    dc.w    $800C+VramPlayer, $800D+VramPlayer, $800E+VramPlayer, $800F+VramPlayer
+
+TilemapPlayerH:
+    dc.w    $8803+VramPlayer, $8802+VramPlayer, $8801+VramPlayer, $8800+VramPlayer
+    dc.w    $8807+VramPlayer, $8806+VramPlayer, $8805+VramPlayer, $8804+VramPlayer
+    dc.w    $880B+VramPlayer, $880A+VramPlayer, $8809+VramPlayer, $8808+VramPlayer
+    dc.w    $880F+VramPlayer, $880E+VramPlayer, $880D+VramPlayer, $880C+VramPlayer
+
+TilemapPlayerV:
+    dc.w    $900C+VramPlayer, $900D+VramPlayer, $900E+VramPlayer, $900F+VramPlayer
+    dc.w    $9008+VramPlayer, $9009+VramPlayer, $900A+VramPlayer, $900B+VramPlayer
+    dc.w    $9004+VramPlayer, $9005+VramPlayer, $9006+VramPlayer, $9007+VramPlayer
+    dc.w    $9000+VramPlayer, $9001+VramPlayer, $9002+VramPlayer, $9003+VramPlayer
+
+TilemapPlayerHV:
+    dc.w    $980F+VramPlayer, $980E+VramPlayer, $980D+VramPlayer, $980C+VramPlayer
+    dc.w    $980B+VramPlayer, $980A+VramPlayer, $9809+VramPlayer, $9808+VramPlayer
+    dc.w    $9807+VramPlayer, $9806+VramPlayer, $9805+VramPlayer, $9804+VramPlayer
+    dc.w    $9803+VramPlayer, $9802+VramPlayer, $9801+VramPlayer, $9800+VramPlayer

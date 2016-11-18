@@ -1,0 +1,94 @@
+;****************************************************************************
+; RunFireballUp
+; Executes the game logic of a fireball going up.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+RunFireballUp:
+    subq.b  #1, OBJ_Y(a0)               ; Move upwards
+    bra     RunFireballCommon           ; Common behavior now
+
+;****************************************************************************
+; RunFireballDown
+; Executes the game logic of a fireball going down.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+RunFireballDown:
+    addq.b  #1, OBJ_Y(a0)               ; Move downwards
+    bra     RunFireballCommon           ; Common behavior now
+
+;****************************************************************************
+; RunFireballLeft
+; Executes the game logic of a fireball going left.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+RunFireballLeft:
+    subq.b  #1, OBJ_X(a0)               ; Move to the left
+    bra     RunFireballCommon           ; Common behavior now
+
+;****************************************************************************
+; RunFireballRight
+; Executes the game logic of a fireball going right.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+RunFireballRight:
+    addq.b  #1, OBJ_X(a0)               ; Move to the right
+    bra     RunFireballCommon           ; Common behavior now
+
+;****************************************************************************
+; RunFireballCommon
+; Common game logic to all fireballs.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+RunFireballCommon:
+    move.b  OBJ_X(a0), d7               ; Ran over the player?
+    move.b  OBJ_Y(a0), d6
+    moveq   #10, d5
+    moveq   #10, d4
+    bsr     CollidesPlayer
+    tst.w   d7
+    beq.s   @DontHurt
+    moveq   #ACTION_BURN, d7
+    bsr     HurtPlayerEx
+@DontHurt:
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawFireball
+; Draws a fireball.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+DrawFireball:
+    move.w  (Anim), d5                  ; Determine sprite to use
+    and.w   #$03<<2, d5
+    add.w   #VramFireball, d5
+    
+    move.b  OBJ_X(a0), d7               ; Draw sprite
+    move.b  OBJ_Y(a0), d6
+    bsr     Add3DSprite
+    
+    rts                                 ; End of subroutine

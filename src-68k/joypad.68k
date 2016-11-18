@@ -1,0 +1,57 @@
+;****************************************************************************
+; InitJoypads
+; Initializes the joypads.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+InitJoypads:
+    move.b  #$40, ($A10009)             ; Set up joypad ports
+    move.b  #$40, ($A1000B)
+    move.b  #$40, ($A10003)
+    move.b  #$40, ($A10005)
+    
+    clr.l   (Joy1Hold)                  ; Clear joypad status
+    clr.l   (Joy2Hold)
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; ReadJoypads
+; Updates the status of both joypads.
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+ReadJoypads:
+    lea     ($A10003), a6               ; Process both joypads
+    lea     (Joy1Hold), a5
+    bsr     @DoIt
+    addq.w  #2, a6
+
+;----------------------------------------------------------------------------
+
+@DoIt:
+    move.b  #$40, (a6)                  ; Read all joypad buttons
+    nop
+    nop
+    move.b  (a6), d7
+    move.b  #$00, (a6)
+    nop
+    nop
+    move.b  (a6), d6
+    
+    and.b   #$3F, d7                    ; Put everything together
+    and.b   #$30, d6
+    add.b   d6, d6
+    add.b   d6, d6
+    or.b    d6, d7
+    not.b   d7
+    
+    move.b  (a5), d6                    ; Update joypad status
+    move.b  d7, (a5)+
+    not.b   d6
+    and.b   d6, d7
+    move.b  d7, (a5)+
+    
+    rts                                 ; End of subroutine

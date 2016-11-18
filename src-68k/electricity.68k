@@ -1,0 +1,51 @@
+;****************************************************************************
+; RunElectricity
+; Executes an electric beam's game logic.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+RunElectricity:
+    move.b  OBJ_X(a0), d7               ; Check if the player hit us
+    move.b  OBJ_Y(a0), d6
+    moveq   #8, d5
+    moveq   #8, d4
+    bsr     CollidesPlayer
+    tst.w   d7
+    beq.s   @DontShock
+    
+    bsr     HurtPlayer                  ; SHOCK!!
+@DontShock:
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawElectricityH, DrawElectricityV
+; Draws an electric beam.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+DrawElectricityH:
+    move.w  #$0000+VramElectricity, d5
+    bra.s   DrawElectricity
+
+DrawElectricityV:
+    move.w  #$0004+VramElectricity, d5
+
+DrawElectricity:
+    btst.b  #2, (Anim+1)                ; Animate sprite
+    beq.s   @NoFlip
+    or.w    #$1800, d5
+@NoFlip:
+    
+    move.b  OBJ_X(a0), d7               ; Draw beam
+    move.b  OBJ_Y(a0), d6
+    bsr     Add3DSprite
+    
+    rts                                 ; End of subroutine
+

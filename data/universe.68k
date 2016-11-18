@@ -1,0 +1,8 @@
+;****************************************************************************
+; GfxUniverse
+; Graphics and tilemap for the universe background.
+;****************************************************************************
+
+GfxUniverse:
+    incbin  "data/common/universe.slz"
+    even

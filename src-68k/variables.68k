@@ -1,0 +1,359 @@
+;****************************************************************************
+; Global variables
+; These variables exist during the entire game (this also includes some
+; variables that need to be preserved among different screens).
+;****************************************************************************
+
+                    rsset $FF0000
+
+Joy1Hold:           rs.b 1          ; [1P] Buttons being held down
+Joy1Press:          rs.b 1          ; [1P] Buttons that just got pressed
+Joy2Hold:           rs.b 1          ; [2P] Buttons being held down
+Joy2Press:          rs.b 1          ; [2P] Buttons that just got pressed
+RandSeed:           rs.w 1          ; Random number generator seed
+PALTimer:           rs.b 1          ; Used for doing frame correction
+NumFrames:          rs.b 1          ; Number of logic frames to process
+VBlankFlag:         rs.b 1          ; Set when vblank starts
+NumSprites:         rs.b 1          ; Number of sprites in the buffer
+SpriteBuf:          rs.w 4*80       ; Sprite table buffer
+PaletteBuf:         rs.w 4*$10      ; Palette buffer
+DMABuf:             rs.w 512        ; DMA command queue
+DMABufEnd:          rs.l 1          ; Where the DMA queue ends
+Anim:               rs.w 1          ; Generic timer for animating everything
+Subpixel:           rs.w 1          ; Used to fake subpixel offsets
+FadeInFlag:         rs.b 1          ; Set when wanting to fade in
+BGMToPlay:          rs.b 1          ; ID of BGM to be played next
+SFXToPlay:          rs.b 1          ; ID of SFX to be played next
+CurrentSFX:         rs.b 1          ; SFX currently being played
+CurrentBGM:         rs.b 1          ; BGM currently being played
+                    rs.b 1
+
+TextBufAddr:        rs.l 1          ; Pointer to buffer for rendering text
+Score:              rs.l 1          ; Current score
+NextLife:           rs.l 1          ; When next life comes in
+Lives:              rs.b 1          ; Number of lives left
+Stage:              rs.b 1          ; Current stage
+StageName:          rs.b 1          ; Stage name (one digit per nibble)
+Muteki:             rs.b 1          ; Set when muteki mode is on
+TimerOK:            rs.b 1          ; Allow timer to work
+DebugOK:            rs.b 1          ; Allow debug menu
+
+TimeSetting:        rs.b 1          ; Level duration setting
+LifeSetting:        rs.b 1          ; Extra life interval setting
+SoundTest:          rs.b 1          ; Current sound test value
+                    rs.b 1
+
+LocalRAM:           rs.b 0          ; Where local RAM starts
+
+;****************************************************************************
+; Variables used in-game
+;****************************************************************************
+
+                    rsset LocalRAM
+
+IngameStatus:       rs.b 1          ; In-game status flags
+KeysLeft:           rs.b 1          ; Numbers of keys left
+EndGame:            rs.b 1          ; Used to signal the stage should end
+AnimToLoad:         rs.b 1          ; Flags marking which graphics to stream
+GlobeMap:           rs.b $100       ; Globe tilemap
+TimeSecs:           rs.b 1          ; Time left (seconds)
+TimeFrames:         rs.b 1          ; Time left (frames)
+ShakeTimer:         rs.b 1          ; How much more to shake
+
+EndingPhase:        rs.b 1          ; Which phase of the ending we're in
+EndingFade:         rs.b 1          ; For fading the background
+EndingTimer:        rs.b 1          ; Used to time stuff in the ending
+
+PlayerX:            rs.b 1          ; Player X coordinate
+PlayerY:            rs.b 1          ; Player Y coordinate
+PlayerAngle:        rs.b 1          ; Player angle
+PlayerAction:       rs.b 1          ; Player action
+PlayerJump:         rs.b 1          ; Timer for player jumping
+PlayerSpring:       rs.b 1          ; Timer to hold player in air (springs)
+PlayerWin:          rs.b 1          ; Timer for player's winning animation
+PlayerDie:          rs.b 1          ; Timer for player dying
+
+HUDBuf:             rs.w 40*3       ; Buffer for the HUD text
+PlayerBuf:          rs.b $200+$20   ; Buffer for the player graphics
+RaftBuf:            rs.b 4*12*$20   ; Buffer for the raft graphics
+BeltBuf:            rs.b 4*4*$20    ; Buffer for the belt graphics
+
+ObjectList:         rs.b OBJ_SIZE*MAX_OBJECTS ; Object list
+
+;****************************************************************************
+; Variables used in the game over screen
+;****************************************************************************
+
+                    rsset LocalRAM
+
+GameOverAnim:       rs.b 8          ; Scaling for each letter
+GameOverTiles:      rs.b $20*17*3*8 ; To store the GAME OVER graphics
+
+;****************************************************************************
+; Variables used in the logo splash
+;****************************************************************************
+
+                    rsset LocalRAM
+
+LogoData:           rs.l 1          ; Where the logo data is
+LogoSpin:           rs.w 1          ; Logo spin position
+LogoQisha:          rs.w 1          ; Logo Qisha position
+LogoWait:           rs.b 1          ; Wait before logo quits
+                    rs.b 1
+
+;****************************************************************************
+; Variables used in the title screen
+;****************************************************************************
+
+                    rsset LocalRAM
+
+TitleOption:        rs.b 1          ; Selected option
+TitleShowMenu:      rs.b 1          ; Set when menu is visible
+TitleLogoSize:      rs.b 11         ; To animate every letter in the logo
+                    rs.b 1
+
+TitleCheat:         rs.b 8          ; Buffer for cheat code
+
+TitleMenuBuf:       rs.b 0          ; To hold the menu graphics
+TitleLogoOrig:      rs.b 9*9*$20    ; To hold the logo sprites (original)
+TitleLogoScaled:    rs.b 9*9*$20    ; To hold the logo sprites (scaled)
+
+;****************************************************************************
+; Variables used in the options menu screen
+;****************************************************************************
+
+                    rsset LocalRAM
+
+OptionTimeBuf:      rs.w 36*3       ; "TIME ## SEC"
+Option1upBuf:       rs.w 36*3       ; "1UP AT #####"
+OptionSoundBuf:     rs.w 36*3       ; "SOUND ##"
+OptionExitBuf:      rs.w 36*3       ; "EXIT"
+
+OptionSelected:     rs.b 1          ; Current selected option
+OptionQuit:         rs.b 1          ; Quit menu?
+
+;****************************************************************************
+; Variables used in the password entry screen
+;****************************************************************************
+
+                    rsset LocalRAM
+
+PasswordTextBuf:    rs.w 36*3       ; For entering text
+PasswordTimer:      rs.w 1          ; Used to show "invalid password"
+EnteredPassword:    rs.b 4          ; Entered password so far
+PasswordDialAnim:   rs.b 10         ; To animate the dial digits
+PasswordDial:       rs.b 1          ; Selected digit in the dial
+PasswordDelay:      rs.b 1          ; Delay used when selecting in the dial
+PasswordQuit:       rs.b 1          ; To quit the password screen
+                    rs.b 1
+
+;****************************************************************************
+; Variables used in the stage intro screen
+;****************************************************************************
+
+                    rsset LocalRAM
+
+IntroQishaX:        rs.w 1          ; Qisha's horizontal position
+IntroQishaY:        rs.w 1          ; Qisha's vertical position
+
+;****************************************************************************
+; Variables used in the stage clear screen
+;****************************************************************************
+
+                    rsset LocalRAM
+
+ClearTitleBuf:      rs.w 36*3       ; Header text
+ClearLine1Buf:      rs.w 36*3       ; First line of text at the bottom
+ClearLine2Buf:      rs.w 36*3       ; Second line of text at the bottom
+
+ClearScrollABuf:    rs.w 28         ; Plane A horizontal scroll
+ClearScrollBBuf:    rs.w 28         ; Plane B horizontal scroll
+ClearQishaPos:      rs.w 1          ; Qisha's position
+ClearPhase:         rs.b 1          ; Current phase of Stage Clear screen
+ClearTimer:         rs.b 1          ; Timer used to update Stage Clear text
+
+StageBonus:         rs.l 1          ; Bonus to award for this stage :)
+
+;****************************************************************************
+; Variables used in the credits screen
+;****************************************************************************
+
+                    rsset LocalRAM
+
+CreditsSrc:         rs.l 1          ; Current position in the staff roll
+CreditsDest:        rs.l 1          ; Current position in the shown text
+CreditsLine:        rs.b 1          ; On the first or second line?
+CreditsDelay:       rs.b 1          ; How much to wait for next letter
+CreditsText1:       rs.b 24         ; First line of text (ASCII)
+CreditsText2:       rs.b 24         ; Second line of text (ASCII)
+CreditsBuffer1:     rs.w 36*3       ; First line of text (tiles)
+CreditsBuffer2:     rs.w 36*3       ; Second line of text (tiles)
+
+CreditsScroll:      rs.w 1          ; Camera position
+CreditsSpin:        rs.w 1          ; Planelagos animation
+
+;****************************************************************************
+; Variables used in the debug menu
+;****************************************************************************
+
+                    rsset LocalRAM
+
+DebugLineStage:     rs.w 36*3       ; "STAGE #-#"
+DebugLineLives:     rs.w 36*3       ; "LIVES X##"
+DebugLineMuteki:    rs.w 36*3       ; "MUTEKI XX"
+DebugLineTimer:     rs.w 36*3       ; "TIME XX"
+
+DebugOption:        rs.b 1          ; Current selected option
+                    rs.b 1
+
+;****************************************************************************
+; Some common graphics used for some screens
+;****************************************************************************
+
+                    rsreset
+                    rs.b 1          ; (empty)
+VramUniverse:       rs.b 24         ; Background
+VramPlanets:        rs.b 5          ; Planelago planets
+VramText:           rs.b 213        ; Font graphics
+
+VramCommonEnd:      rs.b 0
+
+;****************************************************************************
+; Tile IDs used in-game
+;****************************************************************************
+
+                    rsreset
+                    rs.b 1          ; (empty)
+
+VramBackground:     rs.b 2          ; Background
+VramHUD:            rs.b 2*3*13     ; HUD characters
+VramKey:            rs.b 2*2        ; Key
+VramMace:           rs.b 2*2        ; Mace
+VramSwitch:         rs.b 2*2        ; Switch
+VramBomb:           rs.b 2*2*4      ; Bomb
+VramElectricity:    rs.b 2*2*2      ; Electricity
+VramBall:           rs.b 2*2        ; Ball
+VramOrbR:           rs.b 2*2*3      ; Red orb
+VramOrbP:           rs.b 2*2*3      ; Pink orb
+VramOrbB:           rs.b 2*2*3      ; Blue orb
+VramOrbO:           rs.b 2*2*3      ; Orange orb
+VramFireball:       rs.b 2*2*4      ; Fireballs
+VramCrystal:        rs.b 2*2*4*8    ; Crystals
+VramQua:            rs.b 2*2*5      ; Child: Qua
+VramIyan:           rs.b 2*2*5      ; Child: Iyan
+VramShia:           rs.b 2*2*5      ; Child: Shia
+VramHoru:           rs.b 2*2*5      ; Child: Horu
+VramAxar:           rs.b 2*2*5      ; Child: Axar
+VramStage6BG:       rs.b 20*14      ; Stage 6 background
+VramGameOver:       rs.b 8*6+3      ; Game Over message
+
+VramPlayer:         rs.b 4*4        ; Player
+
+VramGrass:          rs.b 2*2        ; Grass tile
+VramFlower:         rs.b 2*2        ; Flower tile
+VramDirt:           rs.b 2*2        ; Dirt tile
+VramBrick:          rs.b 2*2        ; Brick tile
+VramRaftH:          rs.b 2*2        ; Immobile raft (horizontal)
+VramRaftV:          rs.b 2*2        ; Immobile raft (vertical)
+VramWood:           rs.b 2*2        ; Wooden tile
+VramGoal:           rs.b 2*2        ; Goal tile
+VramSpring:         rs.b 2*2        ; Spring tile
+VramDark:           rs.b 2*2        ; Dark tile
+VramMetal:          rs.b 2*2        ; Metal wall tile
+VramPlate:          rs.b 2*2        ; Metal plate tile
+VramVisor:          rs.b 2*2        ; Visor tile
+VramMarble:         rs.b 2*2        ; Marble tile
+
+VramEndingGlobe:    rs.b 2*2*12     ; Exploding globe
+
+VramWater:          rs.b 2*2        ; Water tile
+VramRaftU:          rs.b 3*2*2      ; Raft going up
+VramRaftD:          rs.b 3*2*2      ; Raft going down
+VramRaftL:          rs.b 3*2*2      ; Raft going left
+VramRaftR:          rs.b 3*2*2      ; Raft going right
+VramBeltU:          rs.b 2*2        ; Conveyor belt (going up)
+VramBeltD:          rs.b 2*2        ; Conveyor belt (going down)
+VramBeltL:          rs.b 2*2        ; Conveyor belt (going left)
+VramBeltR:          rs.b 2*2        ; Conveyor belt (going right)
+VramFire:           rs.b 2*2        ; Fire tile
+
+;****************************************************************************
+; Tile IDs used in the title screen
+;****************************************************************************
+
+                    rsreset
+                    rs.b 1          ; (empty)
+                    rs.b 24         ; Background
+                    rs.b 5          ; Planets
+VramCopyright:      rs.b 15         ; Copyright notice
+VramTitleLogo:      rs.b 9*9        ; Title logo letters
+VramTitleMenuA:     rs.b 2*2        ; Menu letter: "A"
+VramTitleMenuD:     rs.b 2*2        ; Menu letter: "D"
+VramTitleMenuI:     rs.b 2*2        ; Menu letter: "I"
+VramTitleMenuN:     rs.b 2*2        ; Menu letter: "N"
+VramTitleMenuO:     rs.b 2*2        ; Menu letter: "O"
+VramTitleMenuP:     rs.b 2*2        ; Menu letter: "P"
+VramTitleMenuR:     rs.b 2*2        ; Menu letter: "R"
+VramTitleMenuS:     rs.b 2*2        ; Menu letter: "S"
+VramTitleMenuT:     rs.b 2*2        ; Menu letter: "T"
+VramTitleMenuW:     rs.b 2*2        ; Menu letter: "W"
+
+;****************************************************************************
+; Tile IDs used in the logo splash
+;****************************************************************************
+
+                    rsreset
+                    rs.b 1          ; (empty)
+VramLogo:           rs.b 6*8*8      ; Logo letters
+VramLogoQisha:      rs.b 8*7        ; Qisha
+
+;****************************************************************************
+; Tile IDs used in the password screen
+;****************************************************************************
+
+                    rsset VramCommonEnd
+
+VramLEDEmpty:       rs.b 4*6        ; LED display empty cell
+VramLEDDigit:       rs.b 4*6*10     ; LED display digit
+VramLEDGap:         rs.b 3          ; Gap between LED display cells
+
+;****************************************************************************
+; Tile IDs used in the stage intro screen
+;****************************************************************************
+
+                    rsset VramCommonEnd
+
+VramIntroPlanelago: rs.b 9          ; Planelago planets
+VramIntroVoid:      rs.b 16*4*2     ; Void
+VramIntroQisha:     rs.b 0          ; Qisha's sprites
+VramIntroQisha64:   rs.b 8*8          ; Qisha at 64x64
+VramIntroQisha56:   rs.b 7*7          ; Qisha at 56x56
+VramIntroQisha48:   rs.b 6*6          ; Qisha at 48x48
+VramIntroQisha40:   rs.b 5*5          ; Qisha at 40x40
+VramIntroQisha32:   rs.b 4*4          ; Qisha at 32x32
+VramIntroQishaEtc:  rs.b (1+4+9)*4    ; Qisha at fully prerendered sizes
+VramIntroQishaSize: equ *-VramIntroQisha ; Not gonna calculate all this
+
+;****************************************************************************
+; Tile IDs used in the stage clear screen
+;****************************************************************************
+
+                    rsset VramCommonEnd
+
+VramClearQisha:     rs.b 8*7        ; Qisha flying in spaaaaace :D
+VramClearQua:       rs.b 4*4*5      ; Qua flying alongside Qisha
+VramClearIyan:      rs.b 4*4*5      ; Iyan flying alongside Qisha
+VramClearShia:      rs.b 4*4*5      ; Shia flying alongside Qisha
+VramClearHoru:      rs.b 4*4*5      ; Horu flying alongside Qisha
+VramClearAxar:      rs.b 4*4*5      ; Axar flying alongside Qisha
+VramClearTrail:     rs.b 8          ; Trail behind Qisha
+
+
+;****************************************************************************
+; Tile IDs used in the credits screen
+;****************************************************************************
+
+                    rsset VramCommonEnd
+
+VramCreditsQisha:   rs.b 16*6       ; Qisha
+VramCreditsFG:      rs.b 0          ; Foreground planet

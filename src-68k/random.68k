@@ -1,0 +1,42 @@
+;****************************************************************************
+; InitRand
+; Initializes the random number generator.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+InitRand:
+    lea     ($FF0100), a6               ; We'll mess using RAM noise
+    lea     ($C00008), a5               ; And the HV counter as well
+    move.w  (RandSeed), d6              ; And whatever was the seed before
+    
+    moveq   #64-1, d7                   ; Mix everything together! :D
+@Loop:
+    add.w   (a6), d6
+    sub.w   (a5), d6
+    lea     $400(a6), a6
+    dbf     d7, @Loop
+    
+    move.w  d6, (RandSeed)              ; Store generated seed
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; Rand
+; Generates a random number between $0000 and $FFFF.
+;----------------------------------------------------------------------------
+; output d7.w ... Random number
+;****************************************************************************
+
+Rand:
+    move.w  (RandSeed), d7              ; Get current seed
+    
+    rol.w   #3, d7                      ; Do weird stuff
+    not.b   d7
+    ror.w   #4, d7
+    add.w   ($C00008), d7
+    rol.w   #2, d7
+    not.b   d7
+    sub.w   ($C00008), d7
+    
+    move.w  d7, (RandSeed)              ; Store seed for next number
+    rts                                 ; End of subroutine

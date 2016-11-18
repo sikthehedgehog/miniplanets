@@ -1,0 +1,65 @@
+;****************************************************************************
+; RunSwitch
+; Executes a switch's game logic.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+RunSwitch:
+    move.b  OBJ_X(a0), d7               ; Check if the player has triggered
+    move.b  OBJ_Y(a0), d6                 ; the switch yet
+    moveq   #8, d5
+    moveq   #8, d4
+    bsr     CollidesPlayer
+    tst.w   d7
+    bne.s   @Triggered
+    rts
+@Triggered:
+    
+    moveq   #0, d0                      ; Scan all objects to trigger
+    move.b  OBJ_DATA(a0), d0
+    move.l  a0, a1
+    beq.s   @Nothing
+    subq.w  #1, d0
+@Scan:
+    lea     OBJ_SIZE(a1), a1            ; Get next object
+    move.b  OBJ_TYPE(a1), d1
+    
+    cmp.b   #OBJTYPE_BOMB, d1           ; Is it a bomb? Detonate it
+    bne.s   @NotABomb
+    bsr     DetonateBomb
+    bra     @Handled
+@NotABomb:
+    
+    cmp.b   #OBJTYPE_RAFTU, d1          ; Is it a raft? Make it move
+    blo.s   @NotARaft
+    cmp.b   #OBJTYPE_RAFTR, d1
+    bhi.s   @NotARaft
+    neg.b   OBJ_DATA(a1)
+@NotARaft:
+    
+@Handled:
+    dbf     d0, @Scan                   ; Go for next object
+    
+@Nothing:
+    clr.b   OBJ_TYPE(a0)                ; Switch is no more
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawSwitch
+; Draws a switch.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+DrawSwitch:
+    move.b  OBJ_X(a0), d7               ; Draw switch sprite
+    move.b  OBJ_Y(a0), d6
+    move.w  #VramSwitch, d5
+    bsr     Add3DSprite
+    
+    rts                                 ; End of subroutine

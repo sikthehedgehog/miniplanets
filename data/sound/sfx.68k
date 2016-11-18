@@ -1,0 +1,240 @@
+;****************************************************************************
+; SFXData_Jump
+; ESF data for the jump sound effect.
+;****************************************************************************
+
+SFXData_Jump:
+    ESF_Lock        ESF_FM5
+    ESF_SetInstr    ESF_FM5, $01
+    ESF_NoteOn      ESF_FM5, 4, 2
+    ESF_Delay       2
+    ESF_SetFreq     ESF_FM5, 4, ESF_FMFREQ_0
+    ESF_Delay       2
+    ESF_SetFreq     ESF_FM5, 4, ESF_FMFREQ_4
+    ESF_Delay       2
+    ESF_SetFreq     ESF_FM5, 4, ESF_FMFREQ_6
+    ESF_Delay       2
+    ESF_NoteOff     ESF_FM5
+    ESF_Delay       2
+    ESF_Stop
+
+;****************************************************************************
+; SFXData_Impact
+; Something hits a wall.
+;****************************************************************************
+
+SFXData_Impact:
+    ESF_Lock        ESF_FM5
+    ESF_SetInstr    ESF_FM5, $16
+    
+    ESF_NoteOn      ESF_FM5, 0, 0
+    ESF_Delay       8
+    
+    ESF_NoteOff     ESF_FM5
+    ESF_Delay       2
+    ESF_Stop
+
+;****************************************************************************
+; SFXData_Spring
+; ESF data for the jump on a spring sound effect.
+;****************************************************************************
+
+SFXData_Spring:
+    ESF_Lock        ESF_FM5
+    ESF_SetInstr    ESF_FM5, $02
+    ESF_NoteOn      ESF_FM5, 3, 0
+    ESF_Delay       8
+    ESF_NoteOn      ESF_FM5, 4, 0
+    ESF_Delay       8
+    ESF_SetVol      ESF_FM5, $04
+    ESF_Delay       2
+    ESF_SetVol      ESF_FM5, $08
+    ESF_Delay       2
+    ESF_SetVol      ESF_FM5, $0C
+    ESF_Delay       2
+    ESF_SetVol      ESF_FM5, $10
+    ESF_Delay       2
+    ESF_NoteOff     ESF_FM5
+    ESF_Delay       2
+    ESF_Stop
+
+;****************************************************************************
+; SfxData_Key
+; ESF data for the key sound effect.
+;****************************************************************************
+
+SfxData_Key:
+    ESF_Lock        ESF_FM5
+    ESF_SetInstr    ESF_FM5, $00
+    ESF_NoteOn      ESF_FM5, 6, 0
+    ESF_Delay       4
+    ESF_NoteOn      ESF_FM5, 6, 4
+    ESF_Delay       4
+    ESF_NoteOff     ESF_FM5
+    ESF_Delay       2
+    ESF_Stop
+
+;****************************************************************************
+; SFXData_Crystal
+; ESF data for the crystal sound effect.
+;****************************************************************************
+
+SFXData_Crystal:
+    ESF_Lock        ESF_FM5
+    ESF_Lock        ESF_PSG3
+    ESF_SetInstr    ESF_FM5, $00
+    ESF_SetInstr    ESF_PSG3, $04
+    ESF_SetVol      ESF_FM5, $04
+    ESF_SetVol      ESF_PSG3, $02
+    ESF_NoteOn      ESF_FM5, 5, 0
+    ESF_NoteOn      ESF_PSG3, 4, 0
+    ESF_Delay       6
+    ESF_NoteOn      ESF_FM5, 5, 2
+    ESF_NoteOn      ESF_PSG3, 4, 2
+    ESF_Delay       6
+    ESF_NoteOn      ESF_FM5, 5, 4
+    ESF_NoteOn      ESF_PSG3, 4, 4
+    ESF_Delay       4
+    ESF_SetVol      ESF_FM5, $08
+    ESF_SetVol      ESF_PSG3, $04
+    ESF_Delay       2
+    ESF_SetVol      ESF_FM5, $0C
+    ESF_SetVol      ESF_PSG3, $06
+    ESF_Delay       2
+    ESF_SetVol      ESF_FM5, $10
+    ESF_SetVol      ESF_PSG3, $08
+    ESF_Delay       2
+    ESF_NoteOff     ESF_FM5
+    ESF_NoteOff     ESF_PSG3
+    ESF_Delay       2
+    ESF_Stop
+
+;****************************************************************************
+; SFXData_Ouch
+; ESF data for the get hurt sound effect.
+;****************************************************************************
+
+SFXData_Ouch:
+    ESF_Lock        ESF_FM5
+    ESF_SetInstr    ESF_FM5, $01
+    ESF_NoteOn      ESF_FM5, 5, 8
+    ESF_Delay       2
+    ESF_SetFreq     ESF_FM5, 6, ESF_FMFREQ_0
+    ESF_Delay       2
+    ESF_NoteOff     ESF_FM5
+    ESF_Delay       2
+    ESF_NoteOn      ESF_FM5, 5, 4
+    ESF_Delay       2
+    ESF_SetFreq     ESF_FM5, 5, ESF_FMFREQ_0
+    ESF_Delay       2
+    ESF_NoteOff     ESF_FM5
+    ESF_Delay       2
+    ESF_Stop
+
+;****************************************************************************
+; SFXData_Explosion
+; ESF data for the explosion sound effect.
+;****************************************************************************
+
+SFXData_Explosion:
+    ESF_Lock        ESF_FM6
+    ESF_NoteOn      ESF_PCM, $03
+    ESF_Delay       54
+    ESF_Stop
+
+
+;****************************************************************************
+; SFXData_1up
+; ESF data for the 1up sound effect.
+;****************************************************************************
+
+SFXData_1up:
+
+@Pattern: macro
+    ESF_NoteOn      ESF_FM5, 5, 0
+    ESF_NoteOn      ESF_PSG3, 4, 0
+    ESF_Delay       6
+    ESF_NoteOn      ESF_FM5, 5, 2
+    ESF_NoteOn      ESF_PSG3, 4, 2
+    ESF_Delay       6
+    ESF_NoteOn      ESF_FM5, 5, 4
+    ESF_NoteOn      ESF_PSG3, 4, 4
+    ESF_Delay       6
+    endm
+
+    ESF_Lock        ESF_FM5
+    ESF_Lock        ESF_PSG3
+    ESF_SetInstr    ESF_FM5, $00
+    ESF_SetInstr    ESF_PSG3, $04
+    
+    ESF_SetVol      ESF_FM5, $04
+    ESF_SetVol      ESF_PSG3, $02
+    @Pattern
+    ESF_SetVol      ESF_FM5, $08
+    ESF_SetVol      ESF_PSG3, $04
+    @Pattern
+    ESF_SetVol      ESF_FM5, $0C
+    ESF_SetVol      ESF_PSG3, $06
+    @Pattern
+    ESF_SetVol      ESF_FM5, $10
+    ESF_SetVol      ESF_PSG3, $08
+    @Pattern
+    ESF_SetVol      ESF_FM5, $14
+    ESF_SetVol      ESF_PSG3, $0A
+    @Pattern
+    ESF_SetVol      ESF_FM5, $18
+    ESF_SetVol      ESF_PSG3, $0C
+    @Pattern
+    
+    ESF_NoteOff     ESF_FM5
+    ESF_NoteOff     ESF_PSG3
+    ESF_Delay       2
+    ESF_Stop
+
+;****************************************************************************
+; SFXData_Goal
+; ESF data for the goal sound effect.
+;****************************************************************************
+
+SFXData_Goal:
+
+@Pattern: macro
+    ESF_NoteOn      ESF_FM5, 5, 0
+    ESF_NoteOn      ESF_PSG3, 3, 0
+    ESF_Delay       6
+    ESF_NoteOn      ESF_FM5, 5, 2
+    ESF_NoteOn      ESF_PSG3, 3, 2
+    ESF_Delay       6
+    ESF_NoteOn      ESF_FM5, 5, 4
+    ESF_NoteOn      ESF_PSG3, 3, 4
+    ESF_Delay       6
+    endm
+
+    ESF_Lock        ESF_FM5
+    ESF_Lock        ESF_PSG3
+    ESF_SetInstr    ESF_FM5, $00
+    ESF_SetInstr    ESF_PSG3, $04
+    
+    ESF_SetVol      ESF_FM5, $04
+    ESF_SetVol      ESF_PSG3, $02
+    @Pattern
+    ESF_SetVol      ESF_FM5, $08
+    ESF_SetVol      ESF_PSG3, $04
+    @Pattern
+    ESF_SetVol      ESF_FM5, $0C
+    ESF_SetVol      ESF_PSG3, $06
+    @Pattern
+    ESF_SetVol      ESF_FM5, $10
+    ESF_SetVol      ESF_PSG3, $08
+    @Pattern
+    ESF_SetVol      ESF_FM5, $14
+    ESF_SetVol      ESF_PSG3, $0A
+    @Pattern
+    ESF_SetVol      ESF_FM5, $18
+    ESF_SetVol      ESF_PSG3, $0C
+    @Pattern
+    
+    ESF_NoteOff     ESF_FM5
+    ESF_NoteOff     ESF_PSG3
+    ESF_Delay       2
+    ESF_Stop

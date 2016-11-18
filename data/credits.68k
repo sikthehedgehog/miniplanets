@@ -1,0 +1,37 @@
+;****************************************************************************
+; GfxCreditsFG
+; Graphics for the foreground in the credits. Note that this includes both
+; the tilemap mappings as well as the tiles right after that.
+;****************************************************************************
+
+GfxCreditsFG:
+    incbin  "data/credits/foreground.slz"
+    even
+
+GfxCreditsFGSize: equ filesize("src-data/credits/foreground.4bpp")/$20
+
+;****************************************************************************
+; StaffRoll
+; Text shown during the staff roll in the credits.
+;----------------------------------------------------------------------------
+; Some ASCII control codes are supported:
+;   $0A ... Newline (alternates between both lines)
+;   $0C ... Formfeed (used to clear the text)
+;   $0D ... Carriage (used in "THANKS TO")
+;   $FF ... End of text (stops parsing text here)
+;****************************************************************************
+
+StaffRoll:
+    dc.b    $0C
+    dc.b    "MINIPLANETS", $0A, "STAFF ROLL", $0A, $0C
+    dc.b    "DIRECTOR", $0A, "JAVIER DEGIROLMO", $0A, $0C
+    dc.b    "GRAPHICS", $0A, "JAVIER DEGIROLMO", $0A, $0C
+    dc.b    "MUSIC", $0A, "IRIS MELODY", $0A, $0C
+    dc.b    "THANKS TO", $0A
+    dc.b      "ERIC VOIRIN", $0D
+    dc.b      "TULIO ADRIANO", $0D
+    dc.b      "TITAN", $0D
+    dc.b      "SEGA-16", $0D
+    dc.b      "YOU", $0A, $0C
+    dc.b    "   ", $0A, "        THE END", $FF
+    even

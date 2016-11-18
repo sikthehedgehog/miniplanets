@@ -1,0 +1,342 @@
+;****************************************************************************
+; SetVRAMAddr, SetCRAMAddr, SetVSRAMAddr
+; Generates a VDP command to set a video memory address.
+;----------------------------------------------------------------------------
+; param addr ... Video memory address
+; param into ... Where to write (e.g. d0 or (a6) or ($C00004))
+;****************************************************************************
+
+SetXRAMAddr: macro addr, into, cmd
+    move.l  #(\cmd)|((\addr)&$3FFF)<<16|(\addr)>>14, \into
+    endm
+
+SetVRAMAddr: macro addr, into
+    SetXRAMAddr \addr, \into, $40000000
+    endm
+
+SetCRAMAddr: macro addr, into
+    SetXRAMAddr \addr, \into, $C0000000
+    endm
+
+SetVSRAMAddr: macro addr, into
+    SetXRAMAddr \addr, \into, $40000010
+    endm
+
+;****************************************************************************
+; SetPosA, SetPosB
+; Generates a VDP command to set the video address within a specific tile in
+; a tilemap. This assumes they're in their default addresses and size.
+;----------------------------------------------------------------------------
+; param x ...... X coordinate of tile
+; param y ...... Y coordinate of tile
+; param into ... Where to write (e.g. d0 or (a6) or ($C00004))
+;****************************************************************************
+
+SetPosX: macro x, y, into, base
+    SetVRAMAddr (\base)+(\x)*2+(\y)*$80, \into
+    endm
+
+SetPosA: macro x, y, into
+    SetPosX \x, \y, \into, $C000
+    endm
+
+SetPosB: macro x, y, into
+    SetPosX \x, \y, \into, $E000
+    endm
+
+;****************************************************************************
+; DMA2VRAM, DMA2CRAM, DMA2VSRAM
+; Generates a command to do a DMA transfer into video memory. The source,
+; destination and length are all constant.
+;----------------------------------------------------------------------------
+; param src .... Source address (68000)
+; param dest ... Destination address (VDP)
+; param len .... Length in bytes
+; param into ... Where to write (e.g. (a6)+ or ($C00004))
+;****************************************************************************
+
+DMA2XRAM: macro src, dest, len, into, cmd
+    move.l  #$94009300|((\len)<<7&$FF0000)|((\len)>>1&$FF), \into
+    move.l  #$96009500|((\src)<<7&$FF0000)|((\src)>>1&$FF), \into
+    move.w  #$9700|((\src)>>17&$7F), \into
+    move.l  #(\cmd)|((\dest)&$3FFF)<<16|(\dest)>>14, \into
+    endm
+
+DMA2VRAM: macro src, dest, len, into
+    DMA2XRAM \src, \dest, \len, \into, $40000080
+    endm
+
+DMA2CRAM: macro src, dest, len, into
+    DMA2XRAM \src, \dest, \len, \into, $C0000080
+    endm
+
+DMA2VSRAM: macro src, dest, len, into
+    DMA2XRAM \src, \dest, \len, \into, $40000090
+    endm
+
+;****************************************************************************
+; DMA2VRAM_SD, DMA2CRAM_SD, DMA2VSRAM_SD
+; Generates a command to do a DMA transfer into video memory. The source and
+; destination are variable, but the length is constant.
+;----------------------------------------------------------------------------
+; param src .... Register with source address (e.g. d7)
+; param dest ... Register with destination address (e.g. d6)
+; param len .... Length in bytes
+; param into ... Register pointing to buffer (e.g. a6)
+;----------------------------------------------------------------------------
+; breaks: \dest, \into
+;****************************************************************************
+
+DMA2XRAM_SD: macro src, dest, len, into, cmd
+    lsr.l   #1, \src
+    addq.w  #4, \into
+    move.l  #$97009600, (\into)+
+    move.w  #$9500, (\into)+
+    movep.l \src, -7(\into)
+    move.l  #$94009300|((\len)<<7&$FF0000)|((\len)>>1&$FF), -10(\into)
+    and.l   #$FFFF, \dest
+    lsl.l   #2, \dest
+    lsr.w   #2, \dest
+    swap    \dest
+    or.l    #\cmd, \dest
+    move.l  \dest, (\into)+
+    endm
+
+DMA2VRAM_SD: macro src, dest, len, into
+    DMA2XRAM_SD \src, \dest, \len, \into, $40000080
+    endm
+
+DMA2CRAM_SD: macro src, dest, len, into
+    DMA2XRAM_SD \src, \dest, \len, \into, $C0000080
+    endm
+
+DMA2VSRAM_SD: macro src, dest, len, into
+    DMA2XRAM_SD \src, \dest, \len, \into, $40000090
+    endm
+
+;****************************************************************************
+; DMA2VRAM_SDL, DMA2CRAM_SDL, DMA2VSRAM_SDL
+; Generates a command to do a DMA transfer into video memory. All source,
+; destination and length are variable.
+;----------------------------------------------------------------------------
+; param src .... Register with source address (e.g. d7)
+; param dest ... Register with destination address (e.g. d6)
+; param len .... Register with length in bytes (e.g. d5)
+; param into ... Register pointing to buffer (e.g. a6)
+;----------------------------------------------------------------------------
+; breaks: \src, \dest, \len, \into
+;****************************************************************************
+
+DMA2XRAM_SDL: macro src, dest, len, into, cmd
+    lsr.l   #1, \src
+    lsr.w   #1, \len
+    move.l  #$94009300, (\into)+
+    move.l  #$97009600, (\into)+
+    move.w  #$9500, (\into)+
+    movep.l \src, -7(\into)
+    movep.w \len, -9(\into)
+    and.l   #$FFFF, \dest
+    lsl.l   #2, \dest
+    lsr.w   #2, \dest
+    swap    \dest
+    or.l    #\cmd, \dest
+    move.l  \dest, (\into)+
+    endm
+
+DMA2VRAM_SDL: macro src, dest, len, into
+    DMA2XRAM_SDL \src, \dest, \len, \into, $40000080
+    endm
+
+DMA2CRAM_SDL: macro src, dest, len, into
+    DMA2XRAM_SDL \src, \dest, \len, \into, $C0000080
+    endm
+
+DMA2VSRAM_SDL: macro src, dest, len, into
+    DMA2XRAM_SDL \src, \dest, \len, \into, $40000090
+    endm
+
+;****************************************************************************
+; DMA2VRAM_SL, DMA2CRAM_SL, DMA2VSRAM_SL
+; Generates a command to do a DMA transfer into video memory. The destination
+; is constant, but the source and length are variable.
+;----------------------------------------------------------------------------
+; param src .... Register with source address (e.g. d7)
+; param dest ... Destination address (VDP)
+; param len .... Register with length in bytes (e.g. d6)
+; param into ... Register pointing to buffer (e.g. a6)
+;----------------------------------------------------------------------------
+; breaks: \src, \len, \into
+;****************************************************************************
+
+DMA2XRAM_SL: macro src, dest, len, into, cmd
+    lsr.l   #1, \src
+    lsr.w   #1, \len
+    move.l  #$94009300, (\into)+
+    move.l  #$97009600, (\into)+
+    move.w  #$9500, (\into)+
+    movep.l \src, -7(\into)
+    movep.w \len, -9(\into)
+    move.l  #(\cmd)|((\dest)&$3FFF)<<16|(\dest)>>14, (\into)+
+    endm
+
+DMA2VRAM_SL: macro src, dest, len, into
+    DMA2XRAM_SL \src, \dest, \len, \into, $40000080
+    endm
+
+DMA2CRAM_SL: macro src, dest, len, into
+    DMA2XRAM_SL \src, \dest, \len, \into, $C0000080
+    endm
+
+DMA2VSRAM_SL: macro src, dest, len, into
+    DMA2XRAM_SL \src, \dest, \len, \into, $40000090
+    endm
+
+;****************************************************************************
+; DMA2VRAM_D, DMA2CRAM_D, DMA2VSRAM_D
+; Generates a command to do a DMA transfer into video memory. The source and
+; length are constant, but the destination is variable.
+;----------------------------------------------------------------------------
+; param src .... Source address (68000)
+; param dest ... Register with destination address (e.g. d7)
+; param len .... Length in bytes
+; param into ... Register pointing to buffer (e.g. a6)
+;----------------------------------------------------------------------------
+; breaks: \dest, \into
+;****************************************************************************
+
+DMA2XRAM_D: macro src, dest, len, into, cmd
+    move.l  #$94009300|((\len)<<7&$FF0000)|((\len)>>1&$FF), (\into)+
+    move.l  #$96009500|((\src)<<7&$FF0000)|((\src)>>1&$FF), (\into)+
+    move.w  #$9700|((\src)>>17&$7F), (\into)+
+    and.l   #$FFFF, \dest
+    lsl.l   #2, \dest
+    lsr.w   #2, \dest
+    swap    \dest
+    or.l    #\cmd, \dest
+    move.l  \dest, (\into)+
+    endm
+
+DMA2VRAM_D: macro src, dest, len, into
+    DMA2XRAM_D \src, \dest, \len, \into, $40000080
+    endm
+
+DMA2CRAM_D: macro src, dest, len, into
+    DMA2XRAM_D \src, \dest, \len, \into, $C0000080
+    endm
+
+DMA2VSRAM_D: macro src, dest, len, into
+    DMA2XRAM_D \src, \dest, \len, \into, $40000090
+    endm
+
+;****************************************************************************
+; DMA2VRAM_L, DMA2CRAM_L, DMA2VSRAM_L
+; Generates a command to do a DMA transfer into video memory. The source and
+; destination are constant, but the length is variable.
+;----------------------------------------------------------------------------
+; param src .... Source address (68000)
+; param dest ... Destination address (VDP)
+; param len .... Register with length in bytes (e.g. d7)
+; param into ... Register pointing to buffer (e.g. a6)
+;----------------------------------------------------------------------------
+; breaks: \len, \into
+;****************************************************************************
+
+DMA2XRAM_L: macro src, dest, len, into, cmd
+    lsr.w   #1, \len
+    move.l  #$94009300, (\into)+
+    movep.w \len, -3(\into)
+    move.l  #$96009500|((\src)<<7&$FF0000)|((\src)>>1&$FF), (\into)+
+    move.w  #$9700|((\src)>>17&$7F), (\into)+
+    move.l  #(\cmd)|((\dest)&$3FFF)<<16|(\dest)>>14, (\into)+
+    endm
+
+DMA2VRAM_L: macro src, dest, len, into
+    DMA2XRAM_L \src, \dest, \len, \into, $40000080
+    endm
+
+DMA2CRAM_L: macro src, dest, len, into
+    DMA2XRAM_L \src, \dest, \len, \into, $C0000080
+    endm
+
+DMA2VSRAM_L: macro src, dest, len, into
+    DMA2XRAM_L \src, \dest, \len, \into, $40000090
+    endm
+
+;****************************************************************************
+; AddByteBCD
+; Adds two 8-bit BCD values.
+;----------------------------------------------------------------------------
+; param src .... Source register (e.g. d6)
+; param dest ... Destination register (e.g. d7)
+;****************************************************************************
+
+AddByteBCD: macro src, dest
+    and.b   #$00, ccr
+    abcd.b  \src, \dest
+    endm
+
+;****************************************************************************
+; AddWordBCD
+; Adds two 16-bit BCD values.
+;----------------------------------------------------------------------------
+; param src .... Source register (e.g. d6)
+; param dest ... Destination register (e.g. d7)
+;****************************************************************************
+
+AddWordBCD: macro src, dest
+    and.b   #$00, ccr
+    abcd.b  \src, \dest
+    ror.w   #8, \src
+    ror.w   #8, \dest
+    abcd.b  \src, \dest
+    ror.w   #8, \src
+    ror.w   #8, \dest
+    endm
+
+;****************************************************************************
+; AddLongBCD
+; Adds two 32-bit BCD values.
+;----------------------------------------------------------------------------
+; param src .... Source register (e.g. d6)
+; param dest ... Destination register (e.g. d7)
+;****************************************************************************
+
+AddLongBCD: macro src, dest
+    and.b   #$00, ccr
+    abcd.b  \src, \dest
+    ror.l   #8, \src
+    ror.l   #8, \dest
+    abcd.b  \src, \dest
+    ror.l   #8, \src
+    ror.l   #8, \dest
+    abcd.b  \src, \dest
+    ror.l   #8, \src
+    ror.l   #8, \dest
+    abcd.b  \src, \dest
+    ror.l   #8, \src
+    ror.l   #8, \dest
+    endm
+
+;****************************************************************************
+; SubLongBCD
+; Substracts two 32-bit BCD values.
+;----------------------------------------------------------------------------
+; param src .... Source register (e.g. d6)
+; param dest ... Destination register (e.g. d7)
+;****************************************************************************
+
+SubLongBCD: macro src, dest
+    and.b   #$00, ccr
+    sbcd.b  \src, \dest
+    ror.l   #8, \src
+    ror.l   #8, \dest
+    sbcd.b  \src, \dest
+    ror.l   #8, \src
+    ror.l   #8, \dest
+    sbcd.b  \src, \dest
+    ror.l   #8, \src
+    ror.l   #8, \dest
+    sbcd.b  \src, \dest
+    ror.l   #8, \src
+    ror.l   #8, \dest
+    endm

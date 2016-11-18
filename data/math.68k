@@ -1,0 +1,18 @@
+;****************************************************************************
+; Sines, Cosines
+; Look-up tables for sines and cosines. Each entry is a word ranging from
+; -$100 (-1.0) to $100 (1.0) and there are 256 angles.
+;****************************************************************************
+
+Sines:
+    incbin  "data/math/sines.lut"
+
+Cosines: equ Sines+$80
+
+;****************************************************************************
+; AngleDist
+; Quick look-up sines table with entries for each player/object angle.
+;****************************************************************************
+
+AngleDist:
+    dc.w    256, 181, 0, -181, -256, -181, 0, 181, 256, 181

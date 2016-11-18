@@ -1,0 +1,86 @@
+;****************************************************************************
+; RunBomb
+; Executes a bomb's game logic.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+RunBomb:
+    move.b  OBJ_X(a0), d7               ; Check if the player hit us
+    move.b  OBJ_Y(a0), d6
+    moveq   #8, d5
+    moveq   #8, d4
+    bsr     CollidesPlayer
+    tst.w   d7
+    beq.s   @DontDetonate
+    
+    moveq   #ACTION_BURN, d7            ; Blow up if so (ouch!)
+    bsr     HurtPlayerEx
+    move.l  a0, a1
+    bsr     DetonateBomb
+    rts
+@DontDetonate:
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawBomb
+; Draws a bomb.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+DrawBomb:
+    move.w  (Anim), d5                  ; Determine sprite to use
+    and.w   #$03<<2, d5
+    add.w   #$2000+VramBomb, d5
+    
+    move.b  OBJ_X(a0), d7               ; Draw bomb
+    move.b  OBJ_Y(a0), d6
+    bsr     Add3DSprite
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DetonateBomb
+; Detonates a bomb when triggered by a switch.
+;----------------------------------------------------------------------------
+; input a1.l ... Pointer to bomb
+;----------------------------------------------------------------------------
+; breaks: all but d0, a0-a1
+;****************************************************************************
+
+DetonateBomb:
+    move.b  OBJ_DATA(a1), d4            ; What to fill blast with
+    move.b  OBJ_X(a1), d2               ; Get position of blast
+    move.b  OBJ_Y(a1), d3
+    
+    lea     @BlastTable(pc), a2         ; Clear area around blast
+    moveq   #$10-1, d1
+@Loop:
+    move.b  d2, d7
+    move.b  d3, d6
+    add.b   (a2)+, d7
+    add.b   (a2)+, d6
+    move.b  d4, d5
+    bsr     SetTile
+    dbf     d1, @Loop
+    
+    moveq   #SFX_EXPLOSION, d7          ; Boom!
+    jsr     (PlaySFX).w
+    
+    move.b  #$20, (ShakeTimer)          ; Make the world shake!
+    clr.b   OBJ_TYPE(a1)                ; Bomb is no more
+    rts                                 ; End of subroutine
+
+;----------------------------------------------------------------------------
+
+@BlastTable:
+    dc.b    -$20,-$20, -$10,-$20,  $00,-$20,  $10,-$20
+    dc.b    -$20,-$10, -$10,-$10,  $00,-$10,  $10,-$10
+    dc.b    -$20, $00, -$10, $00,  $00, $00,  $10, $00
+    dc.b    -$20, $10, -$10, $10,  $00, $10,  $10, $10

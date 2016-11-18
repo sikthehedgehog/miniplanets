@@ -1,0 +1,105 @@
+;****************************************************************************
+; RunKey
+; Executes a key's game logic.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+RunKey:
+    move.b  OBJ_X(a0), d7               ; Check for player collision
+    move.b  OBJ_Y(a0), d6
+    moveq   #8, d5
+    moveq   #8, d4
+    bsr     CollidesPlayer
+    
+    tst.w   d7                          ; Did the key get grabbed?
+    beq.s   @NotGrabbed
+    
+    cmp.b   #OBJTYPE_KEY, OBJ_TYPE(a0)  ; Play chime :)
+    sne.b   d7                            ; Different sound depending on
+    and.b   #1, d7                        ; whether it's a key or a crystal
+    add.b   #SFX_KEY, d7
+    jsr     (PlaySFX).w
+    
+    clr.b   OBJ_TYPE(a0)                ; Key is no more
+    subq.b  #1, (KeysLeft)              ; Reduce remaining keys
+    
+    bne.s   @NoEnding                   ; Trigger the ending?
+    cmp.b   #STAGE_6_0, (Stage)
+    bne.s   @NoEnding
+    move.b  #1, (EndingPhase)
+    
+    moveq   #SFX_EXPLOSION, d7          ; Boom!
+    jsr     (PlaySFX).w
+    move.b  #64, (ShakeTimer)
+    
+    clr.b   (PlayerJump)                ; Don't jump just now!
+    
+    moveq   #0, d6                      ; Get rid of everything in the ending
+    lea     (ObjectList), a6
+    moveq   #MAX_OBJECTS/4-1, d7
+@ClearObjects:
+    move.l  d6, (a6)+
+    move.l  d6, (a6)+
+    move.l  d6, (a6)+
+    move.l  d6, (a6)+
+    dbf     d7, @ClearObjects
+@NoEnding:
+    
+@NotGrabbed:
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawKey
+; Draws a key.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+DrawKey:
+    move.b  OBJ_X(a0), d7               ; Draw key sprite
+    move.b  OBJ_Y(a0), d6
+    move.w  #VramKey, d5
+    bsr     Add3DSprite
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawCrystal
+; Draws a crystal.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+DrawCrystal:
+    moveq   #0, d7                      ; Determine base sprite
+    move.b  OBJ_DATA(a0), d7
+    add.w   d7, d7
+    lea     @Colors(pc), a6
+    move.w  (a6,d7.w), d5
+    
+    move.w  (Anim), d7                  ; Do animation too
+    and.w   #$03<<2, d7
+    add.w   d7, d5
+    
+    move.b  OBJ_X(a0), d7               ; Draw sprite
+    move.b  OBJ_Y(a0), d6
+    bsr     Add3DSprite
+    
+    rts                                 ; End of subroutine
+
+@Colors:
+    dc.w    $0000+VramCrystal           ; White
+    dc.w    $4010+VramCrystal           ; Purple
+    dc.w    $2020+VramCrystal           ; Blue
+    dc.w    $4030+VramCrystal           ; Azure
+    dc.w    $2040+VramCrystal           ; Green
+    dc.w    $0050+VramCrystal           ; Yellow
+    dc.w    $0060+VramCrystal           ; Orange
+    dc.w    $0070+VramCrystal           ; Red

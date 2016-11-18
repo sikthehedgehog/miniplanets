@@ -1,0 +1,47 @@
+;****************************************************************************
+; GfxQishaSide
+; Qisha flying to the right. In tilemap layout, since it's rendered as many
+; tiny 8x8 sprites in the stage clear for the sake of scaling.
+;****************************************************************************
+
+GfxQishaSide:
+    incbin  "data/qisha/side.slz"
+    even
+
+;****************************************************************************
+; GfxQishaBack
+; Qisha seen from the back. It's a complete mess of prescaled sprites, just
+; look at the stage intro code to figure out what it does.
+;****************************************************************************
+
+GfxQishaBack:
+    incbin  "data/qisha/back.slz"
+    even
+
+;****************************************************************************
+; GfxQishaChildren
+; Qisha's children, as shown in the stage clear screen. These sprites take
+; up 400 tiles, ouch!
+;****************************************************************************
+
+GfxQishaChildren:
+    incbin  "data/qisha/children.slz"
+    even
+
+;****************************************************************************
+; GfxQishaTrail
+; Trail left behind by Qisha when flying around.
+;****************************************************************************
+
+GfxQishaTrail:
+    incbin  "data/qisha/stars.slz"
+    even
+
+;****************************************************************************
+; GfxQishaEnding
+; Qisha in the ending.
+;****************************************************************************
+
+GfxQishaEnding:
+    incbin  "data/qisha/credits.slz"
+    even

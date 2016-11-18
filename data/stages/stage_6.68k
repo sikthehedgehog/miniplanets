@@ -1,0 +1,48 @@
+;****************************************************************************
+; Stage 6-0
+;****************************************************************************
+
+StageMap_6_0:
+    StageDef    __,__,FI,FI,FI,FI,__,__,__,__,FI,FI,FI,FI,__,__
+    StageDef    __,__,FI,FI,FI,FI,__,__,__,__,FI,FI,FI,FI,__,__
+    StageDef    FI,FI,__,__,__,__,FI,FI,FI,FI,__,__,__,__,FI,FI
+    StageDef    FI,FI,__,__,__,__,FI,FI,FI,FI,__,__,__,__,FI,FI
+    StageDef    FI,FI,__,__,__,__,FI,FI,FI,FI,__,__,__,__,FI,FI
+    StageDef    FI,FI,__,__,__,__,FI,FI,FI,FI,__,__,__,__,FI,FI
+    StageDef    __,__,FI,FI,FI,FI,__,__,__,__,FI,FI,FI,FI,__,__
+    StageDef    __,__,FI,FI,FI,FI,__,__,__,__,FI,FI,FI,FI,__,__
+    StageDef    __,__,FI,FI,FI,FI,__,__,__,__,FI,FI,FI,FI,__,__
+    StageDef    __,__,FI,FI,FI,FI,__,__,__,__,FI,FI,FI,FI,__,__
+    StageDef    FI,FI,__,__,__,__,FI,FI,FI,FI,__,__,__,__,FI,FI
+    StageDef    FI,FI,__,__,__,__,FI,FI,FI,FI,__,__,__,__,FI,FI
+    StageDef    FI,FI,__,__,__,__,FI,FI,FI,FI,__,__,__,__,FI,FI
+    StageDef    FI,FI,__,__,__,__,FI,FI,FI,FI,__,__,__,__,FI,FI
+    StageDef    __,__,FI,FI,FI,FI,__,__,__,__,FI,FI,FI,FI,__,__
+    StageDef    __,__,FI,FI,FI,FI,__,__,__,__,FI,FI,FI,FI,__,__
+    
+    StageObj    FIREU, $10, $80, $00
+    StageObj    FIRED, $30, $40, $00
+    StageObj    FIREU, $50, $C0, $00
+    StageObj    FIRED, $70, $00, $00
+    StageObj    FIREU, $90, $80, $00
+    StageObj    FIRED, $B0, $40, $00
+    StageObj    FIREU, $D0, $C0, $00
+    StageObj    FIRED, $F0, $00, $00
+    
+    StageObj    FIREL, $80, $10, $00
+    StageObj    FIRER, $40, $30, $00
+    StageObj    FIREL, $C0, $50, $00
+    StageObj    FIRER, $00, $70, $00
+    StageObj    FIREL, $80, $90, $00
+    StageObj    FIRER, $40, $B0, $00
+    StageObj    FIREL, $C0, $D0, $00
+    StageObj    FIRER, $00, $F0, $00
+    
+    StageObj    CRYSTAL, $80, $00, $01
+    StageObj    CRYSTAL, $00, $80, $02
+    StageObj    CRYSTAL, $80, $80, $03
+    StageObj    CRYSTAL, $40, $40, $04
+    StageObj    CRYSTAL, $C0, $40, $05
+    StageObj    CRYSTAL, $40, $C0, $06
+    StageObj    CRYSTAL, $C0, $C0, $07
+    StageEnd

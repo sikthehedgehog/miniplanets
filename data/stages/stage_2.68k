@@ -1,0 +1,243 @@
+;****************************************************************************
+; Stage 2-1
+;****************************************************************************
+
+StageMap_2_1:
+    StageDef    __,__,__,__,__,__,__,__,__,go,go,__,MA,MA,__,__
+    StageDef    __,__,MA,MA,MA,MA,MA,MA,__,__,__,__,MA,MA,__,__
+    StageDef    MA,MA,MA,GF,GF,GF,GF,MA,MA,MA,MA,MA,MA,MA,MA,MA
+    StageDef    MA,MA,MA,GF,GF,GF,GF,MA,MA,MA,MA,MA,MA,MA,MA,MA
+    StageDef    __,__,MA,MA,MA,MA,MA,MA,__,__,__,__,MA,MA,__,__
+    StageDef    __,__,__,__,__,__,__,__,__,__,__,__,MA,MA,__,__
+    StageDef    __,__,__,__,__,__,__,__,__,__,__,__,MA,MA,__,__
+    StageDef    __,__,MA,MA,__,__,MA,MA,__,__,__,__,MA,MA,__,__
+    StageDef    MA,MA,MA,MA,sp,sp,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    MA,MA,MA,MA,sp,sp,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA
+    StageDef    __,__,MA,MA,__,__,MA,MA,__,__,__,__,MA,MA,__,__
+    StageDef    __,__,__,__,__,__,__,__,__,go,go,__,MA,MA,__,__
+    
+    StageObj    KEY, $00, $60, $00
+    StageObj    KEY, $A0, $60, $00
+    StageEnd
+
+;****************************************************************************
+; Stage 2-2
+;****************************************************************************
+
+StageMap_2_2:
+    StageDef    go,__,WA,WA,WA,WA,sp,__,__,sp,WA,WA,WA,WA,__,go
+    StageDef    __,MA,WA,WA,WA,WA,MA,sp,sp,MA,WA,WA,WA,WA,MA,__
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    sp,MA,WA,WA,WA,WA,MA,__,__,MA,WA,WA,WA,WA,MA,sp
+    StageDef    __,sp,WA,WA,WA,WA,__,__,__,__,WA,WA,WA,WA,sp,__
+    StageDef    __,sp,WA,WA,WA,WA,__,__,__,__,WA,WA,WA,WA,sp,__
+    StageDef    __,MA,WA,WA,WA,WA,MA,sp,sp,MA,WA,WA,WA,WA,MA,__
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    sp,MA,WA,WA,WA,WA,MA,__,__,MA,WA,WA,WA,WA,MA,sp
+    StageDef    go,__,WA,WA,WA,WA,sp,__,__,sp,WA,WA,WA,WA,__,go
+    
+    StageObj    KEY, $00, $80, $00
+    StageObj    KEY, $80, $00, $00
+    StageObj    KEY, $80, $80, $00
+    StageEnd
+
+;****************************************************************************
+; Stage 2-3
+;****************************************************************************
+
+StageMap_2_3:
+    StageDef    __,__,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,__,__
+    StageDef    __,__,MA,GF,GF,MA,GF,GF,GF,GF,MA,GF,GF,MA,__,__
+    StageDef    MA,MA,MA,GF,GF,MA,GF,GF,GF,GF,MA,GF,GF,MA,MA,MA
+    StageDef    MA,MA,MA,GF,GF,MA,GF,GF,GF,GF,MA,GF,GF,MA,MA,MA
+    StageDef    __,__,MA,GF,GF,MA,GF,GF,GF,GF,MA,GF,GF,MA,__,__
+    StageDef    go,__,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,__,go
+    StageDef    go,__,MA,GF,GF,MA,GF,GF,GF,GF,MA,GF,GF,MA,__,go
+    StageDef    __,__,MA,GF,GF,MA,GF,GF,GF,GF,MA,GF,GF,MA,__,__
+    StageDef    sp,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,sp
+    StageDef    WA,WA,MA,__,__,__,__,MA,MA,__,__,__,__,MA,WA,WA
+    StageDef    WA,WA,sp,__,__,__,__,MA,MA,__,__,__,__,sp,WA,WA
+    StageDef    WA,WA,sp,__,__,__,__,MA,MA,__,__,__,__,sp,WA,WA
+    StageDef    WA,WA,MA,__,__,__,__,MA,MA,__,__,__,__,MA,WA,WA
+    StageDef    sp,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,sp
+    StageDef    __,__,MA,GF,GF,MA,GF,GF,GF,GF,MA,GF,GF,MA,__,__
+    StageDef    __,__,MA,GF,GF,MA,GF,GF,GF,GF,MA,GF,GF,MA,__,__
+    
+    StageObj    KEY, $50, $B0, $00
+    StageObj    KEY, $B0, $B0, $00
+    StageEnd
+
+;****************************************************************************
+; Stage 2-4
+;****************************************************************************
+
+StageMap_2_4:
+    StageDef    go,__,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,__,go
+    StageDef    __,__,MA,GF,GF,GF,GF,MA,MA,GF,GF,GF,GF,MA,__,__
+    StageDef    sp,MA,MA,GF,GF,GF,GF,MA,MA,GF,GF,GF,GF,MA,MA,sp
+    StageDef    WA,WA,MA,MA,MA,GF,GF,MA,MA,GF,GF,MA,MA,MA,WA,WA
+    StageDef    WA,WA,WA,MA,MA,GF,GF,MA,MA,GF,GF,MA,MA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,MA,MA,MA,MA,MA,MA,MA,MA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,MA,__,__,__,__,MA,WA,WA,WA,WA,WA
+    StageDef    sp,WA,WA,WA,WA,sp,__,__,__,__,sp,WA,WA,WA,WA,sp
+    StageDef    sp,WA,WA,WA,WA,sp,__,__,__,__,sp,WA,WA,WA,WA,sp
+    StageDef    WA,WA,WA,WA,WA,MA,__,__,__,__,MA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,MA,MA,MA,MA,MA,MA,MA,MA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,MA,MA,GF,GF,MA,MA,GF,GF,MA,MA,WA,WA,WA
+    StageDef    WA,WA,MA,MA,MA,GF,GF,MA,MA,GF,GF,MA,MA,MA,WA,WA
+    StageDef    sp,MA,MA,GF,GF,GF,GF,MA,MA,GF,GF,GF,GF,MA,MA,sp
+    StageDef    __,__,MA,GF,GF,GF,GF,MA,MA,GF,GF,GF,GF,MA,__,__
+    StageDef    go,__,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,__,go
+    
+    StageObj    KEY, $80, $80, $00
+    StageEnd
+
+;****************************************************************************
+; Stage 2-5
+;****************************************************************************
+
+StageMap_2_5:
+    StageDef    __,__,MA,GF,GF,MA,__,__,__,__,MA,GF,GF,MA,__,__
+    StageDef    __,__,MA,MA,MA,MA,__,__,__,__,MA,MA,MA,MA,__,__
+    StageDef    MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA
+    StageDef    GF,MA,MA,GF,GF,MA,MA,GF,GF,MA,MA,GF,GF,MA,MA,GF
+    StageDef    GF,MA,MA,GF,GF,MA,MA,GF,GF,MA,MA,GF,GF,MA,MA,GF
+    StageDef    MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA
+    StageDef    __,__,MA,MA,MA,MA,__,__,__,__,MA,MA,MA,MA,__,__
+    StageDef    go,__,MA,GF,GF,MA,__,__,__,__,MA,GF,GF,MA,__,go
+    StageDef    go,__,MA,GF,GF,MA,__,__,__,__,MA,GF,GF,MA,__,go
+    StageDef    __,__,MA,MA,MA,MA,__,__,__,__,MA,MA,MA,MA,__,__
+    StageDef    WA,WA,WA,MA,MA,WA,WA,WA,WA,WA,WA,MA,MA,WA,WA,WA
+    StageDef    WA,WA,WA,sp,sp,WA,WA,WA,WA,WA,WA,sp,sp,WA,WA,WA
+    StageDef    WA,WA,WA,sp,sp,WA,WA,WA,WA,WA,WA,sp,sp,WA,WA,WA
+    StageDef    WA,WA,WA,MA,MA,WA,WA,WA,WA,WA,WA,MA,MA,WA,WA,WA
+    StageDef    __,__,MA,MA,MA,MA,__,__,__,__,MA,MA,MA,MA,__,__
+    StageDef    __,__,MA,GF,GF,MA,__,__,__,__,MA,GF,GF,MA,__,__
+    
+    StageObj    KEY, $80, $00, $00
+    StageObj    KEY, $80, $80, $00
+    StageEnd
+
+;****************************************************************************
+; Stage 2-6
+;****************************************************************************
+
+StageMap_2_6:
+    StageDef    go,__,MA,GF,GF,MA,__,__,__,__,MA,GF,GF,MA,__,go
+    StageDef    __,__,MA,GF,GF,MA,__,__,__,__,MA,GF,GF,MA,__,__
+    StageDef    MA,MA,MA,MA,MA,MA,MA,sp,sp,MA,MA,MA,MA,MA,MA,MA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    sp,WA,WA,WA,WA,WA,WA,sp,sp,WA,WA,sp,sp,WA,WA,sp
+    StageDef    sp,WA,WA,WA,WA,WA,WA,sp,sp,WA,WA,sp,sp,WA,WA,sp
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    sp,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,sp
+    StageDef    __,__,MA,GF,GF,MA,__,__,__,__,MA,GF,GF,MA,__,__
+    StageDef    go,__,MA,GF,GF,MA,__,__,__,__,MA,GF,GF,MA,__,go
+    
+    StageObj    KEY, $80, $00, $00
+    StageEnd
+
+;****************************************************************************
+; Stage 2-7
+;****************************************************************************
+
+StageMap_2_7:
+    StageDef    __,__,__,__,__,sp,WA,WA,WA,WA,sp,__,go,go,__,__
+    StageDef    __,__,__,__,__,sp,WA,WA,WA,WA,sp,__,__,__,__,__
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,sp,__,__,__,__,__,__,__,__,__,__,sp,WA,WA
+    StageDef    WA,WA,sp,__,__,__,__,__,__,__,__,__,__,sp,WA,WA
+    StageDef    WA,WA,sp,__,__,__,__,__,__,__,__,__,__,sp,WA,WA
+    StageDef    WA,WA,sp,__,__,__,__,__,__,__,__,__,__,sp,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    __,__,__,__,__,sp,WA,WA,WA,WA,sp,__,__,__,__,__
+    StageDef    __,__,__,__,__,sp,WA,WA,WA,WA,sp,__,go,go,__,__
+    
+    StageObj    KEY, $50, $80, $00
+    StageObj    KEY, $B0, $80, $00
+    StageEnd
+
+;****************************************************************************
+; Stage 2-8
+;****************************************************************************
+
+StageMap_2_8:
+    StageDef    __,__,MA,MA,MA,__,__,__,__,__,__,MA,MA,MA,__,__
+    StageDef    __,__,MA,GF,MA,__,__,__,__,__,__,MA,MA,MA,__,__
+    StageDef    MA,MA,MA,GF,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA,MA
+    StageDef    MA,MA,MA,MA,MA,MA,MA,MA,GF,GF,MA,MA,GF,GF,MA,MA
+    StageDef    __,__,__,__,__,__,__,MA,GF,GF,MA,MA,GF,GF,MA,__
+    StageDef    __,__,go,go,__,__,__,MA,MA,MA,MA,MA,GF,GF,MA,__
+    StageDef    __,__,go,go,__,__,__,MA,MA,__,__,MA,GF,GF,MA,__
+    StageDef    __,__,__,__,__,__,__,MA,MA,__,__,MA,MA,MA,MA,__
+    StageDef    __,MA,MA,MA,MA,__,__,MA,MA,sp,sp,MA,MA,MA,MA,__
+    StageDef    rv,WA,WA,WA,WA,rv,rv,WA,MA,MA,MA,MA,WA,WA,WA,rv
+    StageDef    rv,WA,WA,WA,WA,rv,rv,WA,MA,GF,GF,MA,WA,WA,WA,rv
+    StageDef    rv,WA,WA,WA,WA,rv,rv,WA,MA,GF,GF,MA,WA,WA,WA,rv
+    StageDef    rv,WA,WA,WA,WA,rv,rv,WA,MA,MA,MA,MA,WA,WA,WA,rv
+    StageDef    __,MA,MA,MA,MA,__,__,MA,MA,sp,sp,MA,MA,MA,MA,__
+    StageDef    __,__,MA,GF,MA,__,__,__,__,__,__,MA,MA,MA,__,__
+    StageDef    __,__,MA,GF,MA,__,__,__,__,__,__,MA,MA,MA,__,__
+    
+    StageObj    SWITCH, $98, $00, $03
+    StageObj    BOMB, $00, $B0, TILE_WA
+    StageObj    BOMB, $60, $B0, TILE_WA
+    StageObj    BOMB, $A0, $B0, TILE_WA
+    StageObj    KEY, $A0, $70, $00
+    StageObj    KEY, $68, $00, $00
+    StageObj    KEY, $08, $60, $00
+    StageObj    KEY, $58, $60, $00
+    StageEnd
+
+;****************************************************************************
+; Stage 2-9
+;****************************************************************************
+
+StageMap_2_9:
+    StageDef    sp,WA,WA,WA,WA,WA,WA,sp,sp,WA,WA,WA,WA,WA,WA,sp
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,sp,sp,WA,WA,WA,WA,WA,WA,sp,sp,WA,WA,WA
+    StageDef    WA,WA,WA,sp,sp,WA,WA,WA,WA,WA,WA,sp,sp,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    sp,WA,WA,WA,WA,WA,WA,sp,sp,WA,WA,WA,WA,WA,WA,sp
+    StageDef    sp,WA,WA,WA,WA,WA,WA,sp,sp,WA,WA,WA,WA,WA,WA,sp
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,sp,sp,WA,WA,WA,WA,WA,WA,sp,sp,WA,WA,WA
+    StageDef    WA,WA,WA,sp,sp,WA,WA,WA,WA,WA,WA,sp,sp,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA,WA
+    StageDef    sp,WA,WA,WA,WA,WA,WA,sp,sp,WA,WA,WA,WA,WA,WA,sp
+    
+    StageObj    CHILD, $80, $80, CHILD_IYAN
+    StageObj    CRYSTAL, $40, $40, $00
+    StageObj    CRYSTAL, $40, $C0, $00
+    StageObj    CRYSTAL, $C0, $40, $00
+    StageObj    CRYSTAL, $C0, $C0, $00
+    StageObj    CRYSTAL, $80, $00, $00
+    StageObj    CRYSTAL, $00, $80, $00
+    StageEnd

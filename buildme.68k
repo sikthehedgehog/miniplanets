@@ -1,0 +1,120 @@
+;****************************************************************************
+; Some build tweaks
+;****************************************************************************
+
+DEMO_VERSION:           equ 0       ; Build a demo version
+
+SHOW_LOGO:              equ 0       ; Show logo splash
+SHOW_PUBLISHER:         equ 0       ; Allow publisher logo
+SHOW_COPYRIGHT:         equ 0       ; Show copyright notice
+
+;****************************************************************************
+; Debug options
+;****************************************************************************
+
+DEBUG_INIT:             equ 0       ; Debug initialization code
+DEBUG_CPUUSAGE:         equ 0       ; Profile CPU time usage
+
+;****************************************************************************
+; Program source code
+;****************************************************************************
+
+    include "src-68k/header.68k"
+    include "src-68k/macros.68k"
+    
+    include "src-68k/main.68k"
+    include "src-68k/video.68k"
+    include "src-68k/sound.68k"
+    include "src-68k/joypad.68k"
+    include "src-68k/random.68k"
+    include "src-68k/decompress.68k"
+    
+    include "src-68k/text.68k"
+    include "src-68k/universe.68k"
+    include "src-68k/planelagos.68k"
+    
+    include "src-68k/echo.68k"
+    include "src-68k/esf.68k"
+    
+    include "src-68k/logo.68k"
+    include "src-68k/title.68k"
+    include "src-68k/options.68k"
+    include "src-68k/password.68k"
+    include "src-68k/stage_intro.68k"
+    include "src-68k/stage_clear.68k"
+    include "src-68k/credits.68k"
+    include "src-68k/game_over.68k"
+    include "src-68k/debug_menu.68k"
+    
+    include "src-68k/ingame.68k"
+    include "src-68k/globe.68k"
+    include "src-68k/background.68k"
+    include "src-68k/hud.68k"
+    include "src-68k/player.68k"
+    include "src-68k/objects.68k"
+    include "src-68k/keys.68k"
+    include "src-68k/maces.68k"
+    include "src-68k/rafts.68k"
+    include "src-68k/switches.68k"
+    include "src-68k/bombs.68k"
+    include "src-68k/electricity.68k"
+    include "src-68k/balls.68k"
+    include "src-68k/orbs.68k"
+    include "src-68k/fireballs.68k"
+    include "src-68k/children.68k"
+    
+    include "src-68k/variables.68k"
+
+;****************************************************************************
+; Game graphics
+;****************************************************************************
+
+    include "data/palettes.68k"
+    
+    include "data/globe.68k"
+    include "data/ingame.68k"
+    include "data/player.68k"
+    
+    include "data/title.68k"
+    include "data/game_over.68k"
+    include "data/logo.68k"
+    include "data/password.68k"
+    include "data/credits.68k"
+    include "data/qisha.68k"
+    include "data/universe.68k"
+    include "data/text.68k"
+
+;****************************************************************************
+; Sound data
+;****************************************************************************
+
+    include "data/sound.68k"
+
+;****************************************************************************
+; Stage data
+;****************************************************************************
+
+    include "data/stages.68k"
+
+;****************************************************************************
+; Some look-up tables
+;****************************************************************************
+
+    include "data/math.68k"
+    include "data/planelagos.68k"
+
+;****************************************************************************
+; Random stats :P
+;****************************************************************************
+
+ROMSize:        equ *
+ROMSizeKB:      equ ROMSize/1024
+ROMSizeKB2:     equ ROMSize*10/1024%10
+
+    inform 0, "ROM size: %d bytes (%d.%dKB)", ROMSize, ROMSizeKB, ROMSizeKB2
+
+;****************************************************************************
+; Padding
+;****************************************************************************
+
+    dcb.b       (256*1024)-*, $FF

@@ -1,0 +1,632 @@
+;****************************************************************************
+; ANGLE_*
+; Possible angles.
+;****************************************************************************
+
+                rsset -1
+ANGLE_X:        rs.b 1      ; No angle
+
+ANGLE_E:        rs.b 1      ; East
+ANGLE_NE:       rs.b 1      ; Northeast
+ANGLE_N:        rs.b 1      ; North
+ANGLE_NW:       rs.b 1      ; Northwest
+ANGLE_W:        rs.b 1      ; West
+ANGLE_SW:       rs.b 1      ; Southwest
+ANGLE_S:        rs.b 1      ; South
+ANGLE_SE:       rs.b 1      ; Southeast
+
+;****************************************************************************
+; ACTION_*
+; Possible actions for the player.
+;****************************************************************************
+
+                    rsreset
+ACTION_IDLE:        rs.b 1      ; Not moving
+ACTION_WALK:        rs.b 1      ; Walking around
+ACTION_JUMP:        rs.b 1      ; Jumping
+ACTION_STUN:        rs.b 1      ; Stunned
+
+ACTION_WIN:         rs.b 1      ; Won the stage!
+ACTION_LOSE:        rs.b 1      ; Lost :(
+ACTION_SINK:        rs.b 1      ; Sunk x_X
+ACTION_BURN:        rs.b 1      ; Burnt X_x
+ACTION_FALL:        rs.b 1      ; Fall D:
+
+ACTION_STARE:       rs.b 1      ; Stare at player
+ACTION_FLY:         rs.b 1      ; Fly towards player
+
+;****************************************************************************
+; InitPlayer
+; Initializes the player.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+InitPlayer:
+    clr.b   (PlayerX)                   ; Set start position
+    clr.b   (PlayerY)
+    move.b  #ANGLE_N, (PlayerAngle)     ; Set start angle
+    move.b  #ACTION_IDLE, (PlayerAction); Still doing nothing
+    move.b  #16, (PlayerJump)           ; Start in the air
+    clr.b   (PlayerSpring)
+    
+    clr.b   (PlayerWin)                 ; Didn't win yet
+    clr.b   (PlayerDie)                 ; Let alone lose!
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; RunPlayer
+; Executes the player's game logic.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+RunPlayer:
+    cmp.b   #2, (EndingPhase)           ; During the ending?
+    blo.s   @NoEndingYet
+    
+    seq.b   d7                          ; Set player pose
+    add.b   #ACTION_STARE+1, d7
+    move.b  d7, (PlayerAction)
+    move.b  #ANGLE_X, (PlayerAngle)
+    
+    rts                                 ; End of subroutine
+
+;----------------------------------------------------------------------------
+
+@NoEndingYet:
+    move.b  (PlayerWin), d0             ; During the winning animation?
+    beq.s   @DidntWinYet
+    
+    cmp.b   #28, d0                     ; Let the score tally run?
+    bne.s   @NotInTally
+    btst.b  #INGAME_TALLY, (IngameStatus)
+    beq.s   @NotInTally
+    bra     RunTally
+@NotInTally:
+    
+    addq.b  #1, d0                      ; Let animation progress then
+    move.b  d0, (PlayerWin)
+    move.b  #ANGLE_X, (PlayerAngle)
+    move.b  #ACTION_WIN, (PlayerAction)
+    
+    cmp.b   #64, d0                     ; Is the animation over?
+    bne.s   @WinNotDone
+    move.b  #ENDGAME_WIN, (EndGame)
+@WinNotDone:
+    
+    rts                                 ; Do nothing else
+@DidntWinYet:
+    
+    move.b  (PlayerDie), d0             ; Got killed?
+    beq.s   @DidntLoseYet
+    addq.b  #1, d0
+    move.b  d0, (PlayerDie)
+    
+    cmp.b   #96, d0                     ; Is the animation over?
+    bne.s   @LoseNotDone
+    move.b  #ENDGAME_LOSE, (EndGame)
+@LoseNotDone:
+    
+    rts                                 ; Do nothing else
+@DidntLoseYet:
+    
+    tst.b   (ShakeTimer)                ; Stay stunned while the planet is
+    beq.s   @NotShaking                   ; shaking
+    move.b  #ACTION_STUN, (PlayerAction)
+    rts
+@NotShaking:
+    
+    cmp.b   #1, (EndingPhase)           ; Check if we're in the part of the
+    bne.s   @NoEndingWalk                 ; ending sequence where we walk
+    
+    move.b  (PlayerX), d0               ; Get position within the square so
+    add.b   #$20, d0                      ; we can tell which direction to
+    and.b   #$3F, d0                      ; go (we want to go to the center)
+    sub.b   #$20, d0
+    move.b  (PlayerY), d1
+    add.b   #$20, d1
+    and.b   #$3F, d1
+    sub.b   #$20, d1
+    
+    moveq   #0, d2                      ; Determine fake key presses
+    add.b   d0, d0                        ; Yes, I'm doing fancy bit trickery
+    addx.b  d2, d2                        ; just to avoid making new labels.
+    neg.b   d0                            ; Talk about being lazy :P
+    add.b   d0, d0
+    addx.b  d2, d2
+    add.b   d1, d1
+    addx.b  d2, d2
+    neg.b   d1
+    add.b   d1, d1
+    addx.b  d2, d2
+    
+    move.b  (Joy1Hold), d7              ; Store faked presses
+    and.b   #$0F, d2
+    and.b   #$F0, d7
+    or.b    d2, d7
+    move.b  d7, (Joy1Hold)
+    
+    or.b    d1, d0                      ; Check if it's time to move onto the
+    bne.s   @NoEndingWalk                 ; next part of the ending (i.e. we
+    addq.b  #1, (EndingPhase)             ; reached the center of the square)
+    move.b  #$40, (EndingTimer)
+@NoEndingWalk:
+
+;----------------------------------------------------------------------------
+
+    move.b  #ACTION_IDLE, (PlayerAction); Assume idle by default
+    
+    move.b  (PlayerX), d0               ; Get current player position
+    move.b  (PlayerY), d1
+    
+    move.b  (Joy1Hold), d5              ; Check if we're walking and if so,
+    and.w   #$0F, d5                      ; in which angle
+    lea     @JoyAngle, a6
+    move.b  (a6,d5.w), d5
+    bmi.s   @NotWalking
+    move.b  #ACTION_WALK, (PlayerAction)
+    move.b  d5, (PlayerAngle)
+    
+    add.w   d5, d5                      ; Determine momentum
+    lea     (AngleDist), a6
+    move.w  (a6,d5.w), d2
+    move.w  4(a6,d5.w), d3
+    add.w   (Subpixel), d2
+    add.w   (Subpixel), d3
+    asr.w   #8, d2
+    asr.w   #8, d3
+    
+    move.w  d0, d7                      ; Determine if we can advance
+    move.w  d1, d6                        ; horizontally
+    add.w   d2, d7
+    bsr     GetTile
+    cmp.b   #COLL_WALL, d6
+    beq.s   @StoppedX
+    add.w   d2, d0
+@StoppedX:
+    
+    move.w  d0, d7                      ; Determine if we can advance
+    move.w  d1, d6                        ; vertically
+    add.w   d3, d6
+    bsr     GetTile
+    cmp.b   #COLL_WALL, d6
+    beq.s   @StoppedY
+    add.w   d3, d1
+@StoppedY:
+    
+;    add.w   d5, d5                      ; Calculate new position
+;    lea     (AngleDist), a6
+;    move.w  (a6,d5.w), d7
+;    move.w  4(a6,d5.w), d6
+;    move.w  (Subpixel), d5
+;    add.w   d5, d7
+;    add.w   d5, d6
+;    asr.w   #8, d7
+;    asr.w   #8, d6
+;    add.b   d0, d7
+;    add.b   d1, d6
+;    swap    d0
+;    swap    d1
+;    move.b  d7, d0
+;    move.b  d6, d1
+;    
+;    bsr     GetTile                     ; Check if there's a wall stopping
+;    cmp.b   #COLL_WALL, d6                ; the player from moving
+;    bne.s   @NotStopped
+;    swap    d0
+;    swap    d1
+;@NotStopped:
+    
+@NotWalking:
+    move.b  d0, (PlayerX)               ; Update player position
+    move.b  d1, (PlayerY)
+    
+    move.b  (PlayerJump), d2            ; Jumping?
+    beq.s   @NotJumping
+    
+    cmp.b   #24, d2                     ; If we jumped by landing on a spring
+    bne.s   @NotJumpPeak                  ; we want to hold the player at the
+    move.b  (PlayerSpring), d7            ; peak of the jump
+    beq.s   @NotJumpPeak
+    subq.b  #1, d7
+    move.b  d7, (PlayerSpring)
+    move.b  #ACTION_JUMP, (PlayerAction)
+    bra     @JumpDone
+    
+@NotJumpPeak:                           ; OK um keep jump momentum as usual
+    subq.b  #1, d2
+    move.b  d2, (PlayerJump)
+    beq.s   @NotJumping
+    move.b  #ACTION_JUMP, (PlayerAction)
+    bra     @JumpDone
+    
+@NotJumping:
+    move.b  d0, d7                      ; Did we step on a hazard?
+    move.b  d1, d6
+    bsr     GetTile
+    cmp.b   #COLL_HAZARD, d6
+    bne.s   @NoHazard
+    
+    moveq   #ACTION_LOSE, d6            ; Figure out a relevant animation
+    cmp.b   #TILE_WA, d7
+    bne.s   @NotOnWater
+    move.b  #ACTION_SINK, d6
+@NotOnWater:
+    cmp.b   #TILE_PI, d7
+    bne.s   @NotOnPit
+    move.b  #ACTION_FALL, d6
+@NotOnPit:
+    cmp.b   #TILE_FI, d7
+    bne.s   @NotOnFire
+    move.b  #ACTION_BURN, d6
+@NotOnFire:
+
+    move.b  d6, d7                      ; Ouch :(
+    bsr     HurtPlayerEx
+    bra     @JumpDone
+@NoHazard:
+    
+    cmp.b   #TILE_GO, d7                ; An active goal? :D
+    bne.s   @NotGoal
+    tst.b   (KeysLeft)
+    bne.s   @NotGoal
+    bsr     WinStage
+    bra     @JumpDone
+@NotGoal:
+    
+    cmp.b   #TILE_SP, d7                ; Landed on a spring? (boing!)
+    bne.s   @NotSpring
+    move.b  #48, (PlayerJump)
+    move.b  #40, (PlayerSpring)
+    moveq   #SFX_SPRING, d7
+    jsr     (PlaySFX).w
+    bra     @JumpDone
+@NotSpring:
+    
+    cmp.b   #TILE_CU, d7                ; Check for conveyor belts
+    bne.s   @NoBeltUp
+    subq.b  #1, (PlayerY)
+@NoBeltUp:
+    cmp.b   #TILE_CD, d7
+    bne.s   @NoBeltDown
+    addq.b  #1, (PlayerY)
+@NoBeltDown:
+    cmp.b   #TILE_CL, d7
+    bne.s   @NoBeltLeft
+    subq.b  #1, (PlayerX)
+@NoBeltLeft:
+    cmp.b   #TILE_CR, d7
+    bne.s   @NoBeltRight
+    addq.b  #1, (PlayerX)
+@NoBeltRight:
+    
+    move.b  (Joy1Press), d7             ; Make player jump?
+    and.b   #$70, d7
+    beq     @JumpDone
+    move.b  #48, (PlayerJump)
+    moveq   #SFX_JUMP, d7
+    jsr     (PlaySFX).w
+    
+@JumpDone:
+    rts                                 ; End of subroutine
+
+;----------------------------------------------------------------------------
+
+@JoyAngle:
+    dc.b    ANGLE_X,  ANGLE_N,  ANGLE_S,  ANGLE_X
+    dc.b    ANGLE_W,  ANGLE_NW, ANGLE_SW, ANGLE_W
+    dc.b    ANGLE_E,  ANGLE_NE, ANGLE_SE, ANGLE_E
+    dc.b    ANGLE_X,  ANGLE_N,  ANGLE_S,  ANGLE_X
+
+;****************************************************************************
+; DrawPlayer
+; Updates the player sprite.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawPlayer:
+    moveq   #0, d7                      ; Get current action
+    move.b  (PlayerAction), d7
+    
+    bne.s   @NotIdle                    ; Idling?
+    moveq   #2, d7
+    bra     @ActionSet
+@NotIdle:
+    
+    subq.b  #1, d7                      ; Walking?
+    bne.s   @NotWalking
+    move.w  (Anim), d7
+    lsr.w   #2, d7
+    and.w   #$07, d7
+    lea     (@WalkAnim), a6
+    move.b  (a6,d7.w), d7
+    bra     @ActionSet
+@NotWalking:
+    
+    subq.b  #1, d7                      ; Jumping?
+    bne.s   @NotJumping
+    moveq   #0, d7
+    move.b  (PlayerJump), d7
+    subq.b  #1, d7
+    lsr.w   #2, d7
+    lea     (@JumpAnim), a6
+    move.b  (a6,d7.w), d7
+    bra     @ActionSet
+@NotJumping:
+    
+    subq.b  #1, d7                      ; Stunned?
+    bne.s   @NotStunned
+    moveq   #10, d7
+    bra     @ActionSet
+@NotStunned:
+    
+    subq.b  #1, d7                      ; Win animation?
+    bne.s   @NotWinning
+    moveq   #0, d7
+    move.b  (PlayerWin), d7
+    subq.b  #1, d7
+    lsr.w   #2, d7
+    lea     (@WinAnim), a6
+    move.b  (a6,d7.w), d7
+    bra     @ActionSet
+@NotWinning:
+    
+    subq.b  #1, d7                      ; Lose animation?
+    bne.s   @NotLosing
+    moveq   #8, d7
+    cmp.b   #32, (PlayerDie)
+    bls     @ActionSet
+    move.w  (Anim), d7
+    lsr.w   #2, d7
+    and.w   #$03, d7
+    lea     (@LoseAnim), a6
+    move.b  (a6,d7.w), d7
+    bra     @ActionSet
+@NotLosing:
+    
+    subq.b  #1, d7                      ; Sinking?
+    bne.s   @NotSinking
+    moveq   #8, d7
+    cmp.b   #32, (PlayerDie)
+    bls     @ActionSet
+    moveq   #24, d7
+    cmp.b   #32+12, (PlayerDie)
+    bhi     @ActionSet
+    move.b  (PlayerDie), d7
+    sub.b   #33, d7
+    lsr.w   #1, d7
+    lea     (@SinkAnim), a6
+    move.b  (a6,d7.w), d7
+    cmp.b   #STAGE_5_1, (Stage)
+    blo     @ActionSet
+    addq.b  #6, d7
+    bra     @ActionSet
+@NotSinking:
+    
+    subq.b  #1, d7                      ; Burnt animation?
+    bne.s   @NotBurnt
+    moveq   #25, d7
+    cmp.b   #32, (PlayerDie)
+    bls     @ActionSet
+    move.w  (Anim), d7
+    lsr.w   #2, d7
+    and.w   #$03, d7
+    lea     (@BurnAnim), a6
+    move.b  (a6,d7.w), d7
+    bra     @ActionSet
+@NotBurnt:
+    
+    subq.b  #1, d7                      ; Falling?
+    bne.s   @NotFalling
+    moveq   #8, d7
+    cmp.b   #32, (PlayerDie)
+    bls     @ActionSet
+    moveq   #24, d7
+    cmp.b   #32+16, (PlayerDie)
+    bhi     @ActionSet
+    move.b  (PlayerDie), d7
+    sub.b   #33, d7
+    lsr.w   #1, d7
+    lea     (@FallAnim), a6
+    move.b  (a6,d7.w), d7
+    bra     @ActionSet
+@NotFalling:
+    
+    subq.b  #1, d7                      ; Ending animations
+    bne.s   @NotStaring
+    moveq   #1, d7
+    bra     @ActionSet
+@NotStaring:
+    subq.b  #1, d7
+    bne.s   @NotFlying
+    moveq   #3, d7
+    bra     @ActionSet
+@NotFlying:
+    
+    rts                                 ; Oh c'mon? :|
+
+;----------------------------------------------------------------------------
+
+@ActionSet:
+    lsl.w   #4, d7                      ; Every animation is 4x4 tiles
+    
+    move.b  (PlayerAngle), d6           ; Determine which sets of graphics
+    ext.w   d6                            ; will be used depending on the
+    addq.w  #1, d6                        ; angle
+    add.w   d6, d6
+    add.w   d6, d6
+    lea     (@GraphicsSets), a6
+    move.l  (a6,d6.w), a6
+    
+    lea     (PlayerBuf), a5             ; Decompress graphics to use
+    moveq   #$10, d6
+    jsr     (DecompressUFTC).w
+    
+    move.b  (PlayerAngle), d7           ; Determine which tilemap arrangement
+    ext.w   d7                            ; to use depending on the angle
+    addq.w  #1, d7
+    add.w   d7, d7
+    add.w   d7, d7
+    lea     (@Tilemaps), a6
+    move.l  (a6,d7.w), a6
+    
+    move.l  (a6)+, (a5)+                ; Get mappings ready for loading
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    
+    move.l  (DMABufEnd), a6             ; Tell VDP to upload the graphics
+    DMA2VRAM PlayerBuf+$200, $C000+18*2+12*$80, 4*2, (a6)+
+    DMA2VRAM PlayerBuf+$208, $C000+18*2+13*$80, 4*2, (a6)+
+    DMA2VRAM PlayerBuf+$210, $C000+18*2+14*$80, 4*2, (a6)+
+    DMA2VRAM PlayerBuf+$218, $C000+18*2+15*$80, 4*2, (a6)+
+    DMA2VRAM PlayerBuf, VramPlayer*$20, 4*4*$20, (a6)+
+    move.l  a6, (DMABufEnd)
+    
+    rts                                 ; End of subroutine
+
+;----------------------------------------------------------------------------
+; Graphics sets for each angle
+; Each set includes all sprites in a given angle
+;----------------------------------------------------------------------------
+
+@GraphicsSets:
+    dc.l    GfxPlayerX                  ; ANGLE_X
+    dc.l    GfxPlayerH                  ; ANGLE_E
+    dc.l    GfxPlayerD                  ; ANGLE_NE
+    dc.l    GfxPlayerV                  ; ANGLE_N
+    dc.l    GfxPlayerD                  ; ANGLE_NW
+    dc.l    GfxPlayerH                  ; ANGLE_W
+    dc.l    GfxPlayerD                  ; ANGLE_SW
+    dc.l    GfxPlayerV                  ; ANGLE_S
+    dc.l    GfxPlayerD                  ; ANGLE_SE
+
+;----------------------------------------------------------------------------
+; Tilemaps to use for each angle
+; This is used to flip the graphics
+;----------------------------------------------------------------------------
+
+@Tilemaps:
+    dc.l    TilemapPlayer               ; ANGLE_X
+    dc.l    TilemapPlayer               ; ANGLE_E
+    dc.l    TilemapPlayer               ; ANGLE_NE
+    dc.l    TilemapPlayer               ; ANGLE_N
+    dc.l    TilemapPlayerH              ; ANGLE_NW
+    dc.l    TilemapPlayerH              ; ANGLE_W
+    dc.l    TilemapPlayerHV             ; ANGLE_SW
+    dc.l    TilemapPlayerV              ; ANGLE_S
+    dc.l    TilemapPlayerV              ; ANGLE_SE
+
+;----------------------------------------------------------------------------
+; Some animation sequences
+;----------------------------------------------------------------------------
+
+@WalkAnim:
+    dc.b    2, 3, 4, 3, 2, 1, 0, 1
+@JumpAnim:
+    dc.b    5, 6, 7, 8, 8, 9, 9, 8, 8, 7, 6, 5
+@WinAnim:
+    dc.b    0, 1, 1, 1, 1, 1, 2, 2, 1, 1, 1, 3, 4, 5, 6, 7
+@LoseAnim:
+    dc.b    9, 10, 11, 10
+@SinkAnim:
+    dc.b    12, 13, 14, 15, 16, 17
+@BurnAnim:
+    dc.b    26, 27, 28, 27
+@FallAnim:
+    dc.b    29, 30, 31, 32, 33, 34, 35, 36
+    
+    even
+
+;****************************************************************************
+; CollidesPlayer
+; Checks if something collides with the player.
+;----------------------------------------------------------------------------
+; input d7.b .... X coordinate
+; input d6.b .... Y coordinate
+; input d5.b .... Width (radius)
+; input d4.b .... Height (radius)
+;----------------------------------------------------------------------------
+; output d7.w ... 1 = collision, 0 = no collision
+;----------------------------------------------------------------------------
+; breaks: d4-d6
+;****************************************************************************
+
+CollidesPlayer:
+    cmp.b   #48, (PlayerJump)           ; Needed for stage 2-9
+    beq.s   @OnTheFloor
+    tst.b   (PlayerJump)                ; No collision when jumping!
+    bne.s   @TooFar
+@OnTheFloor:
+    tst.b   (PlayerDie)                 ; Or when dead...
+    bne.s   @TooFar
+    
+    sub.b   (PlayerX), d7               ; Get distance to player
+    sub.b   (PlayerY), d6
+    
+    cmp.b   d5, d7                      ; Check for the X axis
+    bgt.s   @TooFar
+    neg.b   d5
+    cmp.b   d5, d7
+    blt.s   @TooFar
+    
+    cmp.b   d4, d6                      ; Check for the Y axis
+    bgt.s   @TooFar
+    neg.b   d4
+    cmp.b   d4, d6
+    blt.s   @TooFar
+    
+    moveq   #1, d7                      ; Collision happened
+    rts                                 ; End of subroutine
+
+@TooFar:
+    moveq   #0, d7                      ; No collision
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; HurtPlayer
+; Hurts the player using the default lose animation.
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+HurtPlayer:
+    move.b  #ACTION_LOSE, d7
+
+;****************************************************************************
+; HurtPlayerEx
+; Hurts the player using a specific lose animation.
+;----------------------------------------------------------------------------
+; input d7.b ... Action to use
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+HurtPlayerEx:
+    tst.b   (Muteki)                    ; Cheater!
+    bne.s   @Skip
+    
+    tst.b   (PlayerWin)                 ; Don't die while winning >:(
+    bne.s   @Skip
+    tst.b   (PlayerDie)                 ; ...or when already dead
+    bne.s   @Skip
+    
+    tst.b   (ShakeTimer)                ; Just being forgiving
+    bne.s   @Skip
+    
+    move.b  #1, (PlayerDie)             ; Player is dead now :(
+    move.b  d7, (PlayerAction)
+    move.b  #ANGLE_X, (PlayerAngle)
+    
+    moveq   #SFX_OUCH, d7               ; "Ouch!"
+    jsr     (PlaySFX).w
+    
+@Skip:
+    rts                                 ; End of subroutine

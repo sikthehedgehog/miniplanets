@@ -1,0 +1,94 @@
+;****************************************************************************
+; CHILD_*
+; IDs for each of the children.
+;****************************************************************************
+
+                rsreset
+CHILD_QUA:      rs.b 1
+CHILD_IYAN:     rs.b 1
+CHILD_SHIA:     rs.b 1
+CHILD_HORU:     rs.b 1
+CHILD_AXAR:     rs.b 1
+
+;****************************************************************************
+; RunChild
+; Executes a child's game logic.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+RunChild:
+    tst.b   (KeysLeft)                  ; Must get all crystals first!
+    beq.s   @Ready
+    rts
+@Ready:
+    
+    move.b  OBJ_X(a0), d7               ; Check for player collision
+    move.b  OBJ_Y(a0), d6
+    moveq   #8, d5
+    moveq   #8, d4
+    bsr     CollidesPlayer
+    
+    tst.w   d7                          ; Did the child get rescued?
+    bne     WinStage                    ; Stage complete if so!
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawChild
+; Draws a child.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+DrawChild:
+    moveq   #0, d5                      ; Determine base sprite
+    move.b  OBJ_DATA(a0), d5
+    add.w   d5, d5
+    lea     @Table(pc), a6
+    move.w  (a6,d5.w), d5
+    
+    moveq   #4, d7                      ; Petrified?
+    tst.b   (KeysLeft)
+    bne.s   @AnimSet
+    
+    moveq   #3, d7                      ; Blink?
+    move.w  (Anim), d6
+    lsr.w   #3, d6
+    and.w   #$0F, d6
+    beq.s   @AnimSet
+    
+    and.w   #$03, d6                    ; Do waiting animation :)
+    move.w  d6, d7
+    cmp.b   #3, d7
+    bne.s   @AnimSet
+    moveq   #1, d7
+    
+@AnimSet:
+    add.w   d7, d7                      ; Get final sprite
+    add.w   d7, d7
+    add.w   d7, d5
+    
+    tst.b   (KeysLeft)                  ; Petrified children always use
+    beq.s   @NoGrayscale                  ; palette 0 (which is the one with
+    and.w   #$9FFF, d5                    ; all the gray shades)
+@NoGrayscale:
+    
+    move.b  OBJ_X(a0), d7               ; Draw sprite
+    move.b  OBJ_Y(a0), d6
+    bsr     Add3DSprite
+    
+    rts                                 ; End of subroutine
+
+;----------------------------------------------------------------------------
+
+@Table:
+    dc.w    $4000+VramQua
+    dc.w    $0000+VramIyan
+    dc.w    $0000+VramShia
+    dc.w    $0000+VramHoru
+    dc.w    $0000+VramAxar

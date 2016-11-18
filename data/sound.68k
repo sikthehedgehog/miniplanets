@@ -1,0 +1,128 @@
+;****************************************************************************
+; BGM_*
+; List of background music IDs.
+;****************************************************************************
+
+                rsreset
+                rs.b 1          ; (nothing)
+
+BGM_STAGE1:     rs.b 1          ; Stages 1-1 to 1-8
+BGM_STAGE2:     rs.b 1          ; Stages 2-1 to 2-8
+BGM_STAGE3:     rs.b 1          ; Stages 3-1 to 3-8
+BGM_STAGE4:     rs.b 1          ; Stages 4-1 to 4-8
+BGM_STAGE5:     rs.b 1          ; Stages 5-1 to 5-8
+BGM_STAGE6:     rs.b 0          ; Stage 6-0
+BGM_BOSS:       rs.b 1          ; Stages *-9
+BGM_TITLE:      rs.b 1          ; Title screen
+BGM_ENDING:     rs.b 1          ; Ending
+BGM_TALLY:      rs.b 1          ; Score tally
+BGM_GAMEOVER:   rs.b 1          ; Game Over
+NUM_BGM:        rs.b 0
+
+;****************************************************************************
+; SFX_*
+; List of sound effect IDs.
+;****************************************************************************
+
+                rsreset
+                rs.b 1          ; (nothing)
+
+SFX_JUMP:       rs.b 1          ; Jumping
+SFX_IMPACT:     rs.b 1          ; Something hits a wall
+SFX_SPRING:     rs.b 1          ; Jump on a spring
+SFX_KEY:        rs.b 1          ; Getting a key
+SFX_CRYSTAL:    rs.b 1          ; Getting a crystal
+SFX_OUCH:       rs.b 1          ; Get hurt (ouch!)
+SFX_EXPLOSION:  rs.b 1          ; Bomb explodes
+SFX_1UP:        rs.b 1          ; Extra life
+SFX_GOAL:       rs.b 1          ; Reach goal
+NUM_SFX:        rs.b 0
+
+;****************************************************************************
+; SOUNDTEST_MAX
+; Maximum value in the sound test
+;****************************************************************************
+
+SOUNDTEST_MAX: equ NUM_BGM+NUM_SFX-1
+
+;****************************************************************************
+; Stream data for background music
+;****************************************************************************
+
+BgmData_Stage1:     incbin "data/sound/stage_1.esf"
+BgmData_Stage2:     incbin "data/sound/stage_2.esf"
+BgmData_Stage3:     incbin "data/sound/stage_3.esf"
+BgmData_Stage4:     incbin "data/sound/stage_4.esf"
+BgmData_Stage5:     incbin "data/sound/stage_5.esf"
+BgmData_Boss:       incbin "data/sound/boss.esf"
+BgmData_Title:      incbin "data/sound/title.esf"
+BgmData_Ending:     incbin "data/sound/ending.esf"
+BgmData_Tally:      incbin "data/sound/tally.esf"
+BgmData_GameOver:   incbin "data/sound/game_over.esf"
+
+;****************************************************************************
+; Stream data for sound effects
+;****************************************************************************
+
+    include "data/sound/sfx.68k"
+    even
+
+;****************************************************************************
+; InstrumentList
+; List of instruments used in the game
+;****************************************************************************
+
+InstrumentList:
+    Echo_ListEntry  InstrBell           ; $00 [FM] Synth bell
+    Echo_ListEntry  InstrSawtooth       ; $01 [FM] Sawtooth wave
+    Echo_ListEntry  InstrDistortion     ; $02 [FM] Distortion guitar
+    Echo_ListEntry  InstrExplosion      ; $03 [DAC] Explosion
+    Echo_ListEntry  InstrPSGBasic       ; $04 [PSG] Basic envelope
+    Echo_ListEntry  InstrSnare          ; $05 [DAC] Snare drum
+    Echo_ListEntry  InstrPSGDing        ; $06 [PSG] Ding!
+    Echo_ListEntry  InstrPSGWhistle     ; $07 [PSG] Whistle
+    Echo_ListEntry  InstrSax            ; $08 [FM] Sax
+    Echo_ListEntry  InstrGuitar         ; $09 [FM] Guitar
+    Echo_ListEntry  InstrBass           ; $0A [FM] Bass
+    Echo_ListEntry  InstrSynthBass      ; $0B [FM] Synth bass
+    Echo_ListEntry  InstrJingle         ; $0C [DAC] Jingle bell
+    Echo_ListEntry  InstrKick           ; $0D [DAC] Kick drum
+    Echo_ListEntry  InstrPSGHitHat      ; $0E [PSG] Hit-hat
+    Echo_ListEntry  InstrStage1Lead     ; $0F [FM] Old BGM_STAGE1's lead
+    Echo_ListEntry  InstrPSGSoft        ; $10 [PSG] Soft envelope
+    Echo_ListEntry  InstrBell2          ; $11 [FM] The *other* bell
+    Echo_ListEntry  InstrChurch         ; $12 [FM] Church organ
+    Echo_ListEntry  InstrTrumpet        ; $13 [FM] Trumpet
+    Echo_ListEntry  InstrTick           ; $14 [DAC] Tick in tick-tock
+    Echo_ListEntry  InstrTock           ; $15 [DAC] Tock in tick-tock
+    Echo_ListEntry  InstrImpact         ; $16 [FM] Impact SFX
+    Echo_ListEnd
+
+;****************************************************************************
+; Instrument data
+;****************************************************************************
+
+InstrBell:          incbin "data/sound/bell.eif"
+InstrSawtooth:      incbin "data/sound/sawtooth.eif"
+InstrDistortion:    incbin "data/sound/distortion.eif"
+InstrExplosion:     incbin "data/sound/explosion.ewf"
+InstrPSGBasic:      hex 00FE01FF
+InstrSnare:         incbin "data/sound/snare.ewf"
+InstrPSGDing:       hex 00020406080A0CFE0FFF
+InstrPSGWhistle:    hex 0008FE0F0109FF
+InstrSax:           incbin "data/sound/sax.eif"
+InstrGuitar:        incbin "data/sound/guitar.eif"
+InstrBass:          incbin "data/sound/bass.eif"
+InstrSynthBass:     incbin "data/sound/synbass.eif"
+InstrJingle:        incbin "data/sound/jingle.ewf"
+InstrKick:          incbin "data/sound/kick.ewf"
+InstrPSGHitHat:     hex 0000010203040506080A0C0EFE0FFF
+InstrStage1Lead:    incbin "data/sound/stage1lead.eif"
+InstrPSGSoft:       hex 0E0D0C0B0A090807060504030201FE00FF
+InstrBell2:         incbin "data/sound/bell2.eif"
+InstrChurch:        incbin "data/sound/church.eif"
+InstrTrumpet:       incbin "data/sound/trumpet.eif"
+InstrTick:          incbin "data/sound/tick.ewf"
+InstrTock:          incbin "data/sound/tock.ewf"
+InstrImpact:        incbin "data/sound/impact.eif"
+    even

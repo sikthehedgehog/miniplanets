@@ -1,0 +1,297 @@
+;****************************************************************************
+; LogoSplash
+; Main loop for the logo splash screen.
+;----------------------------------------------------------------------------
+; notes: doesn't return
+;****************************************************************************
+
+LogoSplash:
+    if      !SHOW_LOGO                  ; Skip logo splash?
+    bra     TitleScreen
+    endc
+    
+    jsr     (ResetVideo).w              ; Reset graphics
+    
+    if      SHOW_PUBLISHER              ; Look for publisher logo
+    move.l  ($01FC).w, a6
+    cmp.l   #0, a6
+    beq.s   @NoPublisher
+    cmp.l   #"LOGO", (a6)+
+    bne.s   @NoPublisher
+    
+    lea     (PaletteBuf), a5            ; Load publisher palette
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    
+    move.l  a6, a0                      ; Data to render the logo
+    lea     2*16*3(a6), a6
+    
+    lea     (LocalRAM), a5              ; Load publisher graphics
+    jsr     DecompressSLZ
+    DMA2VRAM LocalRAM, VramLogo*$20, GfxLogoSize*$20, ($C00004)
+    
+    bsr     LogoSplashCallback          ; Show the logo
+@NoPublisher:
+    endc
+    
+    jsr     (ResetVideo).w              ; Reset graphics (again)
+    
+    lea     (PalLogo), a6               ; Load Azura Sun palette
+    lea     (PaletteBuf), a5
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    
+    lea     (GfxLogo), a6               ; Load Azura Sun graphics
+    lea     (LocalRAM), a5
+    jsr     DecompressSLZ
+    DMA2VRAM LocalRAM, VramLogo*$20, GfxLogoSize*$20, ($C00004)
+    
+    lea     @AzuraSunData(pc), a0       ; Show Azura Sun logo
+    bsr     LogoSplashCallback
+    
+    bra     TitleScreen                 ; Go to the title screen
+
+;----------------------------------------------------------------------------
+
+@AzuraSunData:
+    dc.w    6*0, 6*1, 6*2, 6*3, 6*0, 6*4, 6*2, 6*5
+    dcb.w   8, 0
+    
+    dc.w    -$48*$100, -$38*$100, -$28*$100, -$18*$100
+    dc.w    -$08*$100, $18*$100, $28*$100, $38*$100
+    dcb.w   8, $8000
+    
+    dcb.w   8, -12
+    dcb.w   8, $8000
+
+;****************************************************************************
+; LogoSplashCallback
+; The subroutine that actually does the logo splash.
+;----------------------------------------------------------------------------
+; input a0.l ... Logo's animation data
+;----------------------------------------------------------------------------
+; breaks: all, local RAM
+;****************************************************************************
+
+LogoSplashCallback:
+    lea     (GfxQishaSide), a6          ; Load Qisha sprite
+    lea     (LocalRAM), a5
+    jsr     DecompressSLZ
+    DMA2VRAM LocalRAM, VramLogoQisha*$20, 8*7*$20, ($C00004)
+    
+    lea     (PalIngame), a6             ; Load Qisha palette
+    lea     (PaletteBuf+$10*2), a5
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    
+    move.l  a0, (LogoData)              ; We can store the data's address now
+    bsr     InitLogoQisha               ; Load Qisha's mappings into VRAM
+    
+    move.w  #$1C0, (LogoSpin)           ; Set logo's initial spin
+    move.w  #-48, (LogoQisha)           ; Set Qisha's initial position
+    move.b  #90, (LogoWait)             ; Set wait after animation is over
+
+;----------------------------------------------------------------------------
+
+@MainLoop:
+    btst.b  #7, (Joy1Press)             ; Quit logo early?
+    bne.s   @Quit
+    
+@LogicLoop:
+    bsr     AnimLogo                    ; Update animation
+    
+    clr.b   (Joy1Press)                 ; Do NTSC/PAL speed correction
+    clr.b   (Joy2Press)
+    subq.b  #1, (NumFrames)
+    bne.s   @LogicLoop
+    
+    jsr     (ClearSprites).w            ; Draw everything
+    bsr     DrawLogoQisha
+    bsr     DrawLogo
+    
+    tst.b   (LogoWait)                  ; Logo over?
+    beq.s   @Quit
+    
+    jsr     (NextFrame).w               ; Wait for next frame
+    bra.s   @MainLoop
+
+;----------------------------------------------------------------------------
+
+@Quit:
+    jsr     (FadeOff).w                 ; Done showing the logo
+    rts
+
+;****************************************************************************
+; AnimLogo
+; Animates the logo splash screen.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+AnimLogo:
+    move.w  (LogoQisha), d7             ; Make Qisha go forwards
+    add.w   #8, d7
+    move.w  d7, (LogoQisha)
+    
+    cmp.w   #160, d7                    ; Check if we started spinning
+    bge.s   @Spinning
+    rts
+@Spinning:
+    
+    move.w  (LogoSpin), d7              ; Make the logo spin
+    beq.s   @NoMoreSpinning
+    subq.w  #$02, d7
+    cmp.w   #$40, d7
+    blo.s   *+4
+    subq.w  #$02, d7
+    cmp.w   #$C0, d7
+    blo.s   *+4
+    subq.w  #$04, d7
+    move.w  d7, (LogoSpin)
+@NoMoreSpinning:
+    
+    tst.w   d7                          ; Wait a bit after spinning is over
+    bne.s   @StillSpinning
+    tst.b   (LogoWait)
+    beq.s   @StillSpinning
+    subq.b  #1, (LogoWait)
+@StillSpinning:
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawLogo
+; Draws the logo in the logo splash screen.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawLogo:
+    move.l  (LogoData), a0              ; Get deformation tables for the logo
+    
+    move.b  (LogoSpin+1), d7            ; Make sure the logo is visible at
+    eor.b   #$40, d7                      ; this angle... (and yes, graphics
+    and.b   #$7F, d7                      ; that stretch to 0 pixels are
+    bne.s   @NoDegenerate                 ; called "degenerated")
+    rts
+@NoDegenerate:
+    
+    moveq   #0, d5                      ; Get by how much to multiply the
+    move.b  (LogoSpin+1), d5              ; displacements ($100 = 1.0)
+    add.w   d5, d5
+    lea     (Cosines), a6
+    move.w  (a6,d5.w), d5
+    
+    move.w  d5, d7                      ; Determine tile offset for this
+    bpl.s   *+4                           ; angle (to fake scaling)
+    neg.w   d7
+    subq.w  #1, d7
+    lsr.w   #5, d7
+    neg.w   d7
+    addq.w  #8-1, d7
+    mulu.w  #36, d7
+    
+    add.w   #VramLogo, d7               ; Do we need to flip the letters?
+    tst.w   d5                            ; (happens when the logo is seen
+    bpl.s   @NoFlip                       ; from behind)
+    or.w    #$0800, d7
+@NoFlip:
+    
+    move.w  d7, a5                      ; We're short on registers
+    moveq   #16-1, d4                   ; Go through all pieces
+@Loop:
+    lea     $20(a0), a6                 ; Get displacements of
+    moveq   #16-1, d7                     ; the piece (untransformed)
+    sub.w   d4, d7
+    add.w   d7, d7
+    move.w  $20(a6,d7.w), d6
+    move.w  (a6,d7.w), d7
+    
+    muls.w  d5, d7                      ; Apply spin to the displacement
+    swap    d7
+    
+    move.w  #160-8, d0                  ; Determine final position of the
+    move.w  #112, d1                      ; piece on screen
+    add.w   d7, d0
+    add.w   d6, d1
+    
+    move.w  a5, d2                      ; Get base tile ID
+    
+    lea     (a0), a6                    ; Apply tile offset to get the
+    moveq   #16-1, d7                     ; correct piece to show up
+    sub.w   d4, d7
+    add.w   d7, d7
+    add.w   (a6,d7.w), d2
+    
+    btst.l  #11, d2                     ; Adjust sprite positions when the
+    beq.s   @NoXAdjust                    ; pieces are flipped
+    sub.w   #$10, d0
+@NoXAdjust:
+    
+    moveq   #%0110, d3                  ; Draw piece
+    jsr     (AddSprite).w
+    dbf     d4, @Loop
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; InitLogoQisha
+; Draws Qisha on the scroll plane.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+InitLogoQisha:
+    SetPosA 0, 11, d0                   ; Where the image starts
+    move.w  #$A000+VramLogoQisha, d1    ; First tile of the image
+    lea     ($C00000), a6               ; VDP port address
+    
+    moveq   #7-1, d6                    ; Draw image on the scroll plane
+@YLoop:
+    move.l  d0, 4(a6)
+    moveq   #8-1, d7
+@XLoop:
+    move.w  d1, (a6)
+    addq.w  #1, d1
+    dbf     d7, @XLoop
+    add.l   #$80<<16, d0
+    dbf     d6, @YLoop
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawLogoQisha
+; Updates Qisha's position on screen.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawLogoQisha:
+    move.w  (LogoQisha), d7             ; Get Qisha's position
+    
+    cmp.w   #-32, d7                    ; Prevent Qisha from being visible
+    bge.s   @NotTooLeft                   ; off-screen (i.e. wrapping)
+    move.w  #-32, d7
+@NotTooLeft:
+    cmp.w   #352, d7
+    ble.s   @NotTooRight
+    move.w  #352, d7
+@NotTooRight:
+    
+    sub.w   #$20, d7                    ; Center the sprite
+    SetVRAMAddr $F800, ($C00004)        ; Write new hscroll value
+    move.w  d7, ($C00000)
+    
+    rts                                 ; End of subroutine

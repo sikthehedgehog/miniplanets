@@ -1,0 +1,151 @@
+;****************************************************************************
+; GameOver
+; Proceeds to show the game over message.
+;----------------------------------------------------------------------------
+; notes: doesn't return, expects coming from InGame
+;****************************************************************************
+
+GameOver:
+    bsr     (DrawHUD)                   ; Make sure the HUD updates
+    jsr     (NextFrame).w
+    
+    lea     (GfxGameOver), a6           ; Decompress "GAME OVER" graphics
+    lea     (GameOverTiles), a5
+    jsr     (DecompressSLZ).w
+    
+    moveq   #0, d0                      ; Clear the tiles used for the
+    lea     ($C00000), a0                 ; message to ensure they don't show
+    SetVRAMAddr VramGameOver*$20, 4(a0)   ; garbage at first
+    moveq   #17*3-1, d7
+@ClearText:
+    move.l  d0, (a0)
+    move.l  d0, (a0)
+    move.l  d0, (a0)
+    move.l  d0, (a0)
+    move.l  d0, (a0)
+    move.l  d0, (a0)
+    move.l  d0, (a0)
+    move.l  d0, (a0)
+    dbf     d7, @ClearText
+    
+    lea     ($C00000), a0               ; Draw message in the tilemap
+    move.w  #$8000+VramGameOver, d0
+    SetPosA 10, 12, d1
+    moveq   #0, d2
+    moveq   #3-1, d6
+@YLoop:
+    move.l  d1, 4(a0)
+    moveq   #9-1,d7
+@XLoop1:
+    move.w  d0, (a0)
+    addq.w  #3, d0
+    dbf     d7, @XLoop1
+    move.l  d2, (a0)
+    moveq   #8-1,d7
+@XLoop2:
+    move.w  d0, (a0)
+    addq.w  #3, d0
+    dbf     d7, @XLoop2
+    add.l   #$80<<16, d1
+    sub.w   #17*3-1, d0
+    dbf     d6, @YLoop
+    move.l  d1, 4(a0)
+    moveq   #19-1, d7
+@XLoop3:
+    move.l  d2, (a0)
+    dbf     d7, @XLoop3
+    
+    clr.w   (Anim)                      ; Of course!
+    move.l  #$10161C22, (GameOverAnim)  ; Initialize animation
+    move.l  #$282E343A, (GameOverAnim+4)
+    
+    moveq   #BGM_GAMEOVER, d7           ; Play music
+    jsr     (PlayBGM).w
+
+;----------------------------------------------------------------------------
+
+@MainLoop:
+    btst.b  #7, (Joy1Press)             ; Quit early?
+    bne.s   @Quit
+    
+@LogicLoop:
+    bsr     UpdateGameOverLetters       ; Update everything
+    addq.w  #1, (Anim)
+    
+    clr.b   (Joy1Press)                 ; Do NTSC/PAL speed correction
+    clr.b   (Joy2Press)
+    subq.b  #1, (NumFrames)
+    bne.s   @LogicLoop
+    
+    cmp.w   #300, (Anim)                ; Done with the message?
+    bhs.s   @Quit
+    
+    jsr     (NextFrame).w               ; Wait for next frame
+    bra     @MainLoop
+
+;----------------------------------------------------------------------------
+
+@Quit:
+    jsr     (FadeOut).w                 ; Turn off screen
+    bra     LogoSplash                  ; Reset game
+
+;****************************************************************************
+; UpdateGameOverLetters
+; Updates the animation of the letters in Game Over.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+UpdateGameOverLetters:
+    move.l  (DMABufEnd), a0             ; We'll issue tons of DMAs
+    lea     (GameOverAnim), a1          ; Timer for each letter
+    lea     @Table(pc), a2              ; Offset and size for each letter
+    
+    move.w  #VramGameOver*$20, d2       ; Address of first tile
+    moveq   #8-1, d4                    ; Go through all letters
+@Loop:
+    
+    move.b  (a1), d0                    ; Animate scaling
+    beq.s   *+4
+    subq.b  #1, d0
+    move.b  d0, (a1)+
+    
+    moveq   #0, d3                      ; Retrieve offset and size of letter
+    moveq   #0, d1
+    move.b  (a2)+, d3
+    move.b  (a2)+, d1
+    lsl.w   #5, d3
+    lsl.w   #5, d1
+    
+    cmp.b   #$10, d0                    ; Still don't show up?
+    bhs.s   @Skip
+    
+    and.w   #$FF, d0                    ; Determine graphics subset to use
+    lsr.w   #1, d0                        ; for this scaling frame
+    mulu.w  #17*3*$20, d0
+    
+    add.w   d3, d0                      ; Load graphic for this letter
+    and.l   #$FFFF, d0
+    add.l   #GameOverTiles, d0
+    movem.w d1-d2, -(sp)
+    DMA2VRAM_SDL d0, d2, d1, a0
+    movem.w (sp)+, d1-d2
+@Skip:
+    
+    add.w   d1, d2                      ; Move onto the next letter
+    dbf     d4, @Loop
+    
+    move.l  a0, (DMABufEnd)             ; Done with the DMAs
+    rts                                 ; End of subroutine
+
+;----------------------------------------------------------------------------
+
+@Table:
+    dc.b    0, 6        ; G
+    dc.b    6, 6        ; A
+    dc.b    12, 9       ; M
+    dc.b    21, 6       ; E
+    dc.b    27, 6       ; O
+    dc.b    33, 6       ; V
+    dc.b    21, 6       ; E
+    dc.b    39, 6       ; R

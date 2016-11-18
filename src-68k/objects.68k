@@ -1,0 +1,236 @@
+;****************************************************************************
+; OBJ_*
+; Data inside an object
+;****************************************************************************
+
+                    rsreset
+OBJ_TYPE:           rs.b 1      ; Type (see OBJTYPE_*)
+OBJ_X:              rs.b 1      ; X coordinate
+OBJ_Y:              rs.b 1      ; Y coordinate
+OBJ_DATA:           rs.b 1      ; Object-specific data
+
+OBJ_SIZE:           rs.b 0      ; Size of an object
+MAX_OBJECTS:        equ $30     ; Maximum object count
+
+;****************************************************************************
+; OBJTYPE_*
+; Different object types
+;****************************************************************************
+
+                    rsreset
+OBJTYPE_NONE:       rs.b 1      ; (no object)
+OBJTYPE_KEY:        rs.b 1      ; Key
+OBJTYPE_RAFTU:      rs.b 1      ; Raft going up
+OBJTYPE_RAFTD:      rs.b 1      ; Raft going down
+OBJTYPE_RAFTL:      rs.b 1      ; Raft going left
+OBJTYPE_RAFTR:      rs.b 1      ; Raft going right
+OBJTYPE_MACECCW:    rs.b 1      ; Mace (counterclockwise)
+OBJTYPE_MACECW:     rs.b 1      ; Mace (clockwise)
+OBJTYPE_BOMB:       rs.b 1      ; Bomb
+OBJTYPE_SWITCH:     rs.b 1      ; Switch
+OBJTYPE_ELECTRH:    rs.b 1      ; Electric beam (horizontal)
+OBJTYPE_ELECTRV:    rs.b 1      ; Electric beam (vertical)
+OBJTYPE_BALLU:      rs.b 1      ; Ball going up
+OBJTYPE_BALLD:      rs.b 1      ; Ball going down
+OBJTYPE_BALLL:      rs.b 1      ; Ball going left
+OBJTYPE_BALLR:      rs.b 1      ; Ball going right
+OBJTYPE_ORBR:       rs.b 1      ; Red orb
+OBJTYPE_ORBP:       rs.b 1      ; Pink orb
+OBJTYPE_ORBB:       rs.b 1      ; Blue orb
+OBJTYPE_ORBO:       rs.b 1      ; Orange orb
+OBJTYPE_FIREU:      rs.b 1      ; Fireball going up
+OBJTYPE_FIRED:      rs.b 1      ; Fireball going down
+OBJTYPE_FIREL:      rs.b 1      ; Fireball going left
+OBJTYPE_FIRER:      rs.b 1      ; Fireball going right
+OBJTYPE_CRYSTAL:    rs.b 1      ; Crystal
+OBJTYPE_CHILD:      rs.b 1      ; Child
+
+;****************************************************************************
+; InitObjects
+; Initializes the object list (clearing it).
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+InitObjects:
+    lea     (ObjectList), a6            ; Clear all object slots
+    moveq   #MAX_OBJECTS-1, d7
+@Loop:
+    clr.b   OBJ_TYPE(a6)
+    lea     OBJ_SIZE(a6), a6
+    dbf     d7, @Loop
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; AddObject
+; Creates a new object.
+;----------------------------------------------------------------------------
+; input d7.b .... Object type
+; input d6.b .... X coordinate
+; input d5.b .... Y coordinate
+; input d4.b .... Specific data
+;----------------------------------------------------------------------------
+; output a6.l ... Object pointer
+;----------------------------------------------------------------------------
+; breaks: d4-d7, a4-a5
+;****************************************************************************
+
+AddObject:
+    lea     (ObjectList), a6            ; Look for a free slot
+@Loop:
+    tst.b   OBJ_TYPE(a6)
+    beq.s   @Free
+    lea     OBJ_SIZE(a6), a6
+    bra.s   @Loop
+@Free:
+    
+    move.b  d7, OBJ_TYPE(a6)            ; Store object properties
+    move.b  d6, OBJ_X(a6)
+    move.b  d5, OBJ_Y(a6)
+    move.b  d4, OBJ_DATA(a6)
+    
+    cmp.b   #OBJTYPE_KEY, d7            ; If it's a key, increase key counter
+    beq.s   @IsAKey
+    cmp.b   #OBJTYPE_CRYSTAL, d7
+    bne.s   @NotKey
+@IsAKey:
+    addq.b  #1, (KeysLeft)
+@NotKey:
+    
+    cmp.b   #OBJTYPE_RAFTR, d7          ; Some objects need these graphics
+    bne.s   @NoRaftR
+    bset.b  #TOLOAD_RAFTR, (AnimToLoad)
+@NoRaftR:
+    cmp.b   #OBJTYPE_RAFTL, d7
+    bne.s   @NoRaftL
+    bset.b  #TOLOAD_RAFTL, (AnimToLoad)
+@NoRaftL:
+    cmp.b   #OBJTYPE_RAFTD, d7
+    bne.s   @NoRaftD
+    bset.b  #TOLOAD_RAFTD, (AnimToLoad)
+@NoRaftD:
+    cmp.b   #OBJTYPE_RAFTU, d7
+    bne.s   @NoRaftU
+    bset.b  #TOLOAD_RAFTU, (AnimToLoad)
+@NoRaftU:
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; RunObjects
+; Executes the game logic for all objects.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+RunObjects:
+    lea     @List(pc), a6               ; Process all objects
+    bsr     ScanObjects
+    
+@Dummy:
+    rts                                 ; End of subroutine
+
+;----------------------------------------------------------------------------
+
+@List:
+    dc.l    @Dummy                      ; OBJTYPE_NONE
+    dc.l    RunKey                      ; OBJTYPE_KEY
+    dc.l    RunRaftU                    ; OBJTYPE_RAFTU
+    dc.l    RunRaftD                    ; OBJTYPE_RAFTD
+    dc.l    RunRaftL                    ; OBJTYPE_RAFTL
+    dc.l    RunRaftR                    ; OBJTYPE_RAFTR
+    dc.l    RunMace                     ; OBJTYPE_MACECCW
+    dc.l    RunMace                     ; OBJTYPE_MACECW
+    dc.l    RunBomb                     ; OBJTYPE_BOMB
+    dc.l    RunSwitch                   ; OBJTYPE_SWITCH
+    dc.l    RunElectricity              ; OBJTYPE_ELECTRH
+    dc.l    RunElectricity              ; OBJTYPE_ELECTRV
+    dc.l    RunBallUp                   ; OBJTYPE_BALLU
+    dc.l    RunBallDown                 ; OBJTYPE_BALLD
+    dc.l    RunBallLeft                 ; OBJTYPE_BALLL
+    dc.l    RunBallRight                ; OBJTYPE_BALLR
+    dc.l    RunOrb                      ; OBJTYPE_ORBR
+    dc.l    RunOrb                      ; OBJTYPE_ORBP
+    dc.l    RunOrb                      ; OBJTYPE_ORBB
+    dc.l    RunOrb                      ; OBJTYPE_ORBO
+    dc.l    RunFireballUp               ; OBJTYPE_FIREU
+    dc.l    RunFireballDown             ; OBJTYPE_FIRED
+    dc.l    RunFireballLeft             ; OBJTYPE_FIREL
+    dc.l    RunFireballRight            ; OBJTYPE_FIRER
+    dc.l    RunKey                      ; OBJTYPE_CRYSTAL
+    dc.l    RunChild                    ; OBJTYPE_CHILD
+
+;****************************************************************************
+; DrawObjects
+; Draws all objects on the globe.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawObjects:
+    lea     @List(pc), a6               ; Process all objects
+    bsr     ScanObjects
+    
+@Dummy:
+    rts                                 ; End of subroutine
+
+;----------------------------------------------------------------------------
+
+@List:
+    dc.l    @Dummy                      ; OBJTYPE_NONE
+    dc.l    DrawKey                     ; OBJTYPE_KEY
+    dc.l    @Dummy                      ; OBJTYPE_RAFTU
+    dc.l    @Dummy                      ; OBJTYPE_RAFTD
+    dc.l    @Dummy                      ; OBJTYPE_RAFTL
+    dc.l    @Dummy                      ; OBJTYPE_RAFTR
+    dc.l    DrawMace                    ; OBJTYPE_MACECCW
+    dc.l    DrawMace                    ; OBJTYPE_MACECW
+    dc.l    DrawBomb                    ; OBJTYPE_BOMB
+    dc.l    DrawSwitch                  ; OBJTYPE_SWITCH
+    dc.l    DrawElectricityH            ; OBJTYPE_ELECTRH
+    dc.l    DrawElectricityV            ; OBJTYPE_ELECTRV
+    dc.l    DrawBall                    ; OBJTYPE_BALLU
+    dc.l    DrawBall                    ; OBJTYPE_BALLD
+    dc.l    DrawBall                    ; OBJTYPE_BALLL
+    dc.l    DrawBall                    ; OBJTYPE_BALLR
+    dc.l    DrawOrb                     ; OBJTYPE_ORBR
+    dc.l    DrawOrb                     ; OBJTYPE_ORBP
+    dc.l    DrawOrb                     ; OBJTYPE_ORBB
+    dc.l    DrawOrb                     ; OBJTYPE_ORBO
+    dc.l    DrawFireball                ; OBJTYPE_FIREU
+    dc.l    DrawFireball                ; OBJTYPE_FIRED
+    dc.l    DrawFireball                ; OBJTYPE_FIREL
+    dc.l    DrawFireball                ; OBJTYPE_FIRER
+    dc.l    DrawCrystal                 ; OBJTYPE_CRYSTAL
+    dc.l    DrawChild                   ; OBJTYPE_CHILD
+
+;****************************************************************************
+; ScanObjects
+; Used by RunObjects and DrawObjects to process all objects.
+;----------------------------------------------------------------------------
+; input a6.l ... Handler list
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+ScanObjects:    
+    lea     (ObjectList), a0            ; Scan all objects
+    moveq   #MAX_OBJECTS-1, d7
+@Loop:
+    move.w  d7, -(sp)
+    move.l  a6, -(sp)
+    
+    moveq   #0, d7                      ; Call handler for this object type
+    move.b  OBJ_TYPE(a0), d7
+    add.w   d7, d7
+    add.w   d7, d7
+    move.l  (a6,d7.w), a6
+    jsr     (a6)
+    
+    move.l  (sp)+, a6                   ; Go for next object
+    move.w  (sp)+, d7
+    lea     OBJ_SIZE(a0), a0
+    dbf     d7, @Loop
+    
+    rts                                 ; End of subroutine

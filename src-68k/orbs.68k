@@ -1,0 +1,277 @@
+;****************************************************************************
+; RunOrb
+; Executes an orb's game logic.
+;****************************************************************************
+
+RunOrb:
+    move.b  OBJ_X(a0), d7               ; Check if we've hit the player
+    move.b  OBJ_Y(a0), d6
+    moveq   #10, d5
+    moveq   #10, d4
+    bsr     CollidesPlayer
+    tst.w   d7
+    beq.s   @NoCollision
+    bsr     HurtPlayer
+@NoCollision:
+    
+    move.b  OBJ_X(a0), d7               ; Change angle yet?
+    or.b    OBJ_Y(a0), d7
+    and.b   #$1F, d7
+    bne     @NoAngleChange
+    
+    moveq   #%1111, d0                  ; Figure out which ways we can go
+    move.b  OBJ_X(a0), d1                 ; from here (each bit represents
+    move.b  OBJ_Y(a0), d2                 ; a free direction)
+    moveq   #$20, d3
+    
+    move.b  d1, d7                      ; (check path above)
+    move.b  d2, d6
+    sub.b   d3, d6
+    bsr     GetTile
+    tst.b   d6
+    beq.s   @UpIsFree
+    bclr.l  #0, d0
+@UpIsFree:
+    
+    move.b  d1, d7                      ; (check path below)
+    move.b  d2, d6
+    add.b   d3, d6
+    bsr     GetTile
+    tst.b   d6
+    beq.s   @DownIsFree
+    bclr.l  #1, d0
+@DownIsFree:
+    
+    move.b  d1, d7                      ; (check path to the left)
+    move.b  d2, d6
+    sub.b   d3, d7
+    bsr     GetTile
+    tst.b   d6
+    beq.s   @LeftIsFree
+    bclr.l  #2, d0
+@LeftIsFree:
+    
+    move.b  d1, d7                      ; (check path to the right)
+    move.b  d2, d6
+    add.b   d3, d7
+    bsr     GetTile
+    tst.b   d6
+    beq.s   @RightIsFree
+    bclr.l  #3, d0
+@RightIsFree:
+    
+    move.b  OBJ_DATA(a0), d7            ; Don't let orb go backwards
+    and.w   #$03, d7
+    bchg.l  #0, d7
+    bclr.l  d7, d0
+    
+    moveq   #0, d7                      ; Run AI for this orb
+    move.b  OBJ_TYPE(a0), d7
+    sub.b   #OBJTYPE_ORBR, d7
+    add.w   d7, d7
+    add.w   d7, d7
+    lea     (@AIList), a6
+    move.l  (a6,d7.w), a6
+    jsr     (a6)
+    
+    clr.b   d1                          ; Consider going up first
+    st.b    d2
+    btst.l  #0, d0
+    beq.s   @CantGoUp
+    move.b  OBJ_Y(a0), d2
+    sub.b   d7, d2
+@CantGoUp:
+    
+    btst.l  #1, d0                      ; Consider going down
+    beq.s   @CantGoDown
+    move.b  d2, d3
+    neg.b   d3
+    cmp.b   d3, d2
+    bls.s   @CantGoDown
+    move.b  d3, d2
+    moveq   #1, d1
+@CantGoDown:
+    
+    move.b  OBJ_X(a0), d3               ; Consider going left
+    sub.b   d7, d3
+    btst.l  #2, d0
+    beq.s   @CantGoLeft
+    cmp.b   d3, d2
+    bls.s   @CantGoLeft
+    move.b  d3, d2
+    moveq   #2, d1
+@CantGoLeft:
+    
+    btst.l  #3, d0                      ; Consider going right
+    beq.s   @CantGoRight
+    neg.b   d3
+    cmp.b   d3, d2
+    bls.s   @CantGoRight
+    moveq   #3, d1
+@CantGoRight:
+    
+    move.b  d1, OBJ_DATA(a0)            ; Store new angle
+    
+@NoAngleChange:
+    moveq   #0, d7                      ; Move around
+    move.b  OBJ_DATA(a0), d7
+    add.w   d7, d7
+    lea     @DirList(pc), a6
+    lea     (a6,d7.w), a6
+    move.b  (a6)+, d7
+    move.b  (a6)+, d6
+    add.b   d7, OBJ_X(a0)
+    add.b   d6, OBJ_Y(a0)
+    
+    rts                                 ; End of subroutine
+
+;----------------------------------------------------------------------------
+
+@DirList:
+    dc.b    0, -1                       ; Move up
+    dc.b    0, 1                        ; Move down
+    dc.b    -1, 0                       ; Move left
+    dc.b    1, 0                        ; Move right
+
+@AIList:
+    dc.l    RedOrbAI
+    dc.l    PinkOrbAI
+    dc.l    BlueOrbAI
+    dc.l    OrangeOrbAI
+
+@DummyAI:
+    move.b  OBJ_X(a0), d7
+    move.b  OBJ_Y(a0), d6
+    rts
+
+;****************************************************************************
+; RedOrbAI
+; AI for red orbs
+;----------------------------------------------------------------------------
+; input a0.l .... Pointer to object
+;----------------------------------------------------------------------------
+; output d7.b ... Target X coordinate
+; output d6.b ... Target Y coordinate
+;----------------------------------------------------------------------------
+; breaks: all but d0, a0
+;****************************************************************************
+
+RedOrbAI:
+    move.b  (PlayerX), d7               ; Just aim for the player directly
+    move.b  (PlayerY), d6
+    rts
+
+;****************************************************************************
+; PinkOrbAI
+; AI for pink orbs
+;----------------------------------------------------------------------------
+; input a0.l .... Pointer to object
+;----------------------------------------------------------------------------
+; output d7.b ... Target X coordinate
+; output d6.b ... Target Y coordinate
+;----------------------------------------------------------------------------
+; breaks: all but d0, a0
+;****************************************************************************
+
+PinkOrbAI:
+    move.b  (PlayerX), d7               ; Aim for the player first...
+    move.b  (PlayerY), d6
+    
+    moveq   #0, d5                      ; ...but go beyond it
+    add.w   d5, d5
+    lea     @Offset(pc), a6
+    lea     (a6,d5.w), a6
+    add.b   (a6)+, d7
+    add.b   (a6)+, d6
+    
+    rts                                 ; End of subroutine
+
+;----------------------------------------------------------------------------
+
+@Offset:
+    dc.b    $30,$00,    $22,-$22,   $00,-$30,   -$22,-$22
+    dc.b    -$30,$00,   -$22,$22,   $00,$30,    $22,$22
+
+;****************************************************************************
+; BlueOrbAI
+; AI for blue orbs
+;----------------------------------------------------------------------------
+; input a0.l .... Pointer to object
+;----------------------------------------------------------------------------
+; output d7.b ... Target X coordinate
+; output d6.b ... Target Y coordinate
+;----------------------------------------------------------------------------
+; breaks: all but d0, a0
+;****************************************************************************
+
+BlueOrbAI:
+    move.b  (PlayerX), d7               ; Aim for twice the distance to the
+    move.b  (PlayerY), d6                 ; player (don't ask why, lazy)
+    sub.b   OBJ_X(a0), d7
+    sub.b   OBJ_Y(a0), d6
+    add.b   d7, d7
+    add.b   d6, d6
+    
+    add.b   OBJ_X(a0), d7               ; Make sure to return absolute
+    add.b   OBJ_Y(a0), d6                 ; coordinates :P
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; OrangeOrbAI
+; AI for orange orbs
+;----------------------------------------------------------------------------
+; input a0.l .... Pointer to object
+;----------------------------------------------------------------------------
+; output d7.b ... Target X coordinate
+; output d6.b ... Target Y coordinate
+;----------------------------------------------------------------------------
+; breaks: all but d0, a0
+;****************************************************************************
+
+OrangeOrbAI:
+    jsr     (Rand).w                    ; Wut?
+    move.b  d7, d6
+    jsr     (Rand).w
+    rts
+
+;****************************************************************************
+; DrawOrb
+; Draws an orb.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+DrawOrb:
+    moveq   #0, d5                      ; Determine spriteset to use
+    move.b  OBJ_TYPE(a0), d5
+    sub.b   #OBJTYPE_ORBR, d5
+    add.w   d5, d5
+    lea     @Base(pc), a6
+    move.w  (a6,d5.w), d5
+    
+    move.w  (Anim), d7                  ; Determine animation
+    lsr.w   #3, d7
+    and.w   #$03, d7
+    add.w   d7, d7
+    lea     @Offset(pc), a6
+    add.w   (a6,d7.w), d5
+    
+    move.b  OBJ_X(a0), d7               ; Draw orb
+    move.b  OBJ_Y(a0), d6
+    bsr     Add3DSprite
+    
+    rts                                 ; End of subroutine
+
+;----------------------------------------------------------------------------
+
+@Base:
+    dc.w    $0000+VramOrbR              ; Red orb
+    dc.w    $4000+VramOrbP              ; Pink orb
+    dc.w    $4000+VramOrbB              ; Blue orb
+    dc.w    $0000+VramOrbO              ; Orange orb
+
+@Offset:
+    dc.w    4, 8, 4, 0

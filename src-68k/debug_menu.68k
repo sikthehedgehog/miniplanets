@@ -1,0 +1,370 @@
+;****************************************************************************
+; DEBUGOPT_*
+; List of options in the menu
+;****************************************************************************
+
+                    rsreset
+DEBUGOPT_STAGE:     rs.b 1      ; Stage number
+DEBUGOPT_LIVES:     rs.b 1      ; Lives count
+DEBUGOPT_MUTEKI:    rs.b 1      ; Muteki mode
+DEBUGOPT_TIMER:     rs.b 1      ; Time toggle
+
+NUM_DEBUGOPT:       rs.b 0      ; Number of debug options
+
+;****************************************************************************
+; DebugMenu
+; Main loop for the debug menu screen.
+;---------------------------------------------------------------------------- 
+; notes: doesn't return
+;****************************************************************************
+
+DebugMenu:
+    jsr     (ResetVideo).w              ; Reset graphics
+    st.b    (FadeInFlag)                ; We want fade in
+    jsr     (LoadFont).w                ; Load common font
+    
+    move.w  #$000, (PaletteBuf+$00*2)   ; Set up palette
+    move.w  #$444, (PaletteBuf+$01*2)
+    move.w  #$EEE, (PaletteBuf+$02*2)
+    move.w  #$444, (PaletteBuf+$11*2)
+    move.w  #$0EE, (PaletteBuf+$12*2)
+    
+    clr.b   (DebugOption)               ; Reset selected option
+    move.b  #$05, (Lives)               ; Hmmmmm...
+    
+    jsr     (StopBGM).w                 ; Stop title music
+
+;----------------------------------------------------------------------------
+
+@MainLoop:
+    move.b  (Joy1Press), d0             ; Get user input
+    move.b  (DebugOption), d1           ; Current option
+    
+    btst.l  #1, d0                      ; Next option?
+    beq.s   @NoDown
+    addq.b  #1, d1
+    cmp.b   #NUM_DEBUGOPT, d1
+    bne.s   @NoDown
+    clr.b   d1
+@NoDown:
+    
+    btst.l  #0, d0                      ; Previous option?
+    beq.s   @NoUp
+    subq.b  #1, d1
+    bge.s   @NoUp
+    moveq   #NUM_DEBUGOPT-1, d1
+@NoUp:
+    
+    move.b  d1, (DebugOption)           ; Store new current option
+    
+    btst.l  #3, d0                      ; Next value?
+    beq.s   @NoRight
+    moveq   #0, d7
+    move.b  d1, d7
+    add.w   d7, d7
+    add.w   d7, d7
+    lea     @RightTable(pc), a6
+    move.l  (a6,d7.w), a6
+    jsr     (a6)
+@NoRight:
+    
+    btst.l  #2, d0                      ; Previous value?
+    beq.s   @NoLeft
+    moveq   #0, d7
+    move.b  d1, d7
+    add.w   d7, d7
+    add.w   d7, d7
+    lea     @LeftTable(pc), a6
+    move.l  (a6,d7.w), a6
+    jsr     (a6)
+@NoLeft:
+    
+    btst.l  #7, d0                      ; Start playing?
+    beq.s   @NoStart
+    jsr     (FadeOff).w
+    bra     InGame
+@NoStart:
+    
+    bsr     DebugDrawStage              ; Draw all options
+    bsr     DebugDrawLives
+    bsr     DebugDrawMuteki
+    bsr     DebugDrawTimer
+    
+    jsr     (NextFrame).w               ; Wait for next frame
+    bra     @MainLoop
+
+;----------------------------------------------------------------------------
+
+@RightTable:
+    dc.l    DebugIncStage               ; DEBUGOPT_STAGE
+    dc.l    DebugIncLives               ; DEBUGOPT_LIVES
+    dc.l    DebugToggleMuteki           ; DEBUGOPT_MUTEKI
+    dc.l    DebugToggleTimer            ; DEBUGOPT_TIMER
+
+@LeftTable:
+    dc.l    DebugDecStage               ; DEBUGOPT_STAGE
+    dc.l    DebugDecLives               ; DEBUGOPT_LIVES
+    dc.l    DebugToggleMuteki           ; DEBUGOPT_MUTEKI
+    dc.l    DebugToggleTimer            ; DEBUGOPT_TIMER
+
+;****************************************************************************
+; DebugIncStage
+; Increases the stage number.
+;----------------------------------------------------------------------------
+; breaks: all but d0-d1
+;****************************************************************************
+
+DebugIncStage:
+    move.b  (Stage), d7
+    cmp.b   #STAGE_6_0, d7
+    blt.s   @NoWraparound
+    moveq   #-1, d7
+@NoWraparound:
+    addq.b  #1, d7
+    move.b  d7, (Stage)
+    rts
+
+;****************************************************************************
+; DebugDecStage
+; Decreases the stage number.
+;----------------------------------------------------------------------------
+; breaks: all but d0-d1
+;****************************************************************************
+
+DebugDecStage:
+    move.b  (Stage), d7
+    subq.b  #1, d7
+    bge.s   @NoWraparound
+    move.b  #STAGE_6_0, d7
+@NoWraparound:
+    move.b  d7, (Stage)
+    rts
+
+;****************************************************************************
+; DebugDrawStage
+; Draws the stage option in the debug menu.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DebugDrawStage:
+    move.l  #DebugLineStage, (TextBufAddr)
+    jsr     (ClearText).w               ; Clear text buffer
+    
+    moveq   #0, d7                      ; Draw label
+    lea     (StrStage), a6
+    jsr     (DrawText).w
+    
+    moveq   #0, d0                      ; Get stage name
+    move.b  (Stage), d0
+    lsl.w   #3, d0
+    lea     (StageList), a0
+    move.b  4(a0,d0.w), d0
+    
+    subq.w  #4, sp                      ; Generate string for name
+    move.l  sp, a6
+    move.b  d0, d1
+    lsr.b   #4, d0
+    and.b   #$0F, d1
+    add.b   #"0", d0
+    add.b   #"0", d1
+    move.b  d0, (a6)
+    move.b  d1, 1(a6)
+    clr.b   2(a6)
+    
+    moveq   #18, d7                     ; Draw stage name
+    jsr     (DrawText).w
+    addq.w  #4, sp
+    
+    cmp.b   #DEBUGOPT_STAGE, (DebugOption)  ; Selected?
+    bne.s   @NotSelected
+    bsr     DebugHighlight
+@NotSelected:
+    
+    move.w  #$C104, d7                  ; Get text on screen
+    jsr     (UploadText).w
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DebugIncLives
+; Increases the lives count.
+;----------------------------------------------------------------------------
+; breaks: all but d0-d1
+;****************************************************************************
+
+DebugIncLives:
+    move.b  (Lives), d7
+    moveq   #$01, d6
+    and.b   #$00, ccr
+    abcd.b  d6, d7
+    move.b  d7, (Lives)
+    rts
+
+;****************************************************************************
+; DebugDecLives
+; Decreases the lives count.
+;----------------------------------------------------------------------------
+; breaks: all but d0-d1
+;****************************************************************************
+
+DebugDecLives:
+    move.b  (Lives), d7
+    moveq   #$01, d6
+    and.b   #$00, ccr
+    sbcd.b  d6, d7
+    move.b  d7, (Lives)
+    rts
+
+;****************************************************************************
+; DebugDrawLives
+; Draws the lives option in the debug menu.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DebugDrawLives:
+    move.l  #DebugLineLives, (TextBufAddr)
+    jsr     (ClearText).w               ; Clear text buffer
+    
+    moveq   #0, d7                      ; Draw label
+    lea     (StrLives), a6
+    jsr     (DrawText).w
+    
+    move.b  (Lives), d7                 ; Split digits in the lives count
+    move.b  d7, d6
+    lsr.b   #4, d7
+    and.b   #$0F, d6
+    
+    subq.w  #4, sp                      ; Generate string for lives count
+    move.l  sp, a6
+    move.b  #"X", (a6)
+    add.b   #"0", d7
+    move.b  d7, 1(a6)
+    add.b   #"0", d6
+    move.b  d6, 2(a6)
+    move.b  #0, 3(a6)
+    
+    moveq   #18, d7                     ; Draw lives count
+    jsr     (DrawText).w
+    addq.w  #4, sp
+    
+    cmp.b   #DEBUGOPT_LIVES, (DebugOption)  ; Selected?
+    bne.s   @NotSelected
+    bsr     DebugHighlight
+@NotSelected:
+    
+    move.w  #$C304, d7                  ; Get text on screen
+    jsr     (UploadText).w
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DebugToggleMuteki
+; Toggles muteki mode.
+;----------------------------------------------------------------------------
+; breaks: all but d0-d1
+;****************************************************************************
+
+DebugToggleMuteki:
+    not.b   (Muteki)
+    rts
+
+;****************************************************************************
+; DebugDrawMuteki
+; Draws the muteki option in the debug menu.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DebugDrawMuteki:
+    move.l  #DebugLineMuteki, (TextBufAddr)
+    jsr     (ClearText).w               ; Clear text buffer
+    
+    moveq   #0, d7                      ; Draw label
+    lea     (StrMuteki), a6
+    jsr     (DrawText).w
+    
+    lea     (StrOff), a6                ; Determine string for value
+    tst.b   (Muteki)
+    beq.s   @MutekiOff
+    addq.l  #4, a6
+@MutekiOff:
+    
+    moveq   #18, d7                     ; Draw value
+    jsr     (DrawText).w
+    
+    cmp.b   #DEBUGOPT_MUTEKI, (DebugOption) ; Selected?
+    bne.s   @NotSelected
+    bsr     DebugHighlight
+@NotSelected:
+    
+    move.w  #$C504, d7                  ; Get text on screen
+    jsr     (UploadText).w
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DebugToggleTimer
+; Toggles timer.
+;----------------------------------------------------------------------------
+; breaks: all but d0-d1
+;****************************************************************************
+
+DebugToggleTimer:
+    not.b   (TimerOK)
+    rts
+
+;****************************************************************************
+; DebugDrawTimer
+; Draws the timer option in the debug menu.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DebugDrawTimer:
+    move.l  #DebugLineTimer, (TextBufAddr)
+    jsr     (ClearText).w               ; Clear text buffer
+    
+    moveq   #0, d7                      ; Draw label
+    lea     (StrTime), a6
+    jsr     (DrawText).w
+    
+    lea     (StrOff), a6                ; Determine string for value
+    tst.b   (TimerOK)
+    beq.s   @TimerOff
+    addq.l  #4, a6
+@TimerOff:
+    
+    moveq   #18, d7                     ; Draw value
+    jsr     (DrawText).w
+    
+    cmp.b   #DEBUGOPT_TIMER, (DebugOption) ; Selected?
+    bne.s   @NotSelected
+    bsr     DebugHighlight
+@NotSelected:
+    
+    move.w  #$C704, d7                  ; Get text on screen
+    jsr     (UploadText).w
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DebugHighlight
+; Highlight the currently being written line in the debug menu.
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+DebugHighlight:
+    move.l  (TextBufAddr), a6           ; Get current text buffer
+    
+    move.l  #$20002000, d6              ; Change its palette to yellow
+    moveq   #36*3/6-1, d7
+@Loop:
+    or.l    d6, (a6)+
+    or.l    d6, (a6)+
+    or.l    d6, (a6)+
+    dbf     d7, @Loop
+    
+    rts                                 ; End of subroutine

@@ -1,0 +1,38 @@
+Z t128
+
+!y @13c
+!z @5c
+
+!a l16crdrcrdrcrdrcrdr
+!b l16K1rcrdrcrdrcrdrcrdK0
+!c l16erdrerdrerdrerdr
+!d l16K1rdrcrdrcrdrcrdrcK0
+!e l16K1erdrerdrerdrerdrK0
+!f l16K2rdrcrdrcrdrcrdrcK0
+!g e2&e4.c8
+!h l16e8ce8eece8ce8eec
+!i l16d8cd8ddcd8cd8ddc
+!j !y8.!y8!y16!z8!y8.!y8!y8.
+!k !y8.!y8!y16!z8!y8.!z8!z8.
+
+A @18v12p2o5
+B @18v12p1o5
+C @11v15o1
+G @4v10o3
+H @4v10o3K2
+
+A !a!c!a!e!a!c!a!e!a!c!a!e
+B !b!d!b!f!b!d!b!f!b!d!b!f
+C r1r1r1r1r1r1r1r1r1r1r1r1
+G r1r1r1r1c1d1!gd1c1d1e1f1
+H r1r1r1r1c1d1!gd1c1d1e1f1
+K r1r1r1r1r1r1r1r1r1r1r1r1
+Z r1r1r1r1L
+
+A !a!c!a!e!a!c!a!e!a!c!a!e!a!c!a!e!a!c!a!e
+B !b!d!b!f!b!d!b!f!b!d!b!f!b!d!b!f!b!d!b!f
+C !h!i!h!i!h!i!h!i!h!i!h!i!h!i!h!i!h!i!h!i
+G r1r1r1r1c1d1!gd1c1d1e1f1c1d1!gd1c1d1e1f1
+H r1r1r1r1c1d1!gd1c1d1e1f1c1d1!gd1c1d1e1f1
+K !j!k!j!k!j!k!j!k!j!k!j!k!j!k!j!k!j!k!j!k
+

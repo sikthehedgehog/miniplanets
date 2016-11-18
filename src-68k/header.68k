@@ -1,0 +1,49 @@
+;****************************************************************************
+; 68000 vectors
+;****************************************************************************
+
+    dc.l    $1000000, EntryPoint, ErrorInt, ErrorInt
+    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
+    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
+    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
+    
+    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
+    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
+    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
+    dc.l    ErrorInt, ErrorInt, VBlank, ErrorInt
+    
+    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
+    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
+    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
+    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
+    
+    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
+    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
+    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
+    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
+
+;****************************************************************************
+; Mega Drive header
+;****************************************************************************
+
+    dc.b    "SEGA MEGA DRIVE "
+    dc.b    "(C) SIK 2016.NOV"
+    dc.b    "MINIPLANETS"
+    dcb.b   $150-*, $20
+    dc.b    "MINIPLANETS"
+    dcb.b   $180-*, $20
+    dc.b    "GM SIK-MINI-01"
+    dc.w    $0000
+    dc.b    "J"
+    dcb.b   $1A0-*, $20
+    dc.l    $000000, $3FFFFF
+    dc.l    $FF0000, $FFFFFF
+    dcb.b   $1F0-*, $20
+    dc.b    "JUE"
+    
+    if      SHOW_PUBLISHER
+    dcb.b   $1FC-*, $20
+    dc.l    ROMSize
+    else
+    dcb.b   $200-*, $20
+    endc

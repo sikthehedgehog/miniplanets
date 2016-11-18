@@ -1,0 +1,53 @@
+output "src-data/common/font.4bpp"
+input "src-data/common/font.png"
+layout sprite
+tiles 0 0 20 3
+tiles 0 3 19 3
+tiles 0 6 19 3
+tiles 0 9 13 3
+
+output "src-data/common/background.4bpp"
+input "src-data/common/background.png"
+layout tilemap
+tiles 0 0 1 4
+tiles 1 0 1 4
+tiles 2 0 2 2
+tiles 4 0 2 2
+tiles 2 2 2 2
+tiles 4 2 2 2
+
+output "src-data/common/game_over.4bpp"
+input "src-data/common/game_over.png"
+layout sprite
+tiles 0 0 17 3
+tiles 0 3 17 3
+tiles 0 6 17 3
+tiles 0 9 17 3
+tiles 0 12 17 3
+tiles 0 15 17 3
+tiles 0 18 17 3
+tiles 0 21 17 3
+
+layout sprite
+output "src-data/common/void.4bpp"
+input "src-data/common/void_1a.png"
+tiles 0 0 4 4
+input "src-data/common/void_2a.png"
+tiles 0 0 4 4
+input "src-data/common/void_1b.png"
+tiles 0 0 4 4
+input "src-data/common/void_2b.png"
+tiles 0 0 4 4
+input "src-data/common/void_1c.png"
+tiles 0 0 4 4
+input "src-data/common/void_2c.png"
+tiles 0 0 4 4
+input "src-data/common/void_1d.png"
+tiles 0 0 4 4
+input "src-data/common/void_2d.png"
+tiles 0 0 4 4
+
+output "data/common/planets.4bpp"
+input "src-data/common/planets.png"
+layout sprite
+tiles 0 0 5 1

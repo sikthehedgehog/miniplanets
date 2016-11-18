@@ -1,0 +1,74 @@
+;****************************************************************************
+; RunMace
+; Executes a mace's game logic.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+RunMace:
+    move.b  OBJ_DATA(a0), d7            ; Make mace spin
+    subq.b  #4, d7
+    cmp.b   #OBJTYPE_MACECCW, OBJ_TYPE(a0)
+    beq.s   @NoCounterClockwise
+    addq.b  #4*2, d7
+@NoCounterClockwise:
+    move.b  d7, OBJ_DATA(a0)
+    
+    bsr     GetMacePosition             ; Check if we've hit the player
+    moveq   #8, d5
+    moveq   #8, d4
+    bsr     CollidesPlayer
+    tst.w   d7
+    beq.s   @DontHurt
+    bsr     HurtPlayer
+@DontHurt:
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawMace
+; Draws a mace.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+DrawMace:
+    bsr     GetMacePosition             ; Draw mace sprite
+    move.w  #VramMace, d5
+    bsr     Add3DSprite
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; GetMacePosition
+; Gets the real position of a spinning mace.
+;----------------------------------------------------------------------------
+; input a0.l .... Pointer to object
+;----------------------------------------------------------------------------
+; output d7.w ... X coordinate
+; output d6.w ... Y coordinate
+;----------------------------------------------------------------------------
+; breaks: d5, a4-a6
+;****************************************************************************
+
+GetMacePosition:
+    moveq   #0, d5                      ; Get distances for this angle
+    move.b  OBJ_DATA(a0), d5
+    add.w   d5, d5
+    lea     (Sines), a6
+    lea     (a6,d5.w), a6
+    move.w  (a6), d7
+    move.w  $80(a6), d6
+    neg.w   d6
+    
+    asr.w   #4, d7                      ; Wanted distance is 16 pixels
+    asr.w   #4, d6
+    
+    add.b   OBJ_X(a0), d7               ; Apply center of mace
+    add.b   OBJ_Y(a0), d6
+    
+    rts                                 ; End of subroutine
