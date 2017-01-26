@@ -32,7 +32,7 @@
     dcb.b   $150-*, $20
     dc.b    "MINIPLANETS"
     dcb.b   $180-*, $20
-    dc.b    "GM SIK-MINI-01"
+    dc.b    "GM SIK-MINI-02"
     dc.w    $0000
     dc.b    "J"
     dcb.b   $1A0-*, $20

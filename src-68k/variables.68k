@@ -332,7 +332,8 @@ VramIntroQisha48:   rs.b 6*6          ; Qisha at 48x48
 VramIntroQisha40:   rs.b 5*5          ; Qisha at 40x40
 VramIntroQisha32:   rs.b 4*4          ; Qisha at 32x32
 VramIntroQishaEtc:  rs.b (1+4+9)*4    ; Qisha at fully prerendered sizes
-VramIntroQishaSize: equ *-VramIntroQisha ; Not gonna calculate all this
+VramIntroQishaEnd:  rs.b 0           ; Not gonna calculate all this
+VramIntroQishaSize: equ VramIntroQishaEnd-VramIntroQisha
 
 ;****************************************************************************
 ; Tile IDs used in the stage clear screen
