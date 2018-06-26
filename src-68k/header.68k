@@ -2,37 +2,37 @@
 ; 68000 vectors
 ;****************************************************************************
 
-    dc.l    $1000000, EntryPoint, ErrorInt, ErrorInt
-    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
-    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
-    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
-    
-    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
-    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
-    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
-    dc.l    ErrorInt, ErrorInt, VBlank, ErrorInt
-    
-    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
-    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
-    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
-    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
-    
-    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
-    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
-    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
-    dc.l    ErrorInt, ErrorInt, ErrorInt, ErrorInt
+    dc.l    $1000000,   EntryPoint, ErrorBus,   ErrorAddr
+    dc.l    ErrorIll,   ErrorDiv,   ErrorChk,   ErrorTrapv
+    dc.l    ErrorPriv,  ErrorTrace, Error1010,  Error1111
+    dc.l    ErrorUnk,   ErrorUnk,   ErrorUnk,   ErrorUnk
+
+    dc.l    ErrorUnk,   ErrorUnk,   ErrorUnk,   ErrorUnk
+    dc.l    ErrorUnk,   ErrorUnk,   ErrorUnk,   ErrorUnk
+    dc.l    ErrorIRQ,   ErrorIRQ,   ErrorIRQ,   ErrorIRQ
+    dc.l    ErrorIRQ,   ErrorIRQ,   VBlank,     ErrorIRQ
+
+    dc.l    ErrorTrap,  ErrorTrap,  ErrorTrap,  ErrorTrap
+    dc.l    ErrorTrap,  ErrorTrap,  ErrorTrap,  ErrorTrap
+    dc.l    ErrorTrap,  ErrorTrap,  ErrorTrap,  ErrorTrap
+    dc.l    ErrorTrap,  ErrorTrap,  ErrorTrap,  ErrorTrap
+
+    dc.l    ErrorUnk,   ErrorUnk,   ErrorUnk,   ErrorUnk
+    dc.l    ErrorUnk,   ErrorUnk,   ErrorUnk,   ErrorUnk
+    dc.l    ErrorUnk,   ErrorUnk,   ErrorUnk,   ErrorUnk
+    dc.l    ErrorUnk,   ErrorUnk,   ErrorUnk,   ErrorUnk
 
 ;****************************************************************************
 ; Mega Drive header
 ;****************************************************************************
 
     dc.b    "SEGA MEGA DRIVE "
-    dc.b    "(C) SIK 2016.NOV"
+    dc.b    "(C) SIK 2018.JUN"
     dc.b    "MINIPLANETS"
     dcb.b   $150-*, $20
     dc.b    "MINIPLANETS"
     dcb.b   $180-*, $20
-    dc.b    "GM SIK-MINI-02"
+    dc.b    "GM SIK-MINI-03"
     dc.w    $0000
     dc.b    "J"
     dcb.b   $1A0-*, $20

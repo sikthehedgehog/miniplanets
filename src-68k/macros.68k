@@ -340,3 +340,29 @@ SubLongBCD: macro src, dest
     ror.l   #8, \src
     ror.l   #8, \dest
     endm
+
+;****************************************************************************
+; The following two macros mercilessly copied from echo.68k then renamed
+; I didn't want to mess with that file mmkay :P
+;****************************************************************************
+
+;****************************************************************************
+; Z80Request
+; Requests the Z80 bus
+;****************************************************************************
+
+Z80Request macro
+    move.w  #$100, ($A11100)        ; Request Z80 bus
+@WaitZ80\@:
+    btst.b  #0, ($A11100)           ; Did we get it yet?
+    bne.s   @WaitZ80\@              ; Keep waiting
+    endm                            ; End of macro
+
+;****************************************************************************
+; Z80Release
+; Releases the Z80 bus
+;****************************************************************************
+
+Z80Release macro
+    move.w  #$000, ($A11100)        ; Release Z80 bus
+    endm                            ; End of macro

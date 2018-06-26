@@ -152,19 +152,40 @@ ClearDMABuffer:
 ;****************************************************************************
 
 FlushDMABuffer:
-    lea     (DMABuf), a6                ; Where the DMA buffer starts
-    move.l  (DMABufEnd), a5             ; Where the DMA buffer ends
-    lea     ($C00004), a4               ; VDP control port
+    lea     ($C00004), a6               ; VDP control port
+    lea     (DMABuf), a5                ; Where the DMA buffer starts
     
-@Loop:                                  ; Send everything in the buffer to
-    cmp.l   a5, a6                        ; the VDP
+    move.w  (DMABufEnd+2), d7           ; Check how many words to send
+    sub.w   #DMABuf&$FFFF, d7
     beq.s   @End
-    move.w  (a6)+, (a4)
-    bra.s   @Loop
+    lsr.w   #1, d7
+    subq.w  #1, d7
+    
+    Z80Request
+@Loop:                                  ; Send everything in the buffer to
+    move.w  (a5)+, (a6)                   ; the VDP
+    dbf     d7, @Loop
+    Z80Release
     
 @End:
     move.l  #DMABuf, (DMABufEnd)        ; Clear DMA buffer
     rts                                 ; End of subroutine
+
+;----------------------------------------------------------------------------
+
+;    lea     (DMABuf), a6                ; Where the DMA buffer starts
+;    move.l  (DMABufEnd), a5             ; Where the DMA buffer ends
+;    lea     ($C00004), a4               ; VDP control port
+;    
+;@Loop:                                  ; Send everything in the buffer to
+;    cmp.l   a5, a6                        ; the VDP
+;    beq.s   @End
+;    move.w  (a6)+, (a4)
+;    bra.s   @Loop
+;    
+;@End:
+;    move.l  #DMABuf, (DMABufEnd)        ; Clear DMA buffer
+;    rts                                 ; End of subroutine
 
 ;****************************************************************************
 ; UpdatePalette

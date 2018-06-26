@@ -6,6 +6,11 @@
 
                     rsset $FF0000
 
+RAM_ErrorType       rs.w 1          ; What kind of error is it
+RAM_ErrorPC         rs.l 1          ; Where the program crashed
+RAM_ErrorAddr       rs.l 1          ; Where the program attempted to access
+RAM_ErrorRegs       rs.l 16         ; Where registers are stored
+
 Joy1Hold:           rs.b 1          ; [1P] Buttons being held down
 Joy1Press:          rs.b 1          ; [1P] Buttons that just got pressed
 Joy2Hold:           rs.b 1          ; [2P] Buttons being held down

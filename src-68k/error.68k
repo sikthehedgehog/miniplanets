@@ -1,0 +1,463 @@
+;****************************************************************************
+; Error handler shamelessly ported from Project MD
+; <Sik> It's my own copyright so I can safely just relicense it under zlib
+;****************************************************************************
+
+;****************************************************************************
+; ErrorInt
+; Generic error exception handler. Shows information about the crash.
+;****************************************************************************
+
+ErrorInt:
+    move.w  #$2700, sr                  ; Disable interrupts
+    
+    move.l  d0, (RAM_ErrorRegs+$00)     ; Store register data into memory
+    move.l  d1, (RAM_ErrorRegs+$04)     ; Later we'll need this
+    move.l  d2, (RAM_ErrorRegs+$08)
+    move.l  d3, (RAM_ErrorRegs+$0C)
+    move.l  d4, (RAM_ErrorRegs+$10)
+    move.l  d5, (RAM_ErrorRegs+$14)
+    move.l  d6, (RAM_ErrorRegs+$18)
+    move.l  d7, (RAM_ErrorRegs+$1C)
+    move.l  a0, (RAM_ErrorRegs+$20)
+    move.l  a1, (RAM_ErrorRegs+$24)
+    move.l  a2, (RAM_ErrorRegs+$28)
+    move.l  a3, (RAM_ErrorRegs+$2C)
+    move.l  a4, (RAM_ErrorRegs+$30)
+    move.l  a5, (RAM_ErrorRegs+$34)
+    move.l  a6, (RAM_ErrorRegs+$38)
+    move.l  a7, (RAM_ErrorRegs+$3C)
+
+    lea     ($C00004), a0               ; Load VDP port addresses
+    lea     ($C00000), a1
+
+    tst.w   (a0)                        ; Reset VDP command reading
+                                        ; We don't know what was up when
+                                        ; the crash happened
+
+    move.w  #$8114, (a0)                ; Disable display
+
+    move.w  #$8004, (a0)    ; No IRQ4, no HV counter
+    move.w  #$8238, (a0)    ; Plane A table: $E000
+    move.w  #$8407, (a0)    ; Plane B table: $E000
+    move.w  #$8500, (a0)    ; Sprite table: $0000
+    move.w  #$8700, (a0)    ; Background color: palette 0, index 0
+    move.w  #$8B00, (a0)    ; No IRQ2, full VScroll, full HScroll
+    move.w  #$8C81, (a0)    ; H40, no S/H, no interlace
+    move.w  #$8D00, (a0)    ; HScroll table: $0000
+    move.w  #$8F02, (a0)    ; Autoincrement: 2 bytes
+    move.w  #$9001, (a0)    ; Tilemap size: 64x32
+    move.w  #$9100, (a0)    ; Hide window plane
+    move.w  #$9200, (a0)    ; Hide window plane
+
+    move.l  #$40000010, (a0)            ; Clear VSRAM
+    move.l  #$00000000, (a1)
+
+    move.l  #$C0000000, (a0)            ; Load our palette in a hackish way
+    move.w  #$0A00, (a1)
+    move.l  #$00000EEE, (a1)
+    move.l  #$C0220000, (a0)
+    move.l  #$000000EE, (a1)
+    move.l  #$C0420000, (a0)
+    move.l  #$000000E0, (a1)
+    move.l  #$C0620000, (a0)
+    move.l  #$00000AAE, (a1)
+
+    move.l  #$60000003, (a0)            ; Clear tilemap
+    moveq   #((64/16)*28)-1, d0
+    moveq   #0, d1
+@ClearTilemap:
+    move.l  d1, (a1)
+    move.l  d1, (a1)
+    move.l  d1, (a1)
+    move.l  d1, (a1)
+    move.l  d1, (a1)
+    move.l  d1, (a1)
+    move.l  d1, (a1)
+    move.l  d1, (a1)
+    dbf     d0, @ClearTilemap
+
+    move.w  (RAM_ErrorType), d0         ; Write exception name on screen
+    lea     (@NameList), a2
+    move.l  (a2,d0.w), a2
+    moveq   #3, d0
+    moveq   #2, d1
+    move.w  #$6000, d2
+    bsr     ErrorDrawString
+
+    lea     (@TextList), a4             ; Write all other texts on screen
+    moveq   #@TextListSize-1, d7
+@DrawTexts:
+    move.l  (a4)+, a2
+    move.w  (a4)+, d0
+    move.w  (a4)+, d1
+    move.w  (a4)+, d2
+    bsr     ErrorDrawString
+    dbf     d7, @DrawTexts
+
+    lea     (@RegList), a2              ; Write all registers on screen
+    moveq   #@RegListSize-1, d7
+@DrawRegs:
+    move.l  (a2)+, a3
+    move.l  (a3), d2
+    move.w  (a2)+, d0
+    move.w  (a2)+, d1
+    bsr     ErrorDrawDword
+    dbf     d7, @DrawRegs
+
+    moveq   #15, d0                     ; Write crash address on screen
+    moveq   #23, d1
+    move.l  (RAM_ErrorPC), d2
+    bsr     ErrorDrawDword
+
+    move.w  (RAM_ErrorType), d0         ; Write access address on screen
+    cmp.w   #4, d0                      ; if group #0 exception
+    bhi.s   @NotGroup0
+
+    moveq   #3, d0
+    moveq   #25, d1
+    move.w  #$4000, d2
+    lea     (@StrAccessed), a2
+    bsr     ErrorDrawString
+
+    moveq   #15, d0
+    moveq   #25, d1
+    move.l  (RAM_ErrorAddr), d2
+    bsr     ErrorDrawDword
+@NotGroup0:
+
+    move.l  (RAM_ErrorRegs+$3C), a2     ; Draw what's in the stack
+    moveq   #21, d4
+    moveq   #6-1, d5
+@DrawStack:
+    moveq   #26, d0
+    move.w  d4, d1
+    move.l  (a2)+, d2
+    bsr     ErrorDrawDword
+    addq.w  #1, d4
+    dbf     d5, @DrawStack
+
+    move.l  #$40200000, (a0)            ; Load charset
+    moveq   #@CharsetSize, d0
+    lea     (@Charset), a0
+    jsr     Load1BPPTilesShadow
+
+    move.w  #$8154, ($C00004)           ; Enable display
+    bra.s   *                           ; Hang
+
+;----------------------------------------------------------------------------
+; Charset graphics
+;----------------------------------------------------------------------------
+
+@Charset incbin "data/error/charset.bin"
+@CharsetSize equ (*-@Charset)/$08
+
+;----------------------------------------------------------------------------
+; Macros for defining entries for the lists
+;----------------------------------------------------------------------------
+; param addr ... Register to read
+; param x ...... X coordinate
+; param y ...... Y coordinate
+; param pal .... Palette
+;----------------------------------------------------------------------------
+
+@TextEntry macro addr, x, y, palette
+    dc.l    addr
+    dc.w    x
+    dc.w    y
+    dc.w    (palette)<<13
+    endm
+
+@RegEntry macro addr, x, y
+    dc.l    addr
+    dc.w    x
+    dc.w    y
+    endm
+
+;----------------------------------------------------------------------------
+; Locations of each text on screen
+;----------------------------------------------------------------------------
+
+@TextList:
+    @TextEntry @StrRegD0, 6, 5, 1
+    @TextEntry @StrRegD1, 6, 7, 1
+    @TextEntry @StrRegD2, 6, 9, 1
+    @TextEntry @StrRegD3, 6, 11, 1
+    @TextEntry @StrRegD4, 6, 13, 1
+    @TextEntry @StrRegD5, 6, 15, 1
+    @TextEntry @StrRegD6, 6, 17, 1
+    @TextEntry @StrRegD7, 6, 19, 1
+    @TextEntry @StrRegA0, 23, 5, 1
+    @TextEntry @StrRegA1, 23, 7, 1
+    @TextEntry @StrRegA2, 23, 9, 1
+    @TextEntry @StrRegA3, 23, 11, 1
+    @TextEntry @StrRegA4, 23, 13, 1
+    @TextEntry @StrRegA5, 23, 15, 1
+    @TextEntry @StrRegA6, 23, 17, 1
+    @TextEntry @StrRegA7, 23, 19, 1
+    @TextEntry @StrCrashed, 4, 23, 2
+@TextListSize equ (*-@TextList)/10
+
+;----------------------------------------------------------------------------
+; Locations of each register on screen
+;----------------------------------------------------------------------------
+
+@RegList:
+    @RegEntry RAM_ErrorRegs+$00, 9, 5
+    @RegEntry RAM_ErrorRegs+$04, 9, 7
+    @RegEntry RAM_ErrorRegs+$08, 9, 9
+    @RegEntry RAM_ErrorRegs+$0C, 9, 11
+    @RegEntry RAM_ErrorRegs+$10, 9, 13
+    @RegEntry RAM_ErrorRegs+$14, 9, 15
+    @RegEntry RAM_ErrorRegs+$18, 9, 17
+    @RegEntry RAM_ErrorRegs+$1C, 9, 19
+    @RegEntry RAM_ErrorRegs+$20, 26, 5
+    @RegEntry RAM_ErrorRegs+$24, 26, 7
+    @RegEntry RAM_ErrorRegs+$28, 26, 9
+    @RegEntry RAM_ErrorRegs+$2C, 26, 11
+    @RegEntry RAM_ErrorRegs+$30, 26, 13
+    @RegEntry RAM_ErrorRegs+$34, 26, 15
+    @RegEntry RAM_ErrorRegs+$38, 26, 17
+    @RegEntry RAM_ErrorRegs+$3C, 26, 19
+@RegListSize equ (*-@RegList)/8
+
+;----------------------------------------------------------------------------
+; List of pointers to exception names
+;----------------------------------------------------------------------------
+
+@NameList:
+    dc.l    @Name02
+    dc.l    @Name03
+    dc.l    @Name04
+    dc.l    @Name05
+    dc.l    @Name05
+    dc.l    @Name06
+    dc.l    @Name07
+    dc.l    @Name08
+    dc.l    @Name09
+    dc.l    @Name0A
+    dc.l    @Name0B
+    dc.l    @NameUnk
+    dc.l    @NameIRQ
+    dc.l    @NameTrap
+
+;----------------------------------------------------------------------------
+; Exception names
+;----------------------------------------------------------------------------
+
+@Name02:        dc.b 'BUS ERROR',0
+@Name03:        dc.b 'ADDRESS ERROR',0
+@Name04:        dc.b 'ILLEGAL INSTRUCTION',0
+@Name05:        dc.b 'ZERO DIVIDE',0
+@Name06:        dc.b 'CHK INSTRUCTION',0
+@Name07:        dc.b 'TRAPV INSTRUCTION',0
+@Name08:        dc.b 'PRIVILEGE VIOLATION',0
+@Name09:        dc.b 'TRACE',0
+@Name0A:        dc.b '1010 INSTRUCTION TRAP',0
+@Name0B:        dc.b '1111 INSTRUCTION TRAP',0
+@NameUnk:       dc.b 'UNKNOWN EXCEPTION',0
+@NameIRQ:       dc.b 'INVALID IRQ',0
+@NameTrap:      dc.b 'INVALID TRAP',0
+
+;----------------------------------------------------------------------------
+; Register names
+;----------------------------------------------------------------------------
+
+@StrRegD0:      dc.b 'D0',0
+@StrRegD1:      dc.b 'D1',0
+@StrRegD2:      dc.b 'D2',0
+@StrRegD3:      dc.b 'D3',0
+@StrRegD4:      dc.b 'D4',0
+@StrRegD5:      dc.b 'D5',0
+@StrRegD6:      dc.b 'D6',0
+@StrRegD7:      dc.b 'D7',0
+@StrRegA0:      dc.b 'A0',0
+@StrRegA1:      dc.b 'A1',0
+@StrRegA2:      dc.b 'A2',0
+@StrRegA3:      dc.b 'A3',0
+@StrRegA4:      dc.b 'A4',0
+@StrRegA5:      dc.b 'A5',0
+@StrRegA6:      dc.b 'A6',0
+@StrRegA7:      dc.b 'SP',0
+
+;----------------------------------------------------------------------------
+; Other texts
+;----------------------------------------------------------------------------
+
+@StrCrashed:    dc.b 'CRASHED AT',0
+@StrAccessed:   dc.b 'ACCESSED AT',0
+
+    even
+
+;****************************************************************************
+; ErrorDrawDword
+; Draws a dword in the error screen
+;----------------------------------------------------------------------------
+; input d0.w ... X coordinate (in tiles)
+; input d1.w ... Y coordinate (in tiles)
+; input d2.l ... Value to write on screen
+;----------------------------------------------------------------------------
+; breaks: d0, d1, d2
+;****************************************************************************
+
+ErrorDrawDword:
+    lsl.w   #6, d1                      ; Loop through all digits
+    add.w   d1, d0
+    add.w   d0, d0
+    and.l   #$FFFF, d0
+    swap    d0
+    or.l    #$60000003, d0
+    move.l  d0, (a0)
+
+    moveq   #8-1, d0                    ; Loop through all digits
+@Loop:
+    rol.l   #4, d2                      ; Get character to write
+    move.w  d2, d1
+    and.w   #$000F, d1
+    addq.w  #1, d1
+    move.w  d1, (a1)
+    
+    dbf     d0, @Loop                   ; Next digit
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; ErrorDrawString
+; Draws a string in the error screen
+;----------------------------------------------------------------------------
+; input d0.w ... X coordinate (in tiles)
+; input d1.w ... Y coordinate (in tiles)
+; input d2.w ... Special flags (used for palette)
+; input a2.l ... Pointer to text to write
+;----------------------------------------------------------------------------
+; breaks: d0, d1, a2, a3
+;****************************************************************************
+
+ErrorDrawString:
+    lsl.w   #6, d1                      ; Determine where to write
+    add.w   d1, d0
+    add.w   d0, d0
+    and.l   #$FFFF, d0
+    swap    d0
+    or.l    #$60000003, d0
+    move.l  d0, (a0)
+
+    lea     @Table(pc), a3              ; Get address of look-up table
+
+@Loop:                                  ; Loop through all characters
+    moveq   #0, d0                      ; Fetch character
+    move.b  (a2)+, d0
+
+    beq.s   @End                        ; End of string?
+
+    sub.w   #$20, d0                    ; Put character into tilemap
+    add.w   d0, d0
+    move.w  (a3,d0.w), d0
+    or.w    d2, d0
+    move.w  d0, (a1)
+
+    bra.s   @Loop                       ; Go for next character
+
+@End:
+    rts                                 ; End of subroutine
+
+;----------------------------------------------------------------------------
+; Look-up table to convert from ASCII to the tile IDs
+;----------------------------------------------------------------------------
+
+@Table:
+    dc.w    $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000     ; $20..$27
+    dc.w    $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000     ; $28..$2F
+    dc.w    $0001,$0002,$0003,$0004,$0005,$0006,$0007,$0008     ; $30..$37
+    dc.w    $0009,$000A,$0000,$0000,$0000,$0000,$0000,$0000     ; $38..$3F
+    dc.w    $0000,$000B,$000C,$000D,$000E,$000F,$0010,$0011     ; $40..$47
+    dc.w    $0012,$0013,$0014,$0015,$0016,$0017,$0018,$0019     ; $48..$4F
+    dc.w    $001A,$001B,$001C,$001D,$001E,$001F,$0020,$0021     ; $50..$57
+    dc.w    $0022,$0023,$0000,$0000,$0000,$0000,$0000,$0000     ; $58..$5F
+
+;****************************************************************************
+; Macros for generating exception handlers
+;****************************************************************************
+
+ErrorFuncGrp0 macro type
+    move.w  #(type)<<2, (RAM_ErrorType)
+    move.l  10(sp), (RAM_ErrorPC)
+    move.l  2(sp), (RAM_ErrorAddr)
+    bra     ErrorInt
+    endm
+
+ErrorFunc macro type
+    move.w  #(type)<<2, (RAM_ErrorType)
+    move.l  2(sp), (RAM_ErrorPC)
+    bra     ErrorInt
+    endm
+
+;****************************************************************************
+; Exception handlers for different vectors ;
+;****************************************************************************
+
+ErrorBus:       ErrorFuncGrp0 0
+ErrorAddr:      ErrorFuncGrp0 1
+ErrorIll:       ErrorFunc 2
+ErrorDiv:       ErrorFunc 3
+ErrorChk:       ErrorFunc 4
+ErrorTrapv:     ErrorFunc 5
+ErrorPriv:      ErrorFunc 6
+ErrorTrace:     ErrorFunc 7
+Error1010:      ErrorFunc 8
+Error1111:      ErrorFunc 9
+ErrorUnk:       ErrorFunc 10
+ErrorIRQ:       ErrorFunc 11
+ErrorTrap:      ErrorFunc 12
+
+
+;****************************************************************************
+; Load1BPPTilesShadow
+;
+; Loads tiles stored as 1BPP into VRAM
+; A shadow effect is applied onto the tiles
+; Yes, that's three colors with 1BPP data :P
+;
+; Colors are used as follows:
+;   Index #0 ... Background
+;   Index #1 ... Shadow
+;   Index #2 ... Foreground
+;----------------------------------------------------------------------------
+; input d0.w ... Number of tiles to load
+; input a0.l ... Address of tile data
+;----------------------------------------------------------------------------
+; breaks: d0, d1, d2, d3, d7, a0, a1
+;****************************************************************************
+
+Load1BPPTilesShadow:
+    lea     ($C00000), a1               ; Get address of VDP data port
+
+    add.w   d0, d0                      ; Process all tiles
+    add.w   d0, d0
+    add.w   d0, d0
+    subq.w  #1, d0
+@Loop:
+    move.b  (a0)+, d1                   ; Process all pixels
+    moveq   #0, d2
+    moveq   #8-1, d7
+@InnerLoop:
+
+    add.b   d1, d1                      ; Get pixel info
+
+    bcs.s   @NotSpace                   ; Is it a space?
+    subq.w  #1, d2
+    bge.s   @PixelSet
+    moveq   #0, d2
+    bra.s   @PixelSet
+@NotSpace:
+
+    moveq   #2, d2                      ; Is it solid?
+@PixelSet:
+    
+    lsl.l   #4, d3                      ; Next pixel
+    or.b    d2, d3
+    dbf     d7, @InnerLoop
+
+    move.l  d3, (a1)                    ; Send line to VDP
+    dbf     d0, @Loop                   ; Next line
+
+    rts                                 ; End of subroutine

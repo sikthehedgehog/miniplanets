@@ -63,6 +63,7 @@ DEBUG_CPUUSAGE:         equ 0       ; Profile CPU time usage
     include "src-68k/fireballs.68k"
     include "src-68k/children.68k"
     
+    include "src-68k/error.68k"
     include "src-68k/variables.68k"
 
 ;****************************************************************************

@@ -152,6 +152,14 @@ TitleScreen:
     beq.s   @NoCreditsSkip
     btst.b  #6, (Joy1Hold)
     bne     Credits
+;    btst.b  #4, (Joy1Hold)
+;    beq.s   @NoIllegal
+;    illegal
+;@NoIllegal:
+;    btst.b  #5, (Joy1Hold)
+;    beq.s   @NoCreditsSkip
+;    move.l  #$FFFFFF, ($FFFFFF)
+;    bra.s   *
 @NoCreditsSkip:
     
     moveq   #0, d7                      ; Go to the selected screen
