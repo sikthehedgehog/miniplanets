@@ -1,6 +1,9 @@
 #!/bin/sh
 
 GAMENAME=Miniplanets.bin
+BGMDIR=bgm
+SFXDIR=sfx
+VOICEDIR=voices
 
 asm() { wine tools/asm68k.exe /p $1, $2, , listing.txt ; }
 gfx() { ./tools/mdtiler $1 ; }
@@ -33,8 +36,17 @@ gfx src-data/ingame/gfxbuild
 slz src-data/ingame/ingame.4bpp data/ingame/ingame.slz
 gfx src-data/globe/gfxbuild
 slz src-data/globe/globe.4bpp data/globe/globe.slz
-uftc src-data/globe/raft.4bpp data/globe/raft.uftc
-uftc src-data/globe/belt.4bpp data/globe/belt.uftc
+#uftc src-data/globe/raft.4bpp data/globe/raft.uftc
+#uftc src-data/globe/belt_h.4bpp data/globe/belt_h.uftc
+#uftc src-data/globe/belt_v.4bpp data/globe/belt_v.uftc
+#uftc data/globe/water.4bpp data/globe/water.uftc
+#uftc data/globe/fire.4bpp data/globe/fire.uftc
+slz data/globe/water.4bpp data/globe/water.slz
+slz data/globe/fire.4bpp data/globe/fire.slz
+#slz src-data/globe/belt_h.4bpp data/globe/belt_h.slz
+#slz src-data/globe/belt_v.4bpp data/globe/belt_v.slz
+cat src-data/globe/belt_h.4bpp src-data/globe/belt_v.4bpp > src-data/globe/belt.4bpp && \
+slz src-data/globe/belt.4bpp data/globe/belt.slz
 
 gfx src-data/title/gfxbuild
 slz src-data/title/miniplanets.4bpp data/title/miniplanets.slz
@@ -49,33 +61,11 @@ gfx src-data/credits/gfxbuild
 cat src-data/credits/foreground.4bpp >> src-data/credits/foreground.blob
 slz src-data/credits/foreground.blob data/credits/foreground.slz
 
-eif src-data/sound/bell.tfi data/sound/bell.eif
-eif src-data/sound/sawtooth.tfi data/sound/sawtooth.eif
-eif src-data/sound/distortion.tfi data/sound/distortion.eif
-eif src-data/sound/sax.tfi data/sound/sax.eif
-eif src-data/sound/guitar.tfi data/sound/guitar.eif
-eif src-data/sound/bass.tfi data/sound/bass.eif
-eif src-data/sound/synbass.tfi data/sound/synbass.eif
-eif src-data/sound/stage1lead.tfi data/sound/stage1lead.eif
-eif src-data/sound/bell2.tfi data/sound/bell2.eif
-eif src-data/sound/church.tfi data/sound/church.eif
-eif src-data/sound/trumpet.tfi data/sound/trumpet.eif
-eif src-data/sound/impact.tfi data/sound/impact.eif
-ewf src-data/sound/explosion.pcm data/sound/explosion.ewf
-ewf src-data/sound/tick.pcm data/sound/tick.ewf
-ewf src-data/sound/tock.pcm data/sound/tock.ewf
-
-esf src-data/music/stage_1.mml data/sound/stage_1.esf
-esf src-data/music/stage_2.mml data/sound/stage_2.esf
-esf src-data/music/stage_3.mml data/sound/stage_3.esf
-esf src-data/music/stage_4.mml data/sound/stage_4.esf
-esf src-data/music/stage_5.mml data/sound/stage_5.esf
-esf src-data/music/boss.mml data/sound/boss.esf
-esf src-data/music/title.mml data/sound/title.esf
-esf src-data/music/ending.mml data/sound/ending.esf
-esf src-data/music/tally.mml data/sound/tally.esf
-esf src-data/music/game_over.mml data/sound/game_over.esf
+for a in $BGMDIR/*.mml ; do ./tools/mml2sona $a ${a%.mml}.sona ; done
+for a in $SFXDIR/*.mml ; do ./tools/mml2sona $a ${a%.mml}.sona ; done
+for a in $VOICEDIR/*.tfi ; do ./tools/tfi2spat $a ${a%.tfi}.spat ; done
+for a in $VOICEDIR/*.wav ; do ./tools/wav2swav $a ${a%.wav}.swav ; done
 
 rm -f "$GAMENAME"
-asm buildme.68k tmp.bin
-mv tmp.bin "$GAMENAME"
+#asm buildme.68k tmp.bin && ./tools/romfix -d -z -4 tmp.bin && mv tmp.bin "$GAMENAME"
+asm buildme.68k tmp.bin && ./tools/romfix -d -z tmp.bin && mv tmp.bin "$GAMENAME"
