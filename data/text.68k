@@ -17,16 +17,22 @@ GfxFontSize: equ filesize("src-data/common/font.4bpp")/$20
 ;****************************************************************************
 
 FontTable:
-    rept    $30-$20
+    dc.b    -1,2, 75*3,1                                ; !
+    
+    rept    $2D-$22
     dc.b    -1, 2
     endr
+    
+    dc.b    71*3,2, 76*3,1, -1,2                        ; - . /
     
     dc.b     0*3,2,  2*3,2,  4*3,2,  6*3,2,  8*3,2      ; 0 1 2 3 4
     dc.b    10*3,2, 12*3,2, 14*3,2, 16*3,2, 18*3,2      ; 5 6 7 8 9
     
-    rept    $41-$3A
+    rept    $3F-$3A
     dc.b    -1, 2
     endr
+    
+    dc.b    73*3,2, -1,2                                ; ? @
     
     dc.b    20*3,2, 22*3,2, 24*3,2, 26*3,2, 28*3,2      ; A B C D E
     dc.b    30*3,2, 32*3,2, 34*3,2, 36*3,1, 37*3,2      ; F G H I J
@@ -34,6 +40,10 @@ FontTable:
     dc.b    48*3,2, 50*3,2, 52*3,2, 54*3,2, 56*3,2      ; P Q R S T
     dc.b    58*3,2, 60*3,2, 62*3,3, 65*3,2, 67*3,2      ; U V W X Y
     dc.b    69*3,2                                      ; Z
+    
+    rept    $80-'['
+    dc.b    -1, 2
+    endr
 
 ;****************************************************************************
 ; Text used in the game
@@ -42,8 +52,10 @@ FontTable:
 StrStage:               dc.b "STAGE",0
 StrLives:               dc.b "LIVES",0
 StrMuteki:              dc.b "MUTEKI",0
+StrBelt:                dc.b "BELT",0
 StrOff:                 dc.b "OFF",0
 StrOn:                  dc.b "ON",0
+StrEdit:                dc.b "EDIT",0
 
 StrTime:                dc.b "TIME",0
 StrSec:                 dc.b "SEC",0
@@ -62,6 +74,7 @@ StrVeleet:              dc.b "VELOOT",0
 StrObor:                dc.b "OBOR",0
 StrKastar:              dc.b "KASTAR",0
 StrTheVoid:             dc.b "THE VOID",0
+StrQuQuQuQuQu:          dc.b "?????",0
 
 StrStageClear:          dc.b "STAGE X CLEAR",0
 StrStageBonus:          dc.b "STAGE BONUS",0
@@ -75,5 +88,9 @@ StrAxarRescued:         dc.b "AXAR RESCUED",0
 StrGoQishaGo:           dc.b "GO QISHA GO",0
 StrVoidSealedBack:      dc.b "VOID SEALED BACK",0
 StrLetsGoHome:          dc.b "LETS GO HOME",0
+StrWhatWasThat:         dc.b "WHAT WAS THAT?",0
 
-    even
+StrContinue:            dc.b "CONTINUE?",0
+StrYes:                 dc.b "YES",0
+StrNo:                  dc.b "NO",0
+                        even

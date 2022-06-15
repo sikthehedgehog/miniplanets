@@ -16,7 +16,8 @@ RunElectricity:
     tst.w   d7
     beq.s   @DontShock
     
-    bsr     HurtPlayer                  ; SHOCK!!
+    moveq   #ACTION_SHOCK, d7           ; SHOCK!!
+    bsr     HurtPlayerEx
 @DontShock:
     
     rts                                 ; End of subroutine

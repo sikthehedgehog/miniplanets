@@ -16,14 +16,24 @@ InitBackground:
     
     cmp.b   #STAGE_6_0, (Stage)         ; Void has its own background
     beq     InitStage6Background
-    move.b  (StageName), d7
+    move.b  (StageName), d7             ; Bosses use it too
     and.b   #$0F, d7
     cmp.b   #$09, d7
     beq     InitStage6Background
     
+    move.b  (StageName), d7             ; Obor has a cloudy background
+    and.b   #$F0, d7
+    cmp.b   #$40, d7
+    beq     InitStage4Background
+    cmp.b   #$70, d7                    ; "?????" background
+    beq     InitStage7Background
+    
     SetVRAMAddr $E000, 4(a5)            ; Set address
-    move.w  #$2000+VramBackground, d1   ; Base tile graphic
-    moveq   #0, d2                      ; So we can use ADDX
+    ;move.w  #$2000+VramBackground, d1   ; Base tile graphic
+    ;moveq   #0, d2                      ; So we can use ADDX
+    
+    move.w  #$2000+VramBackground, d1
+    move.l  #$20012002+(VramBackground<<16)+VramBackground, d2
     
     move.w  #$100-1, d7                 ; Scan all tiles
 @OutLoop:
@@ -31,13 +41,35 @@ InitBackground:
     moveq   #8-1, d6
 @InLoop:
     
+    ;move.w  d1, d5                      ; Determine tile ID to use
+    ;add.b   d0, d0
+    ;addx.w  d2, d5
+    
     move.w  d1, d5                      ; Determine tile ID to use
     add.b   d0, d0
-    addx.w  d2, d5
+    bcc.s   @Empty
+    move.w  d2, d5
+    swap    d2
+@Empty:
     
     move.w  d5, (a5)                    ; Place tile into tilemap
     dbf     d6, @InLoop                 ; Go for next tile
     dbf     d7, @OutLoop
+    
+    move.b  (StageName), d7             ; Stage 2's background has clouds
+    and.b   #$F0, d7
+    cmp.b   #$20, d7
+    bne.s   @NoClouds
+    bsr     InitStage2Background
+@NoClouds:
+    
+    move.b  (StageName), d7             ; Stage 3's background is brown
+    and.b   #$F0, d7
+    cmp.b   #$30, d7
+    bne.s   @NoBrownBG
+    move.l  (PalBrownBG+0), (PaletteBuf+$17*2)
+    move.l  (PalBrownBG+4), (PaletteBuf+$19*2)
+@NoBrownBG:
     
     move.b  (StageName), d7             ; Stage 5's background is red
     and.b   #$F0, d7
@@ -46,6 +78,97 @@ InitBackground:
     move.l  (PalRedBG+0), (PaletteBuf+$17*2)
     move.l  (PalRedBG+4), (PaletteBuf+$19*2)
 @NoRedBG:
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; InitStage2Background
+; Initializes the background for stage 2.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+InitStage2Background:
+    lea     ($C00004), a0               ; VDP control port address
+    lea     ($C00000), a1               ; VDP data port address
+    lea     @List(pc), a2               ; VRAM addresses for all clouds
+    
+    move.l  #$00040004, d4              ; How much to advance the tile IDs
+                                          ; after every row
+    
+    moveq   #@NUM_CLOUDS-1, d6          ; Loop through all clouds
+@OuterLoop:
+    move.l  #$20002001+(VramCloudBg<<16)+VramCloudBg, d0 ; Tile IDs making
+    move.l  #$20022003+(VramCloudBg<<16)+VramCloudBg, d1 ; up the first row
+    move.l  #$28032802+(VramCloudBg<<16)+VramCloudBg, d2 ; of a cloud
+    move.l  #$28012800+(VramCloudBg<<16)+VramCloudBg, d3
+    
+    move.l  (a2)+, d5                   ; Get starting VRAM address
+    moveq   #3-1, d7                    ; Loop through entire cloud
+@InnerLoop:
+    move.l  d5, (a0)                    ; Set VRAM address
+    
+    move.l  d0, (a1)                    ; Write entire row
+    move.l  d1, (a1)
+    move.l  d2, (a1)
+    move.l  d3, (a1)
+    
+    add.l   d4, d0                      ; Advance tile IDs
+    add.l   d4, d1
+    add.l   d4, d2
+    add.l   d4, d3
+    
+    add.l   #$80<<16, d5                ; Advance VRAM address
+    dbf     d7, @InnerLoop              ; Go draw next row
+    dbf     d6, @OuterLoop              ; Go draw next cloud
+    rts                                 ; End of subroutine
+
+;----------------------------------------------------------------------------
+
+@List:
+    dc.l    $60000003
+    dc.l    $60400003
+    dc.l    $64200003
+    dc.l    $66600003
+    dc.l    $68000003
+    dc.l    $6C300003
+    dc.l    $6C600003
+    
+@NUM_CLOUDS: equ (*-@List)/4
+
+;****************************************************************************
+; InitStage4Background
+; Initializes the background for stage 4.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+InitStage4Background:
+    lea     ($C00000), a0               ; VDP port addresses
+    
+    move.l  #$00000001+(VramStormBg<<16)+VramStormBg, d0
+    move.l  #$00020003+(VramStormBg<<16)+VramStormBg, d1
+    
+    SetVRAMAddr $E000, 4(a0)            ; Get ready to draw it...
+    
+    moveq   #$20/4-1, d5                ; Loop through all rows of tilemap
+@YLoop2:
+    moveq   #4-1, d6                    ; Loop through all rows of pattern
+@YLoop1:
+    moveq   #$40/4-1, d7                ; Loop through all tiles within row
+@XLoop:
+    move.l  d0, (a0)                    ; Draw left half
+    move.l  d1, (a0)                    ; Draw right half
+    dbf     d7, @XLoop                  ; Repeat pattern
+    
+    add.l   #$00040004, d0              ; Advance tile IDs
+    add.l   #$00040004, d1
+    dbf     d6, @YLoop1                 ; Go draw next row within pattern
+    
+    sub.l   #$00100010, d0              ; Back to initial tile IDs
+    sub.l   #$00100010, d1
+    exg     d0, d1                      ; Swap the halves for next rows
+    dbf     d5, @YLoop2                 ; Go draw next chunk row
     
     rts                                 ; End of subroutine
 
@@ -111,6 +234,65 @@ InitStage6Background:
     rts                                 ; End of subsubroutine
 
 ;****************************************************************************
+; InitStage7Background
+; Initializes the background for stage 7.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+InitStage7Background:
+    lea     ($C00000), a0               ; VDP port addresses
+    
+    move.l  #$40004001+(VramQuestionBg<<16)+VramQuestionBg, d0
+    move.l  #$40024003+(VramQuestionBg<<16)+VramQuestionBg, d1
+    move.l  #$400C400C+(VramQuestionBg<<16)+VramQuestionBg, d2
+    move.l  #$00040004, d3
+    move.l  #$18001800, d4
+    
+    SetVRAMAddr $E000, 4(a0)            ; Get ready to draw it...
+    
+    moveq   #$20/8-1, d5
+@OuterLoop:
+    moveq   #4-1, d6
+@YLoop1:
+    moveq   #$40/8-1, d7
+@XLoop1:
+    move.l  d0, (a0)
+    move.l  d1, (a0)
+    move.l  d2, (a0)
+    move.l  d2, (a0)
+    dbf     d7, @XLoop1
+    add.l   d3, d0
+    add.l   d3, d1
+    dbf     d6, @YLoop1
+    
+    eor.l   d4, d0
+    eor.l   d4, d1
+    swap    d0
+    swap    d1
+    
+    moveq   #4-1, d6
+@YLoop2:
+    sub.l   d3, d0
+    sub.l   d3, d1
+    moveq   #$40/8-1, d7
+@XLoop2:
+    move.l  d2, (a0)
+    move.l  d2, (a0)
+    move.l  d1, (a0)
+    move.l  d0, (a0)
+    dbf     d7, @XLoop2
+    dbf     d6, @YLoop2
+    
+    eor.l   d4, d0
+    eor.l   d4, d1
+    swap    d0
+    swap    d1
+    
+    dbf     d5, @OuterLoop              ; Draw next pair of rows
+    rts                                 ; End of subroutine
+
+;****************************************************************************
 ; ScrollBackground
 ; Updates the scroll position.
 ;----------------------------------------------------------------------------
@@ -156,7 +338,7 @@ AnimStage6BG:
     swap    d7
     
     lea     (PalBoss), a6               ; Determine where palette starts
-    cmp.b   #STAGE_5_9, (Stage)
+    cmp.b   #$50, (StageName)
     blo.s   @NormalBoss
     lea     (PalVoid), a6
 @NormalBoss:

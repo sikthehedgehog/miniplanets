@@ -14,6 +14,14 @@ EntryPoint:
     move.l  ($100).w, ($A14000)
 @NoTMSS:
     
+    cmp.b   #$40, ($A10009)             ; Skip checksum on soft reset (since
+    beq.s   @SkipChecksum                 ; we checksum before even resetting
+                                          ; the hardware and everything would
+                                          ; look frozen until it's done)
+    
+    bsr     VerifyChecksum              ; Check that ROM is valid
+@SkipChecksum:
+    
     jsr     (InitRand).w                ; Initialize hardware
     jsr     (InitJoypads).w
     jsr     (InitSound).w
@@ -21,13 +29,59 @@ EntryPoint:
     
     clr.b   (Muteki)                    ; Disable cheats!
     st.b    (TimerOK)
+    st.b    (BeltOK)
     clr.b   (DebugOK)
     
     move.b  #2, (TimeSetting)           ; Reset settings
     move.b  #2, (LifeSetting)
-    clr.b   (SoundTest)
+    move.b  #1, (SoundTest)
+    clr.b   (AttractSeq)
     
     bra     LogoSplash                  ; Go boot!
+
+;****************************************************************************
+; VerifyChecksum
+; Computes the checksum and checks if it's the same as in the ROM header.
+; If it doesn't match then it crashes the game with a CHECKSUM ERROR screen.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+VerifyChecksum:
+    lea     ($200).w, a0                ; Checksum is computed skipping the
+                                          ; ROM header, so this is the initial
+                                          ; address to read from
+    
+    move.l  ($1A4).w, d7                ; Determine how many bytes
+    addq.l  #1, d7                        ; need to be added
+    sub.l   a0, d7
+    
+    lsr.l   #4, d7                      ; Each loop iteration is 16 bytes
+                                          ; (ROM is going to be padded to a
+                                          ; way larger power of two boundary
+                                          ; than this, so yes this should be
+                                          ; safe)
+    
+    moveq   #0, d0                      ; Add up every word in the ROM
+@Loop:                                    ; (skipping ROM header, that is)
+    add.w   (a0)+, d0
+    add.w   (a0)+, d0
+    add.w   (a0)+, d0
+    add.w   (a0)+, d0
+    add.w   (a0)+, d0
+    add.w   (a0)+, d0
+    add.w   (a0)+, d0
+    add.w   (a0)+, d0
+    subq.l  #1, d7
+    bne.s   @Loop
+    
+    cmp.w   ($18E).w, d0                ; If the checksum matches the one
+    beq.s   @ChecksumOk                   ; reported in the ROM header then
+    trap    #1                            ; all is OK, otherwise crash the
+                                          ; game with a CHECKSUM ERROR
+    
+@ChecksumOk:
+    rts                                 ; End of subroutine
 
 ;****************************************************************************
 ; NextFrame
@@ -52,13 +106,14 @@ NextFrame:
     jsr     (ReadJoypads).w             ; Update joypad status
     jsr     (UpdateSound).w             ; Update sound playback
     
-    moveq   #0, d7                      ; Generate fake subpixel offset
-    move.w  (Anim), d6
-    rept    8
-    add.b   d6, d6
-    roxr.b  #1, d7
-    endr
-    move.w  d7, (Subpixel)
+    bsr     UpdateSubpixel              ; Generate fake subpixel offset
+                                          ; This is wrong since it can change
+                                          ; across multiple logic frames but
+                                          ; it's how pre-REMIX Ver. worked so
+                                          ; keeping it here just in case...
+                                          ; Isolated into its own subroutine
+                                          ; now so it's easier to recompute
+                                          ; manually when really needed
     
     move.b  #1, (NumFrames)             ; Set up stuff to do speed correction
     btst.b  #0, ($C00004+1)               ; on PAL systems (so the game logic
@@ -69,4 +124,23 @@ NextFrame:
     move.b  #5, (PALTimer)
 @NoPALCorrection:
     
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; UpdateSubpixel
+; Recomputes the correction factor used to fake subpixel precision.
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+UpdateSubpixel:
+    moveq   #0, d7                      ; Where correction factor will go
+    move.w  (Anim), d6                  ; Global animation counter
+    
+    rept    8                           ; Compute the correction factor by
+    add.b   d6, d6                        ; taking the bottom 8 bits (the
+    roxr.b  #1, d7                        ; ones changing most often) and
+    endr                                  ; reversing their order
+    
+    move.w  d7, (Subpixel)              ; Store new correction factor
     rts                                 ; End of subroutine

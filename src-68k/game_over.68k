@@ -87,7 +87,12 @@ GameOver:
 
 @Quit:
     jsr     (FadeOut).w                 ; Turn off screen
-    bra     LogoSplash                  ; Reset game
+    
+    move.b  (StageName), d7             ; If it's a planelago that has a
+    and.b   #$F0, d7                      ; password then ask the player if
+    cmp.b   #$10, d7                      ; they want to continue, otherwise
+    bne     ContinueScreen                ; reset the game
+    bra     LogoSplash
 
 ;****************************************************************************
 ; UpdateGameOverLetters

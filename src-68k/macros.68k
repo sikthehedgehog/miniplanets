@@ -75,6 +75,41 @@ DMA2VSRAM: macro src, dest, len, into
     endm
 
 ;****************************************************************************
+; DMA2VRAM_S, DMA2CRAM_S, DMA2VSRAM_S
+; Generates a command to do a DMA transfer into video memory. The destination
+; and length are constant, but the source is variable.
+;----------------------------------------------------------------------------
+; param src .... Source address (e.g. d7)
+; param dest ... Destination address (VDP)
+; param len .... Length in bytes
+; param into ... Register pointing to buffer (e.g. a6)
+;----------------------------------------------------------------------------
+; breaks: \src, \into
+****************************************************************************
+
+DMA2XRAM_S: macro src, dest, len, into, cmd
+    lsr.l   #1, \src
+    addq.l  #4, \into
+    move.l  #$97009600, (\into)+
+    move.w  #$9500, (\into)+
+    movep.l \src, -7(\into)
+    move.l  #$94009300|((\len)<<7&$FF0000)|((\len)>>1&$FF), -10(\into)
+    move.l  #(\cmd)|((\dest)&$3FFF)<<16|(\dest)>>14, (\into)+
+    endm
+
+DMA2VRAM_S: macro src, dest, len, into
+    DMA2XRAM_S \src, \dest, \len, \into, $40000080
+    endm
+
+DMA2CRAM_S: macro src, dest, len, into
+    DMA2XRAM_S \src, \dest, \len, \into, $C0000080
+    endm
+
+DMA2VSRAM_S: macro src, dest, len, into
+    DMA2XRAM_S \src, \dest, \len, \into, $40000090
+    endm
+
+;****************************************************************************
 ; DMA2VRAM_SD, DMA2CRAM_SD, DMA2VSRAM_SD
 ; Generates a command to do a DMA transfer into video memory. The source and
 ; destination are variable, but the length is constant.

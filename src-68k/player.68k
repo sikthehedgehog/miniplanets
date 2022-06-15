@@ -31,6 +31,8 @@ ACTION_LOSE:        rs.b 1      ; Lost :(
 ACTION_SINK:        rs.b 1      ; Sunk x_X
 ACTION_BURN:        rs.b 1      ; Burnt X_x
 ACTION_FALL:        rs.b 1      ; Fall D:
+ACTION_SHOCK:       rs.b 1      ; Shocked XoX
+ACTION_BOMB:        rs.b 1      ; Bomb to the face
 
 ACTION_STARE:       rs.b 1      ; Stare at player
 ACTION_FLY:         rs.b 1      ; Fly towards player
@@ -282,10 +284,21 @@ RunPlayer:
     move.b  #40, (PlayerSpring)
     moveq   #SFX_SPRING, d7
     jsr     (PlaySFX).w
+    moveq   #OBJTYPE_SPRINGFX, d7
+    move.b  (PlayerX), d6
+    move.b  (PlayerY), d5
+    and.b   #$F0, d6
+    and.b   #$F0, d5
+    addq.b  #$08, d6
+    addq.b  #$08, d5
+    moveq   #8, d4
+    bsr     AddObject
     bra     @JumpDone
 @NotSpring:
     
-    cmp.b   #TILE_CU, d7                ; Check for conveyor belts
+    tst.b   (BeltOK)                    ; Check for conveyor belts
+    beq.s   @NoBelts
+    cmp.b   #TILE_CU, d7
     bne.s   @NoBeltUp
     subq.b  #1, (PlayerY)
 @NoBeltUp:
@@ -301,6 +314,7 @@ RunPlayer:
     bne.s   @NoBeltRight
     addq.b  #1, (PlayerX)
 @NoBeltRight:
+@NoBelts:
     
     move.b  (Joy1Press), d7             ; Make player jump?
     and.b   #$70, d7
@@ -392,6 +406,7 @@ DrawPlayer:
     moveq   #8, d7
     cmp.b   #32, (PlayerDie)
     bls     @ActionSet
+@Sinking:
     moveq   #24, d7
     cmp.b   #32+12, (PlayerDie)
     bhi     @ActionSet
@@ -408,6 +423,7 @@ DrawPlayer:
     
     subq.b  #1, d7                      ; Burnt animation?
     bne.s   @NotBurnt
+@Burnt:
     moveq   #25, d7
     cmp.b   #32, (PlayerDie)
     bls     @ActionSet
@@ -434,6 +450,31 @@ DrawPlayer:
     move.b  (a6,d7.w), d7
     bra     @ActionSet
 @NotFalling:
+    
+    subq.b  #1, d7                      ; Electric shock?
+    bne.s   @NotShocked
+    move.w  (Anim), d7
+    lsr.w   #1, d7
+    and.w   #$01, d7
+    lea     (@ShockAnim), a6
+    move.b  (a6,d7.w), d7
+    cmp.b   #32, (PlayerDie)
+    bls     @ActionSet
+    move.w  (Anim), d7
+    lsr.w   #2, d7
+    and.w   #$03, d7
+    lea     (@LoseAnim), a6
+    move.b  (a6,d7.w), d7
+    bra     @ActionSet
+@NotShocked:
+    
+    
+    subq.b  #1, d7                      ; Bomb exploded in our faces?
+    bne.s   @NotBombed
+    cmp.b   #32, (PlayerDie)
+    bls     @Burnt
+    bra     @Sinking
+@NotBombed:
     
     subq.b  #1, d7                      ; Ending animations
     bne.s   @NotStaring
@@ -529,9 +570,9 @@ DrawPlayer:
 ;----------------------------------------------------------------------------
 
 @WalkAnim:
-    dc.b    2, 3, 4, 3, 2, 1, 0, 1
+    dc.b    2, 3, 4, 11, 12, 13, 0, 1
 @JumpAnim:
-    dc.b    5, 6, 7, 8, 8, 9, 9, 8, 8, 7, 6, 5
+    dc.b    5, 6, 7, 8, 8, 9, 9, 8, 8, 7, 6, 14
 @WinAnim:
     dc.b    0, 1, 1, 1, 1, 1, 2, 2, 1, 1, 1, 3, 4, 5, 6, 7
 @LoseAnim:
@@ -542,6 +583,8 @@ DrawPlayer:
     dc.b    26, 27, 28, 27
 @FallAnim:
     dc.b    29, 30, 31, 32, 33, 34, 35, 36
+@ShockAnim:
+    dc.b    8, 37
     
     even
 
@@ -625,7 +668,7 @@ HurtPlayerEx:
     move.b  d7, (PlayerAction)
     move.b  #ANGLE_X, (PlayerAngle)
     
-    moveq   #SFX_OUCH, d7               ; "Ouch!"
+    add.b   #SFX_OUCH-ACTION_LOSE, d7   ; "Ouch!"
     jsr     (PlaySFX).w
     
 @Skip:

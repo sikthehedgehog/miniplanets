@@ -50,7 +50,7 @@ ErrorInt:
     move.w  #$9100, (a0)    ; Hide window plane
     move.w  #$9200, (a0)    ; Hide window plane
 
-    move.l  #$40000010, (a0)            ; Clear VSRAM
+    move.l  #$40000010, (a0)            ; Reset vscroll
     move.l  #$00000000, (a1)
 
     move.l  #$C0000000, (a0)            ; Load our palette in a hackish way
@@ -76,6 +76,16 @@ ErrorInt:
     move.l  d1, (a1)
     move.l  d1, (a1)
     dbf     d0, @ClearTilemap
+    
+    SetVramAddr $0000, (a0)             ; Clear tile 0, this will also reset
+    move.l  d1, (a1)                      ; hscroll and sprites since we have
+    move.l  d1, (a1)                      ; those tables pointing there
+    move.l  d1, (a1)
+    move.l  d1, (a1)
+    move.l  d1, (a1)
+    move.l  d1, (a1)
+    move.l  d1, (a1)
+    move.l  d1, (a1)
 
     move.w  (RAM_ErrorType), d0         ; Write exception name on screen
     lea     (@NameList), a2
@@ -230,7 +240,6 @@ ErrorInt:
     dc.l    @Name03
     dc.l    @Name04
     dc.l    @Name05
-    dc.l    @Name05
     dc.l    @Name06
     dc.l    @Name07
     dc.l    @Name08
@@ -240,6 +249,7 @@ ErrorInt:
     dc.l    @NameUnk
     dc.l    @NameIRQ
     dc.l    @NameTrap
+    dc.l    @NameSum
 
 ;----------------------------------------------------------------------------
 ; Exception names
@@ -247,17 +257,18 @@ ErrorInt:
 
 @Name02:        dc.b 'BUS ERROR',0
 @Name03:        dc.b 'ADDRESS ERROR',0
-@Name04:        dc.b 'ILLEGAL INSTRUCTION',0
-@Name05:        dc.b 'ZERO DIVIDE',0
+@Name04:        dc.b 'INVALID INSTRUCTION',0
+@Name05:        dc.b 'DIVIDE BY ZERO',0
 @Name06:        dc.b 'CHK INSTRUCTION',0
 @Name07:        dc.b 'TRAPV INSTRUCTION',0
 @Name08:        dc.b 'PRIVILEGE VIOLATION',0
 @Name09:        dc.b 'TRACE',0
-@Name0A:        dc.b '1010 INSTRUCTION TRAP',0
-@Name0B:        dc.b '1111 INSTRUCTION TRAP',0
+@Name0A:        dc.b '1010 INSTRUCTION',0
+@Name0B:        dc.b '1111 INSTRUCTION',0
 @NameUnk:       dc.b 'UNKNOWN EXCEPTION',0
 @NameIRQ:       dc.b 'INVALID IRQ',0
 @NameTrap:      dc.b 'INVALID TRAP',0
+@NameSum:       dc.b 'CHECKSUM ERROR',0
 
 ;----------------------------------------------------------------------------
 ; Register names
@@ -372,7 +383,7 @@ ErrorDrawString:
     dc.w    $0000,$000B,$000C,$000D,$000E,$000F,$0010,$0011     ; $40..$47
     dc.w    $0012,$0013,$0014,$0015,$0016,$0017,$0018,$0019     ; $48..$4F
     dc.w    $001A,$001B,$001C,$001D,$001E,$001F,$0020,$0021     ; $50..$57
-    dc.w    $0022,$0023,$0000,$0000,$0000,$0000,$0000,$0000     ; $58..$5F
+    dc.w    $0022,$0023,$0024,$0000,$0000,$0000,$0000,$0000     ; $58..$5F
 
 ;****************************************************************************
 ; Macros for generating exception handlers
@@ -408,7 +419,7 @@ Error1111:      ErrorFunc 9
 ErrorUnk:       ErrorFunc 10
 ErrorIRQ:       ErrorFunc 11
 ErrorTrap:      ErrorFunc 12
-
+ErrorSum:       ErrorFunc 13
 
 ;****************************************************************************
 ; Load1BPPTilesShadow

@@ -173,10 +173,10 @@ StageMap_5_6:
     StageObj    RAFTD, $50, $B0, $00
     StageObj    RAFTR, $10, $B0, $00
     StageObj    RAFTR, $90, $B0, $00
-    StageObj    MACECW, $00, $60, $00
-    StageObj    MACECCW, $A0, $00, $00
     StageObj    KEY, $00, $60, $00
     StageObj    KEY, $A0, $00, $00
+    StageObj    MACECW, $00, $60, $00
+    StageObj    MACECCW, $A0, $00, $00
     StageEnd
 
 ;****************************************************************************
@@ -201,12 +201,12 @@ StageMap_5_7:
     StageDef    wo,wo,WA,WA,WA,WA,wo,wo,wo,wo,WA,WA,WA,WA,wo,wo
     StageDef    go,wo,WA,WA,WA,WA,wo,wo,wo,wo,WA,WA,WA,WA,wo,go
     
-    StageObj    MACECCW, $80, $00, $00
-    StageObj    MACECCW, $00, $80, $00
-    StageObj    MACECW, $80, $80, $00
     StageObj    KEY, $80, $00, $00
     StageObj    KEY, $00, $80, $00
     StageObj    KEY, $80, $80, $00
+    StageObj    MACECCW, $80, $00, $00
+    StageObj    MACECCW, $00, $80, $00
+    StageObj    MACECW, $80, $80, $00
     StageObj    RAFTL, $40, $40, $00
     StageObj    RAFTU, $C0, $40, $00
     StageObj    RAFTD, $40, $C0, $00
@@ -254,20 +254,20 @@ StageMap_5_8:
 
 StageMap_5_9:
     StageDef    wo,wo,wo,wo,wo,wo,wo,wo,wo,wo,BR,BR,BR,BR,wo,wo
-    StageDef    wo,wo,wo,wo,wo,wo,wo,wo,wo,wo,BR,BR,BR,BR,wo,wo
+    StageDef    wo,wo,wo,wo,wo,wo,wo,wo,wo,BR,BR,BR,BR,BR,BR,wo
+    StageDef    BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,wo,wo,BR,BR,BR
     StageDef    BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,wo,wo,wo,wo,BR,BR
     StageDef    BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,wo,wo,wo,wo,BR,BR
-    StageDef    BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,wo,wo,wo,wo,BR,BR
-    StageDef    BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,wo,wo,wo,wo,BR,BR
+    StageDef    BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,wo,wo,BR,BR,BR
+    StageDef    wo,wo,wo,wo,wo,wo,wo,wo,wo,BR,BR,BR,BR,BR,BR,wo
     StageDef    wo,wo,wo,wo,wo,wo,wo,wo,wo,wo,BR,BR,BR,BR,wo,wo
     StageDef    wo,wo,wo,wo,wo,wo,wo,wo,wo,wo,BR,BR,BR,BR,wo,wo
-    StageDef    wo,wo,wo,wo,wo,wo,wo,wo,wo,wo,BR,BR,BR,BR,wo,wo
-    StageDef    wo,wo,wo,wo,wo,wo,wo,wo,wo,wo,BR,BR,BR,BR,wo,wo
+    StageDef    wo,wo,wo,wo,wo,wo,wo,wo,wo,BR,BR,BR,BR,BR,BR,wo
     StageDef    BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,BR
     StageDef    BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,BR
     StageDef    BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,BR
     StageDef    BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,BR,BR
-    StageDef    wo,wo,wo,wo,wo,wo,wo,wo,wo,wo,BR,BR,BR,BR,wo,wo
+    StageDef    wo,wo,wo,wo,wo,wo,wo,wo,wo,BR,BR,BR,BR,BR,BR,wo
     StageDef    wo,wo,wo,wo,wo,wo,wo,wo,wo,wo,BR,BR,BR,BR,wo,wo
     
     StageObj    FIREU, $00, $80, $00
@@ -293,9 +293,9 @@ StageMap_5_9:
     ;StageObj    MACECCW, $40, $80, $00
     ;StageObj    MACECW, $80, $80, $00
     StageObj    SWITCH, $80, $00, $01
-    StageObj    BOMB, $40, $40, TILE_WO
+    StageObj    BOMB, $40, $40, TILE___
     StageObj    SWITCH, $00, $80, $01
-    StageObj    BOMB, $C0, $00, TILE_WO
+    StageObj    BOMB, $C0, $00, TILE___
     
     StageObj    CRYSTAL, $20, $00, $00
     StageObj    CRYSTAL, $40, $00, $00

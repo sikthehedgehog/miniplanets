@@ -1,0 +1,23 @@
+The attract mode replays are stored in `data/attract.68k`. At the top there's
+a list of pointers to every replay, followed by the replays themselves. The
+format of each replay is described below.
+
+First there's a single byte header: the stage number (e.g. STAGE_5_3).
+
+Then comes all the input data. Each entry is two bytes long: the first byte
+is the number of frames (exception: 0 = 256 frames). The second byte has
+the following format:
+
+    bit 0 = walk up         (holds the D-pad up)
+    bit 1 = walk down       (holds the D-pad down)
+    bit 2 = walk left       (holds the D-pad left)
+    bit 3 = walk right      (holds the D-pad right)
+    bit 4 = jump            (taps B for 1 frame)
+    bit 5 = jump            (taps C for 1 frame)
+    bit 6 = jump            (taps A for 1 frame)
+    bit 7 = quit early      (taps Start for 1 frame)
+
+Playback ends when the player wins, loses, or bit 7 above is set.
+
+Note that because of the single byte header the data is NOT aligned, so make
+sure to slap an `even` at the end to avoid trouble with what comes after it.

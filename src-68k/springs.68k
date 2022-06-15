@@ -1,0 +1,32 @@
+;****************************************************************************
+; RunSpringFx
+; Executes a spring's recoil effect game logic.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+RunSpringFx:
+    subq.b  #1, OBJ_DATA(a0)            ; Count down timer
+    bne.s   @StillHere                  ; Special effect over?
+    clr.b   OBJ_TYPE(a0)                ; Remove spring if over
+@StillHere:
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawSpringFx
+; Draws a spring's recoil effect.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+DrawSpringFx:
+    move.b  OBJ_X(a0), d7               ; Draw spring sprite
+    move.b  OBJ_Y(a0), d6
+    move.w  #VramSpringFx, d5
+    bsr     Add3DSprite
+    
+    rts                                 ; End of subroutine

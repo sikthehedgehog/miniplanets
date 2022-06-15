@@ -20,14 +20,19 @@ ENDGAME_RESTART:    rs.b 1              ; Just restart as-is
 
 ;****************************************************************************
 ; StartGame
-; Starts the game :)
+; StartGameFromDebug
+;
+; Starts the game :) The FromDebug variant is used by the debug menu to skip
+; some initialization done by the menu itself that would get undone otherwise
 ;----------------------------------------------------------------------------
 ; notes: doesn't return
 ;****************************************************************************
 
 StartGame:
-    clr.l   (Score)                    ; Start with no score
     move.b  #$05, (Lives)              ; Start with 5 lives
+    
+StartGameFromDebug:
+    clr.l   (Score)                    ; Start with no score
     
     moveq   #0, d7                     ; Determine first 1up bonus
     move.b  (LifeSetting), d7
@@ -59,33 +64,13 @@ InGame:
     move.b  (StageName), d7             ; Need to show the stage intro?
     and.b   #$0F, d7
     cmp.b   #$01, d7
-    bhi.s   @NoIntro
+    bhi.s   InGameNoIntro
     bsr     StageIntro
-@NoIntro:
     
-    jsr     (ResetVideo).w              ; Reset graphics
-    st.b    (FadeInFlag)                ; We want fade in
+InGameNoIntro:
+    bsr     LoadIngameGfx               ; Load common graphics
     
-    lea     (GfxIngame), a6             ; Decompress in-game graphics
-    lea     (LocalRAM), a5
-    jsr     (DecompressSLZ).w
-    DMA2VRAM LocalRAM, VramBackground*$20, GfxIngameSize*$20, ($C00004)
-    
-    lea     (GfxGlobe), a6              ; Decompress globe graphics
-    lea     (LocalRAM), a5
-    jsr     (DecompressSLZ).w
-    DMA2VRAM LocalRAM, VramGrass*$20, GfxGlobeSize*$20, ($C00004)
-    
-    lea     (PalIngame), a6             ; Load palette
-    lea     (PaletteBuf), a5
-    moveq   #$40/8-1, d7
-@LoadPalette:
-    move.l  (a6)+, (a5)+
-    move.l  (a6)+, (a5)+
-    move.l  (a6)+, (a5)+
-    move.l  (a6)+, (a5)+
-    dbf     d7, @LoadPalette
-    
+InGameWithoutLoad:
     clr.w   (Anim)                      ; Reset animations
     clr.b   (IngameStatus)              ; Reset in-game status
     clr.b   (EndGame)                   ; Stage didn't end yet :P
@@ -110,25 +95,30 @@ InGame:
 
 @MainLoop:
     if      DEBUG_CPUUSAGE              ; Start CPU usage profiling
-    SetCRAMAddr $1A*2, ($C00004)
-    move.w  #$040, ($C00000)
+    SetCRAMAddr CPUUSAGE_INDEX*2, ($C00004)
+    move.w  #CPUUSAGE_COLOR, ($C00000)
     endc
     
     bsr     ScrollBackground            ; Update background position
     
     btst.b  #7, (Joy1Press)             ; Toggle pause with Start
     beq.s   @NoPauseToggle
+    tst.b   (AttractMode)               ; No pausing in attract mode...
+    bne.s   @NoPauseToggle
     bchg.b  #INGAME_PAUSE, (IngameStatus)
     
-    tst.b   (DebugOK)
-    beq.s   @NoPauseToggle
-    btst.b  #INGAME_PAUSE, (IngameStatus)
-    bne.s   @NoPauseToggle
+    btst.b  #INGAME_PAUSE, (IngameStatus)   ; A+B+C+Start = reset
+    bne.s   @NoPauseReset                     ; (only while paused)
     move.b  (Joy1Hold), d7
     and.b   #$70, d7
     cmp.b   #$70, d7
-    bne.s   @NoPauseToggle
-    move.b  #ENDGAME_WIN, (EndGame)
+    bne.s   @NoPauseReset
+    jsr     (FadeOff).w
+    bra     LogoSplash
+@NoPauseReset:
+    
+    moveq   #SFX_PAUSE, d7              ; Ding dong ding dong!
+    jsr     (PlaySFX).w
 @NoPauseToggle:
     
     tst.b   (DebugOK)                   ; Debug controls while paused
@@ -139,9 +129,9 @@ InGame:
     btst.b  #6, (Joy1Press)             ; A: skip level
     beq.s   @NoDebugSkip
     
-    cmp.b   #STAGE_6_0, (Stage)
-    bne.s   @NoDebugEnding
-    move.b  #0, (KeysLeft)
+    cmp.b   #STAGE_6_0, (Stage)         ; Stage 6-0 will trigger the ending
+    bne.s   @NoDebugEnding                ; sequence instead of quitting the
+    move.b  #0, (KeysLeft)                ; stage immediately
     moveq   #OBJTYPE_CRYSTAL, d7
     move.b  (PlayerX), d6
     move.b  (PlayerY), d5
@@ -152,16 +142,27 @@ InGame:
     bra.s   @NoDebugSkip
 @NoDebugEnding:
     
-    move.b  #ENDGAME_WIN, (EndGame)
+    move.b  #ENDGAME_WIN, (EndGame)     ; Other stages just end immediately
     bclr.b  #INGAME_PAUSE, (IngameStatus)
 @NoDebugSkip:
 @NoDebugControls:
     
     btst.b  #INGAME_PAUSE, (IngameStatus) ; Don't update while paused!
-    bne.s   @Paused
+    bne     @Paused
     
 @LogicLoop:
-    bsr     RunPlayer                   ; Update everything
+    bsr     UpdateAttract               ; Process faked inputs if in attract
+                                          ; mode
+    
+    tst.b   (AttractMode)               ; Pressing Start (either on joypad
+    beq.s   @NoAttractOver                ; or the played back movie) will
+    btst    #7, (Joy1Press)               ; quit attract mode
+    bne     @QuitAttract
+@NoAttractOver:
+    
+    clr.b   (NumRafts)                  ; Update everything
+    bsr     UpdateSubpixel
+    bsr     RunPlayer
     bsr     RunObjects
     bsr     RunEnding
     addq.w  #1, (Anim)
@@ -191,18 +192,24 @@ InGame:
     
 @TimeOver:
     bsr     HurtPlayer                  ; Time over! Oh no! :(
-
+    
 @NoTimeOver:
     clr.b   (Joy1Press)                 ; Do NTSC/PAL speed correction
     clr.b   (Joy2Press)
     subq.b  #1, (NumFrames)
-    bne.s   @LogicLoop
+    bne     @LogicLoop
     
 @Paused:
     jsr     (ClearSprites).w            ; Draw everything
+    clr.w   (FrontSpriteOffset)
+    clr.w   (BackSpriteOffset)
+    
     bsr     DrawPlayer
     bsr     DrawObjects
+    bsr     DrawAllFrontSprites
+    bsr     DrawAllRafts
     bsr     DrawGlobe
+    bsr     DrawAllBackSprites
     bsr     AnimGlobe
     bsr     AnimStage6BG
     bsr     DrawHUD
@@ -223,8 +230,8 @@ InGame:
 @NoShaking:
     
     if      DEBUG_CPUUSAGE              ; End CPU usage profiling
-    SetCRAMAddr $1A*2, ($C00004)
-    move.w  (PaletteBuf+$1A*2), ($C00000)
+    SetCRAMAddr CPUUSAGE_INDEX*2, ($C00004)
+    move.w  (PaletteBuf+CPUUSAGE_INDEX*2), ($C00000)
     endc
     
     jsr     (NextFrame).w               ; Wait for next frame
@@ -235,6 +242,9 @@ InGame:
 ;----------------------------------------------------------------------------
 
 @StageOver:
+    tst.b   (AttractMode)               ; In attract mode?
+    bne     @QuitAttract                  ; Quit regardless of outcome
+    
     cmp.b   #ENDGAME_WIN, d0            ; Won the stage?
     beq.s   @Won
     
@@ -253,15 +263,19 @@ InGame:
     beq     GameOver                    ; Game over? :(
     
     jsr     (FadeOff).w                 ; Oh, keep going then
-    bra     @NoIntro
+    clr.b   (Invict)                    ; Can't unlock stage 7 now however
+    bra     InGameNoIntro
     
 @Won:
     if      DEMO_VERSION
     cmp.b   #STAGE_1_9, (Stage)
     else
     cmp.b   #STAGE_6_0, (Stage)         ; End of the game? :D
+    beq.s   @DoGameEnding
+    cmp.b   #STAGE_7_9, (Stage)
     endc
     bne.s   @NoGameEnding
+@DoGameEnding:
     jsr     (FadeOff).w
     bsr     StageClear
     if      DEMO_VERSION
@@ -280,8 +294,75 @@ InGame:
 @NoStageClear:
     
     addq.b  #1, (Stage)                 ; Move onto the next level for real
-    jsr     (FadeOff).w
-    bra     InGame
+    
+    if      FANCY_WIN
+    move.b  (StageName), d7             ; Boss stages have a different
+    and.b   #$0F, d7                      ; background so we need to force
+    cmp.b   #$08, d7                      ; a fade for it to work
+    bhs.s   @NoFancyWin                   ; This check also takes care of
+                                          ; the Stage Clear case
+    
+    move.b  (Stage), d7                 ; Stage 5-3 has a different
+    cmp.b   #STAGE_5_3, d7                ; "background" than the rest of
+    beq.s   @NoFancyWin                   ; the stages as well
+    cmp.b   #STAGE_5_4, d7
+    beq.s   @NoFancyWin
+    
+    addq.b  #1, (StageName)             ; Update stage name
+    bra     InGameWithoutLoad           ; Go play new stage
+    endc
+    
+@NoFancyWin:
+    jsr     (FadeOff).w                 ; Shut off screen
+    bra     InGame                      ; Go play new stage
+
+;----------------------------------------------------------------------------
+
+@QuitAttract:
+    jsr     (FadeOff).w                 ; Shut off screen
+    bra     LogoSplash                  ; Reset game
+
+;****************************************************************************
+; LoadIngameGfx
+; Loads most of the graphics used in-game.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+LoadIngameGfx:
+    jsr     (ResetVideo).w              ; Reset graphics
+    st.b    (FadeInFlag)                ; We want fade in
+    
+    lea     (GfxIngame), a6             ; Decompress in-game graphics
+    lea     (LocalRAM), a5
+    jsr     (DecompressSLZ).w
+    DMA2VRAM LocalRAM, VramBackground*$20, GfxIngameSize*$20, ($C00004)
+    
+    lea     (GfxGlobe), a6              ; Decompress globe graphics
+    lea     (LocalRAM), a5
+    jsr     (DecompressSLZ).w
+    DMA2VRAM LocalRAM, VramGrass*$20, GfxGlobeSize*$20, ($C00004)
+    
+    lea     (GfxBelt), a6               ; Decompress belt graphics (they're
+    lea     (BeltBuf_H), a5               ; kept uncompressed in RAM and
+    jsr     (DecompressSLZ).w             ; streamed to VRAM as needed)
+    
+    clr.w   (Anim)                      ; Make sure that belts have something
+    bsr     UpdateHorizontalBelts         ; to show during fade in
+    bsr     UpdateVerticalBelts
+    jsr     (FlushDMABuffer).w
+    
+    lea     (PalIngame), a6             ; Load palette
+    lea     (PaletteBuf), a5
+    moveq   #$40/8-1, d7
+@LoadPalette:
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    dbf     d7, @LoadPalette
+    
+    rts                                 ; End of subroutine
 
 ;****************************************************************************
 ; AddScore

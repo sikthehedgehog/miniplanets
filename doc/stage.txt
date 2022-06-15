@@ -1,0 +1,119 @@
+*** STAGE LIST FORMAT ***
+
+The stage list in `data/stages.68k` holds information about every stage.
+Every stage entry is 8 bytes and has the following format:
+
+    uint32  pointer to stage data
+    uint8   stage name (bits 7-4 first digit, bits 3-0 second digit)
+    uint8   stage music (e.g. BGM_STAGE1)
+    uint8   (unused)
+    uint8   (unused)
+
+The "stage name" is important as it affects a bunch of behavior:
+
+    * The first digit chooses the background and palettes.
+    * If second digit is 9, it loads the boss background instead.
+    * If first digit is 4 or less, boss background is blue.
+    * If first digit is 5 or more, boss background is red.
+    * If second digit is 0 or 1, it shows the planelago intro.
+    * If second digit is 0 or 9, it finishes with a score tally.
+    * If first digit is 2 or more, it shows the planelago password.
+    * If first digit is 2 or more, continue screen is available.
+    * The first digit determines the password to show.
+
+
+
+*** STAGE FORMAT ***
+
+The first 256 bytes are the map (16×16). See tile type list below. The player
+start point is always at the intersection of the corners (all of them because
+the map wraps around :P).
+
+Then comes a list of every object in the stage. Each entry is 4 bytes:
+
+    * Object type (OBJTYPE_*, see object type list below)
+    * X coordinate (1 tile = 16 units)
+    * Y coordinate (1 tile = 16 units)
+    * Depends on object (see object type list below)
+
+Then a single $FF byte. You should align to an even address after this,
+however (the macro of course already does this).
+
+Remarks:
+
+    * TILE_WA (water) and TILE_FI (fire) are mutually exclusive since they
+      use the same space in video memory.
+    
+    * The remote switch affects other objects but only keeps track of how
+      many. The affected objects must immediately follow it in the list.
+      The switch only has any effect on bombs (they explode) and rafts (they
+      start moving).
+    
+    * If two objects overlap (exact same coordinates) and which one is
+      visible is important, make sure to place the object on top first.
+      The depth sorting code explicitly accounts for it (this is relevant
+      for the keys in stages 5-6 and 5-7).
+
+
+
+*** TILE TYPES ***
+
+TILE___     Dirt floor (earth)
+TILE_GR     Grass
+TILE_GW     Grass w/flowers
+TILE_WA     Water
+TILE_GO     Goal pad
+TILE_RH     Stopped raft (horizontal)
+TILE_RV     Stopped raft (vertical)
+TILE_BR     Bricks
+TILE_WO     Wooden floor
+TILE_SP     Spring
+TILE_FS     Fake spring (doesn't boing)
+TILE_CU     Conveyor belt going up
+TILE_CD     Conveyor belt going down
+TILE_CL     Conveyor belt going left
+TILE_CR     Conveyor belt going right
+TILE_PI     Bottomless pit
+TILE_KW     Black wall (see stage 5-3)
+TILE_KF     Black floor (see stage 5-3)
+TILE_FI     Fire (see stage 6-0)
+TILE_ME     Metal wall
+TILE_PL     Metal plate floor
+TILE_VI     Those dark glass walls
+TILE_MA     Marble
+
+Any other tile types are for internal use only (e.g. raft collision)
+
+
+
+*** OBJECT TYPES ***
+
+Unless otherwise stated, 4th byte should be 0.
+
+OBJTYPE_KEY         Key.
+OBJTYPE_RAFTU:      Raft going up. 4th byte is 0 = moving, -1 = stopped.
+OBJTYPE_RAFTD:      Raft going down. 4th byte is 0 = moving, -1 = stopped.
+OBJTYPE_RAFTL:      Raft going left. 4th byte is 0 = moving, -1 = stopped.
+OBJTYPE_RAFTR:      Raft going right. 4th byte is 0 = moving, -1 = stopped.
+OBJTYPE_MACECCW:    Mace (counterclockwise). 4th byte is initial angle.
+OBJTYPE_MACECW:     Mace (clockwise). 4th byte is initial angle.
+OBJTYPE_BOMB:       Bomb. 4th byte is tile type to leave behind.
+OBJTYPE_SWITCH:     Remote switch. 4th byte is how many objects to affect.
+OBJTYPE_ELECTRH:    Electric beam (horizontal).
+OBJTYPE_ELECTRV:    Electric beam (vertical).
+OBJTYPE_BALLU:      Cannonball going up.
+OBJTYPE_BALLD:      Cannonball going down.
+OBJTYPE_BALLL:      Cannonball going left.
+OBJTYPE_BALLR:      Cannonball going right.
+OBJTYPE_ORBR:       Orb enemy (red).
+OBJTYPE_ORBP:       Orb enemy (pink).
+OBJTYPE_ORBB:       Orb enemy (blu-- err, green).
+OBJTYPE_ORBO:       Orb enemy (orange).
+OBJTYPE_FIREU:      Fireball going up.
+OBJTYPE_FIRED:      Fireball going down.
+OBJTYPE_FIREL:      Fireball going left.
+OBJTYPE_FIRER:      Fireball going right.
+OBJTYPE_CRYSTAL:    Crystal. 4th byte is color (usually 0, stage 6 uses 1~7).
+OBJTYPE_CHILD:      Qisha's child. 4th byte is which child (e.g. CHILD_QUA).
+
+Any other object types are not intended to be placed directly.

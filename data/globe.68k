@@ -15,8 +15,8 @@ GfxGlobeSize: equ filesize("src-data/globe/globe.4bpp")/$20
 
 GfxWater:           incbin  "data/globe/water.4bpp"
 GfxFire:            incbin  "data/globe/fire.4bpp"
-GfxRaft:            incbin  "data/globe/raft.uftc"
-GfxBelt:            incbin  "data/globe/belt.uftc"
+GfxBelt:            incbin  "data/globe/belt.slz"
+                    even
 
 ;****************************************************************************
 ; Possible tile types
@@ -46,6 +46,10 @@ TILE_ME:    rs.b 1      ; Metal wall
 TILE_PL:    rs.b 1      ; Metal plate
 TILE_VI:    rs.b 1      ; Visor
 TILE_MA:    rs.b 1      ; Marble
+
+                    if HAS_EDITOR
+NUM_EDITOR_TILES:   rs.b 0      ; Stage editor tile IDs end here
+                    endc
 
 ;----------------------------------------------------------------------------
 
@@ -101,18 +105,18 @@ GlobeTiles:
     dc.w    $2000+VramVisor             ; TILE_VI
     dc.w    $0000+VramMarble            ; TILE_MA
     
-    dc.w    $2000+VramRaftU             ; TILE_RAFTU1
-    dc.w    $2008+VramRaftU             ; TILE_RAFTU2
-    dc.w    $2004+VramRaftU             ; TILE_RAFTU3
-    dc.w    $2000+VramRaftD             ; TILE_RAFTD1
-    dc.w    $2008+VramRaftD             ; TILE_RAFTD2
-    dc.w    $2004+VramRaftD             ; TILE_RAFTD3
-    dc.w    $2000+VramRaftL             ; TILE_RAFTL1
-    dc.w    $2008+VramRaftL             ; TILE_RAFTL2
-    dc.w    $2004+VramRaftL             ; TILE_RAFTL3
-    dc.w    $2000+VramRaftR             ; TILE_RAFTR1
-    dc.w    $2008+VramRaftR             ; TILE_RAFTR2
-    dc.w    $2004+VramRaftR             ; TILE_RAFTR3
+    dc.w    $2000+VramWater             ; TILE_RAFTU1
+    dc.w    $2000+VramWater             ; TILE_RAFTU2
+    dc.w    $2000+VramWater             ; TILE_RAFTU3
+    dc.w    $2000+VramWater             ; TILE_RAFTD1
+    dc.w    $2000+VramWater             ; TILE_RAFTD2
+    dc.w    $2000+VramWater             ; TILE_RAFTD3
+    dc.w    $2000+VramWater             ; TILE_RAFTL1
+    dc.w    $2000+VramWater             ; TILE_RAFTL2
+    dc.w    $2000+VramWater             ; TILE_RAFTL3
+    dc.w    $2000+VramWater             ; TILE_RAFTR1
+    dc.w    $2000+VramWater             ; TILE_RAFTR2
+    dc.w    $2000+VramWater             ; TILE_RAFTR3
 
 ;****************************************************************************
 ; CollTiles
@@ -161,20 +165,35 @@ CollTiles:
 ; GlobeTable
 ; Massive look-up tables used to determine the position of the sprites that
 ; make up the globe at every possible angle (!!).
+;----------------------------------------------------------------------------
+; Tiles are sorted by depth (front first)
+; 8*8*16*16 bytes: X for every tile in every possible camera X offset
+; 8*8*16*16 bytes: Y for every tile in every possible camera Y offset
+; 8*8*16*16 bytes: which tile in the map is referenced (map offset)
 ;****************************************************************************
 
 GlobeTable:
     incbin  "data/globe/table.lut"
 
 ;****************************************************************************
-; ObjectTable
-; Another massive look-up table, this time to position the 3D objects on the
-; globe (e.g. the keys).
+; ObjectTable, ObjectTable2
+; Another massive look-up tables, this time to position the 3D objects on the
+; globe (e.g. the keys). ObjectTable is used for objects in front of the
+; globe, ObjectTable2 for those behind it.
 ;****************************************************************************
 
 ObjectTable:
     incbin  "data/globe/objects.lut"
+;ObjectTable2:
+;    incbin  "data/globe/objects2.lut"
 
+;****************************************************************************
+; RaftTable
+; Same as the above ones but for rafts, which are on ground level.
+;****************************************************************************
+
+RaftTable:
+    incbin  "data/globe/rafts.lut"
 
 ;****************************************************************************
 ; EndingGlobeTable

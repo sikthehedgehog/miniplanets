@@ -1,9 +1,9 @@
 You will need to get these tools to build this game:
 
    * mdtiler
-   * tfi2eif
-   * pcm2ewf
-   * mml2esf
+   * tfi2spat (REMIX Ver.) or tfi2eif (prior versions)
+   * wav2swav (REMIX Ver.) or pcm2ewf (prior versions)
+   * mml2sona (REMIX Ver.) or mml2esf (prior versions)
    * slz
    * uftc
    * asm68k
@@ -11,8 +11,12 @@ You will need to get these tools to build this game:
 Pretty much all but asm68k can be obtained from here:
 
    https://github.com/sikthehedgehog/mdtools
+   https://www.arkagis.com/sona (for the REMIX Ver. specific tools)
 
 As for asm68k... I'll leave it up to you. Hopefully I'll adapt the code to
 the new assembler I've been working on, but first I want to get permission
 of the author of the assembler I've forked it from. Once that's done we
 should start work on adapting the source code (or the assembler if feasible).
+
+I've already tried adapting asmx but the required changes are quite more
+invasive than initially expected, so that idea has gone nowhere for now.

@@ -1,0 +1,243 @@
+;****************************************************************************
+; Hardware addresses
+;****************************************************************************
+
+Sona_Z80Ram:        equ $A00000         ; Z80 RAM start
+Sona_Z80RamEnd:     equ $A02000         ; Z80 RAM end
+Sona_Z80BusReq:     equ $A11100         ; Z80 bus request
+Sona_Z80Reset:      equ $A11200         ; Z80 reset line
+
+;****************************************************************************
+; Driver addresses used to communicate with the 68000 and such
+;****************************************************************************
+
+Sona_InstrList:     equ Sona_Z80Ram+$1C00   ; Instrument list
+                                            ; $1C00..$1CFF = address low
+                                            ; $1D00..$1DFF = address high
+                                            ; $1E00..$1EFF = bank
+
+Sona_VmVars:        equ Sona_Z80Ram+$1F00   ; Location of VM variables
+
+Sona_QueueMutex:    equ Sona_Z80Ram+$1FC0   ; Command queue mutex
+                                            ; 0 if 68000 can touch the queue
+
+Sona_QueueSlotSize: equ 12
+Sona_QueueSlot1:    equ Sona_Z80RamEnd-Sona_QueueSlotSize       ; Slot #1
+Sona_QueueSlot2:    equ Sona_QueueSlot1-Sona_QueueSlotSize      ; Slot #2
+Sona_QueueSlot3:    equ Sona_QueueSlot2-Sona_QueueSlotSize      ; Slot #3
+
+Sona_CpuMeter:      equ Sona_Z80Ram+$1FC1   ; Z80 CPU meter
+Sona_StatusFlags:   equ Sona_Z80Ram+$1FC2   ; Playback status flags
+
+;****************************************************************************
+; Status flags returned by Sona_GetStatus
+; These are for use with the BTST instruction
+;****************************************************************************
+
+SONA_STATUS_BGM:        equ 4           ; BGM playing
+SONA_STATUS_SFX1:       equ 5           ; SFX stream #1 playing
+SONA_STATUS_SFX2:       equ 6           ; SFX stream #2 playing
+SONA_STATUS_SFX3:       equ 7           ; SFX stream #3 playing
+
+SONA_STATUS_PCM1:       equ 0           ; PCM ch1 playing
+SONA_STATUS_PCM2:       equ 1           ; PCM ch2 playing
+
+;****************************************************************************
+; Command types to pass to Sona_SendCmd_* functions
+;****************************************************************************
+
+SONA_CMD_PLAYPCM1:          equ 1       ; Play directly over PCM1
+SONA_CMD_PLAYPCM2:          equ 2       ; Play directly over PCM2
+SONA_CMD_STOPPCM1:          equ 3       ; Stop directly PCM1
+SONA_CMD_STOPPCM2:          equ 4       ; Stop directly PCM2
+SONA_CMD_PLAYBGM:           equ 5       ; Play BGM
+SONA_CMD_PLAYSFX:           equ 6       ; Play SFX
+SONA_CMD_STOPALL:           equ 7       ; Stop all sound
+SONA_CMD_PAUSE:             equ 8       ; Pause playback
+SONA_CMD_UNPAUSE:           equ 9       ; Resume playback
+SONA_CMD_SETSTEREO:         equ 10      ; Toggle stereo/mono
+SONA_CMD_SETSSGEG:          equ 11      ; Toggle SSG-EG
+
+;****************************************************************************
+; List of stream opcodes
+;****************************************************************************
+
+SONA_OP_LOAD_FM1:           equ $00     ; Load instrument FM1
+SONA_OP_LOAD_FM2:           equ $01     ; Load instrument FM2
+SONA_OP_LOAD_FM3:           equ $02     ; Load instrument FM3
+SONA_OP_LOAD_FM3SP:         equ $03     ; Load instrument FM3
+SONA_OP_LOAD_FM4:           equ $04     ; Load instrument FM4
+SONA_OP_LOAD_FM5:           equ $05     ; Load instrument FM5
+SONA_OP_LOAD_FM6:           equ $06     ; Load instrument FM6
+SONA_OP_LOAD_PSG1:          equ $08     ; Load instrument PSG1
+SONA_OP_LOAD_PSG2:          equ $09     ; Load instrument PSG2
+SONA_OP_LOAD_PSG3:          equ $0A     ; Load instrument PSG3
+SONA_OP_LOAD_PSG4:          equ $0B     ; Load instrument PSG4
+
+SONA_OP_KEYON_FM1:          equ $10     ; Key-on FM1
+SONA_OP_KEYON_FM2:          equ $11     ; Key-on FM2
+SONA_OP_KEYON_FM3:          equ $12     ; Key-on FM3 (normal)
+SONA_OP_KEYON_FM3SP:        equ $13     ; Key-on FM3 (special)
+SONA_OP_KEYON_FM4:          equ $14     ; Key-on FM4
+SONA_OP_KEYON_FM5:          equ $15     ; Key-on FM5
+SONA_OP_KEYON_FM6:          equ $16     ; Key-on FM6
+SONA_OP_KEYON_PSG1:         equ $18     ; Key-on PSG1
+SONA_OP_KEYON_PSG2:         equ $19     ; Key-on PSG2
+SONA_OP_KEYON_PSG3:         equ $1A     ; Key-on PSG3
+SONA_OP_KEYON_PSG4:         equ $1B     ; Key-on PSG4
+SONA_OP_KEYON_PCM1:         equ $1E     ; Play PCM1
+SONA_OP_KEYON_PCM2:         equ $1F     ; Play PCM2
+
+SONA_OP_KEYOFF_FM1:         equ $20     ; Key-off FM1
+SONA_OP_KEYOFF_FM2:         equ $21     ; Key-off FM2
+SONA_OP_KEYOFF_FM3:         equ $22     ; Key-off FM3
+SONA_OP_KEYOFF_FM3SP:       equ $23     ; Key-off FM3
+SONA_OP_KEYOFF_FM4:         equ $24     ; Key-off FM4
+SONA_OP_KEYOFF_FM5:         equ $25     ; Key-off FM5
+SONA_OP_KEYOFF_FM6:         equ $26     ; Key-off FM6
+SONA_OP_KEYOFF_PSG1:        equ $28     ; Key-off PSG1
+SONA_OP_KEYOFF_PSG2:        equ $29     ; Key-off PSG2
+SONA_OP_KEYOFF_PSG3:        equ $2A     ; Key-off PSG3
+SONA_OP_KEYOFF_PSG4:        equ $2B     ; Key-off PSG4
+SONA_OP_KEYOFF_PCM1:        equ $2E     ; Stop PCM1
+SONA_OP_KEYOFF_PCM2:        equ $2F     ; Stop PCM2
+
+SONA_OP_PITCH_FM1:          equ $30     ; Set pitch FM1
+SONA_OP_PITCH_FM2:          equ $31     ; Set pitch FM2
+SONA_OP_PITCH_FM3:          equ $32     ; Set pitch FM3 (normal)
+SONA_OP_PITCH_FM3SP:        equ $33     ; Set pitch FM3 (special)
+SONA_OP_PITCH_FM4:          equ $34     ; Set pitch FM4
+SONA_OP_PITCH_FM5:          equ $35     ; Set pitch FM5
+SONA_OP_PITCH_FM6:          equ $36     ; Set pitch FM6
+SONA_OP_PITCH_PSG1:         equ $38     ; Set pitch PSG1
+SONA_OP_PITCH_PSG2:         equ $39     ; Set pitch PSG2
+SONA_OP_PITCH_PSG3:         equ $3A     ; Set pitch PSG3
+SONA_OP_PITCH_PSG4:         equ $3B     ; Set pitch PSG4
+
+SONA_OP_VOLUME_FM1:         equ $40     ; Set volume FM1
+SONA_OP_VOLUME_FM2:         equ $41     ; Set volume FM2
+SONA_OP_VOLUME_FM3:         equ $42     ; Set volume FM3
+SONA_OP_VOLUME_FM3SP:       equ $43     ; Set volume FM3
+SONA_OP_VOLUME_FM4:         equ $44     ; Set volume FM4
+SONA_OP_VOLUME_FM5:         equ $45     ; Set volume FM5
+SONA_OP_VOLUME_FM6:         equ $46     ; Set volume FM6
+SONA_OP_VOLUME_PSG1:        equ $48     ; Set volume PSG1
+SONA_OP_VOLUME_PSG2:        equ $49     ; Set volume PSG2
+SONA_OP_VOLUME_PSG3:        equ $4A     ; Set volume PSG3
+SONA_OP_VOLUME_PSG4:        equ $4B     ; Set volume PSG4
+
+SONA_OP_PAN_FM1:            equ $50     ; Set panning FM1
+SONA_OP_PAN_FM2:            equ $51     ; Set panning FM2
+SONA_OP_PAN_FM3:            equ $52     ; Set panning FM3
+SONA_OP_PAN_FM3SP:          equ $53     ; Set panning FM3
+SONA_OP_PAN_FM4:            equ $54     ; Set panning FM4
+SONA_OP_PAN_FM5:            equ $55     ; Set panning FM5
+SONA_OP_PAN_FM6:            equ $56     ; Set panning FM6
+
+SONA_OP_PMSAMS_FM1:         equ $58     ; Set PMS/AMS FM1
+SONA_OP_PMSAMS_FM2:         equ $59     ; Set PMS/AMS FM2
+SONA_OP_PMSAMS_FM3:         equ $5A     ; Set PMS/AMS FM3
+SONA_OP_PMSAMS_FM3SP:       equ $5B     ; Set PMS/AMS FM3
+SONA_OP_PMSAMS_FM4:         equ $5C     ; Set PMS/AMS FM4
+SONA_OP_PMSAMS_FM5:         equ $5D     ; Set PMS/AMS FM5
+SONA_OP_PMSAMS_FM6:         equ $5E     ; Set PMS/AMS FM6
+
+SONA_OP_VMMOVE_IMM:         equ $C0     ; VM: var[dest] ← src
+SONA_OP_VMMOVE_VAR:         equ $C1     ; VM: var[dest] ← var[src]
+SONA_OP_VMADD_IMM:          equ $C2     ; VM: var[dest] ← var[dest] + src
+SONA_OP_VMADD_VAR:          equ $C3     ; VM: var[dest] ← var[dest] + var[src]
+SONA_OP_VMSUB_IMM:          equ $C4     ; VM: var[dest] ← var[dest] - src
+SONA_OP_VMSUB_VAR:          equ $C5     ; VM: var[dest] ← var[dest] - var[src]
+SONA_OP_VMAND_IMM:          equ $C6     ; VM: var[dest] ← var[dest] & src
+SONA_OP_VMAND_VAR:          equ $C7     ; VM: var[dest] ← var[dest] & var[src]
+SONA_OP_VMOR_IMM:           equ $C8     ; VM: var[dest] ← var[dest] | src
+SONA_OP_VMOR_VAR:           equ $C9     ; VM: var[dest] ← var[dest] | var[src]
+SONA_OP_VMXOR_IMM:          equ $CA     ; VM: var[dest] ← var[dest] ^ src
+SONA_OP_VMXOR_VAR:          equ $CB     ; VM: var[dest] ← var[dest] ^ var[src]
+SONA_OP_VMNEG:              equ $CC     ; VM: var[dest] ← -var[dest]
+SONA_OP_VMNOT:              equ $CD     ; VM: var[dest] ← ~var[dest]
+SONA_OP_VMINC:              equ $CE     ; VM: var[dest] ← var[dest] + 1
+SONA_OP_VMDEC:              equ $CF     ; VM: var[dest] ← var[dest] - 1
+
+SONA_OP_QDELAY_1:           equ $D0     ; Delay 1 tick
+SONA_OP_QDELAY_2:           equ $D1     ; Delay 2 ticks
+SONA_OP_QDELAY_3:           equ $D2     ; Delay 3 ticks
+SONA_OP_QDELAY_4:           equ $D3     ; Delay 4 ticks
+SONA_OP_QDELAY_5:           equ $D4     ; Delay 5 ticks
+SONA_OP_QDELAY_6:           equ $D5     ; Delay 6 ticks
+SONA_OP_QDELAY_7:           equ $D6     ; Delay 7 ticks
+SONA_OP_QDELAY_8:           equ $D7     ; Delay 8 ticks
+SONA_OP_QDELAY_9:           equ $D8     ; Delay 9 ticks
+SONA_OP_QDELAY_10:          equ $D9     ; Delay 10 ticks
+SONA_OP_QDELAY_11:          equ $DA     ; Delay 11 ticks
+SONA_OP_QDELAY_12:          equ $DB     ; Delay 12 ticks
+SONA_OP_QDELAY_13:          equ $DC     ; Delay 13 ticks
+SONA_OP_QDELAY_14:          equ $DD     ; Delay 14 ticks
+SONA_OP_QDELAY_15:          equ $DE     ; Delay 15 ticks
+SONA_OP_QDELAY_16:          equ $DF     ; Delay 16 ticks
+
+SONA_OP_VARARG:             equ $F7     ; Arguments come from VM variables
+SONA_OP_YMREG1:             equ $F8     ; Write YM2612 register (bank 1)
+SONA_OP_YMREG2:             equ $F9     ; Write YM2612 register (bank 2)
+SONA_OP_TEMPO:              equ $FA     ; Set BGM tempo
+SONA_OP_LFO:                equ $FB     ; Set LFO setting
+SONA_OP_SETLOOP:            equ $FC     ; Set loop point
+SONA_OP_GOTOLOOP:           equ $FD     ; Go to loop point
+SONA_OP_DELAY:              equ $FE     ; Long delay
+SONA_OP_STOP:               equ $FF     ; End of stream
+
+;****************************************************************************
+; Pitch values for SONA_KEYON_* and SONA_PITCH_*
+;****************************************************************************
+
+SONA_C:                 equ $00         ; C semitone
+SONA_CS:                equ $08         ; C# semitone
+SONA_D:                 equ $10         ; D semitone
+SONA_DS:                equ $18         ; D# semitone
+SONA_E:                 equ $20         ; E semitone
+SONA_F:                 equ $28         ; F semitone
+SONA_FS:                equ $30         ; F# semitone
+SONA_G:                 equ $38         ; G semitone
+SONA_GS:                equ $40         ; G# semitone
+SONA_A:                 equ $48         ; A semitone
+SONA_AS:                equ $50         ; A# semitone
+SONA_B:                 equ $58         ; B semitone
+SONA_FRAC:              equ $70         ; Semitone fraction
+
+;****************************************************************************
+; Panning values for SONA_OP_PAN_FM*
+;****************************************************************************
+
+SONA_PAN_NONE:          equ $00         ; Muted
+SONA_PAN_LEFT:          equ $80         ; Left speaker only
+SONA_PAN_RIGHT:         equ $40         ; Right speaker only
+SONA_PAN_BOTH:          equ $C0         ; Both speakers
+
+;****************************************************************************
+; Sona_PadTo32 [macro]
+; Pads to the next 32 byte boundary.
+;****************************************************************************
+
+Sona_PadTo32 macro
+    dcb.b   (-(*&$1F))&$1F, 0
+    endm
+
+;****************************************************************************
+; Sona_RequestBus [macro]
+; Requests the Z80 bus and waits until the Z80 stays off the bus.
+;****************************************************************************
+
+Sona_RequestBus macro
+    move.w  #$100, (Sona_Z80BusReq)
+    btst    #0, (Sona_Z80BusReq)
+    bne.s   *-8
+    endm
+
+;****************************************************************************
+; Sona_ReleaseBus [macro]
+; Releases the Z80 bus.
+;****************************************************************************
+
+Sona_ReleaseBus macro
+    move.w  #$000, (Sona_Z80BusReq)
+    endm

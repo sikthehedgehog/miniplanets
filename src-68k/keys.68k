@@ -17,16 +17,22 @@ RunKey:
     tst.w   d7                          ; Did the key get grabbed?
     beq.s   @NotGrabbed
     
+    subq.b  #1, (KeysLeft)              ; Reduce remaining keys
+    
     cmp.b   #OBJTYPE_KEY, OBJ_TYPE(a0)  ; Play chime :)
     sne.b   d7                            ; Different sound depending on
-    and.b   #1, d7                        ; whether it's a key or a crystal
+    neg.b   d7                            ; whether it's a key or a crystal
+    tst.b   (KeysLeft)                    ; and whether there's still any
+    bne.s   @NotAll                       ; left to collect
+    addq.b  #2, d7
+@NotAll:
     add.b   #SFX_KEY, d7
     jsr     (PlaySFX).w
     
     clr.b   OBJ_TYPE(a0)                ; Key is no more
-    subq.b  #1, (KeysLeft)              ; Reduce remaining keys
     
-    bne.s   @NoEnding                   ; Trigger the ending?
+    tst.b   (KeysLeft)                  ; Trigger the ending?
+    bne.s   @NoEnding
     cmp.b   #STAGE_6_0, (Stage)
     bne.s   @NoEnding
     move.b  #1, (EndingPhase)
@@ -39,7 +45,7 @@ RunKey:
     
     moveq   #0, d6                      ; Get rid of everything in the ending
     lea     (ObjectList), a6
-    moveq   #MAX_OBJECTS/4-1, d7
+    moveq   #(MAX_OBJECTS*OBJ_SIZE/16)-1, d7
 @ClearObjects:
     move.l  d6, (a6)+
     move.l  d6, (a6)+

@@ -45,6 +45,13 @@ OBJTYPE_FIRER:      rs.b 1      ; Fireball going right
 OBJTYPE_CRYSTAL:    rs.b 1      ; Crystal
 OBJTYPE_CHILD:      rs.b 1      ; Child
 
+                        if HAS_EDITOR
+NUM_EDITOR_OBJTYPES:    rs.b 0  ; Stage editor object IDs end here
+                        endc
+
+OBJTYPE_BOMBFX:     rs.b 1      ; Bomb explosion smoke
+OBJTYPE_SPRINGFX:   rs.b 1      ; Spring recoil effect
+
 ;****************************************************************************
 ; InitObjects
 ; Initializes the object list (clearing it).
@@ -98,23 +105,6 @@ AddObject:
     addq.b  #1, (KeysLeft)
 @NotKey:
     
-    cmp.b   #OBJTYPE_RAFTR, d7          ; Some objects need these graphics
-    bne.s   @NoRaftR
-    bset.b  #TOLOAD_RAFTR, (AnimToLoad)
-@NoRaftR:
-    cmp.b   #OBJTYPE_RAFTL, d7
-    bne.s   @NoRaftL
-    bset.b  #TOLOAD_RAFTL, (AnimToLoad)
-@NoRaftL:
-    cmp.b   #OBJTYPE_RAFTD, d7
-    bne.s   @NoRaftD
-    bset.b  #TOLOAD_RAFTD, (AnimToLoad)
-@NoRaftD:
-    cmp.b   #OBJTYPE_RAFTU, d7
-    bne.s   @NoRaftU
-    bset.b  #TOLOAD_RAFTU, (AnimToLoad)
-@NoRaftU:
-    
     rts                                 ; End of subroutine
 
 ;****************************************************************************
@@ -160,6 +150,8 @@ RunObjects:
     dc.l    RunFireballRight            ; OBJTYPE_FIRER
     dc.l    RunKey                      ; OBJTYPE_CRYSTAL
     dc.l    RunChild                    ; OBJTYPE_CHILD
+    dc.l    RunBombFx                   ; OBJTYPE_BOMBFX
+    dc.l    RunSpringFx                 ; OBJTYPE_SPRINGFX
 
 ;****************************************************************************
 ; DrawObjects
@@ -204,6 +196,8 @@ DrawObjects:
     dc.l    DrawFireball                ; OBJTYPE_FIRER
     dc.l    DrawCrystal                 ; OBJTYPE_CRYSTAL
     dc.l    DrawChild                   ; OBJTYPE_CHILD
+    dc.l    DrawBombFx                  ; OBJTYPE_BOMBFX
+    dc.l    DrawSpringFx                ; OBJTYPE_SPRINGFX
 
 ;****************************************************************************
 ; ScanObjects

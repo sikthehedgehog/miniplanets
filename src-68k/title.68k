@@ -20,8 +20,13 @@ NUM_TITLEOPT:           rs.b 0
 ;****************************************************************************
 
 TitleScreen:
+    clr.b   (AttractMode)               ; Disable attract mode by default
+    clr.b   (Invict)                    ; Don't unlock stage 7 until we
+                                          ; explicitly say so
+    
     jsr     (ResetVideo).w              ; Reset graphics
     st.b    (FadeInFlag)                ; We want fade in
+    move.w  #$8B02, ($C00004)           ; Per-tile hscroll
     
     jsr     (InitUniverse).w            ; Draw background
     
@@ -86,9 +91,19 @@ TitleScreen:
     dbf     d7, @DrawCopyright
     endc
     
+    if      SHOW_REMIXVER
+    moveq   #42, d0                     ; Draw "REMIX Ver."
+    moveq   #9, d1                        ; Note that we draw it off-screen
+    moveq   #19, d2                       ; and then we zoom it in when we
+    moveq   #3, d3                        ; need it
+    move.w  #$E000|VramRemixVer, d4
+    jsr     (DrawTilesA).w
+    endc
+    
     clr.w   (Anim)                      ; Initialize animation
     clr.b   (TitleOption)               ; Select first option
     clr.b   (TitleShowMenu)             ; Menu not shown yet
+    clr.b   (RemixVerOffset)            ; REMIX Ver. not shown yet
     
     clr.l   (TitleCheat)                ; Reset cheat code buffer
     clr.l   (TitleCheat+4)
@@ -103,25 +118,59 @@ TitleScreen:
     
     moveq   #BGM_TITLE, d7              ; Start playing music
     jsr     (PlayBGM).w
+    
+    move.w  #720, (TimeToAttract)       ; Set up countdown to attract mode
 
 ;----------------------------------------------------------------------------
 
 @MainLoop:
-    SetVRAMAddr $F802, ($C00004)        ; Make background move
+    tst.w   (TimeToAttract)             ; Time to go to attract mode?
+    ble     @GoToAttract
+    
+    lea     ($C00000), a0               ; Pointer to VDP ports
+    move.w  #$8F20, 4(a0)               ; Hscroll entries are in intervals
+                                          ; of $20 bytes
+    
+    SetVRAMAddr $F802, 4(a0)            ; Make background move
     move.w  (Anim), d7
     lsr.w   #4, d7
-    move.w  d7, ($C00000)
+    moveq   #28-1, d6
+@BgScrollLoop:
+    move.w  d7, (a0)
+    dbf     d6, @BgScrollLoop
+    
+    SetVRAMAddr $F800+$20*9, 4(a0)      ; Make "REMIX Ver." scroll in
+    move.b  (RemixVerOffset), d7
+    ext.w   d7
+    asl.w   #4, d7
+    subq.w  #4, d7
+    move.w  d7, (a0)
+    move.w  d7, (a0)
+    move.w  d7, (a0)
+    
+    move.w  #$8F02, ($C00004)           ; Restore autoincrement
     
     tst.b   (TitleShowMenu)             ; Option selected?
     beq.s   @NoMenuYet
     btst.b  #7, (Joy1Press)
     bne.s   @Quit
+    ;btst.b  #6, (Joy1Press)
+    ;bne     @GoToAttract
 @NoMenuYet:
     
 @LogicLoop:
     bsr     AnimTitleLogo               ; Update animation and menu
     bsr     RunTitleMenu
     addq.w  #1, (Anim)
+    
+    tst.b   (TitleShowMenu)             ; Zoom in "REMIX Ver." once the
+    beq.s   @NoRemixVerIn                 ; menu is visible
+    move.b  (RemixVerOffset), d7
+    cmp.b   #-18, d7
+    ble.s   @NoRemixVerIn
+    subq.b  #1, d7
+    move.b  d7, (RemixVerOffset)
+@NoRemixVerIn:
     
     clr.b   (Joy1Press)                 ; Do NTSC/PAL speed correction
     clr.b   (Joy2Press)
@@ -182,9 +231,17 @@ TitleScreen:
 @GameStart:
     move.b  #STAGE_1_1, (Stage)         ; Initialize the game status
     
-    tst.b   (DebugOK)                   ; Start the game!
+    tst.b   (DebugOK)                   ; Stage select?
     bne     DebugMenu
-    bra     StartGame
+    
+    st.b    (Invict)                    ; Allow unlocking stage 7
+    bra     StartGame                   ; Start the game normally
+
+;----------------------------------------------------------------------------
+
+@GoToAttract:
+    jsr     (FadeOff).w                 ; Shut off screen
+    bra     StartAttract                ; Start attract mode
 
 ;****************************************************************************
 ; ScaleTitleLetter
@@ -271,7 +328,7 @@ AnimTitleLogo:
     st.b    (TitleShowMenu)
     
     move.l  (DMABufEnd), a6             ; Load menu graphics
-    DMA2VRAM TitleMenuBuf, VramTitleMenuA*$20, 10*4*$20, (a6)+
+    DMA2VRAM TitleMenuBuf, VramTitleMenuA*$20, ((11*4)+(19*3))*$20, (a6)+
     move.l  a6, (DMABufEnd)
 @NoMenuLoad:
     
@@ -287,6 +344,9 @@ AnimTitleLogo:
 RunTitleMenu:
     move.b  (Joy1Press), d0             ; Get joystick input
     beq.s   @NoKeyEnter
+    
+    move.w  #720, (TimeToAttract)       ; Reload attract mode countdown
+                                          ; whenever any button is pressed
     
     move.l  (TitleCheat), d7            ; Add input to the buffer
     lsl.l   #8, d7
@@ -323,7 +383,7 @@ RunTitleMenu:
     clr.b   (TitleLogoSize+10)
     
     move.l  (DMABufEnd), a6             ; Load menu graphics
-    DMA2VRAM TitleMenuBuf, VramTitleMenuA*$20, 10*4*$20, (a6)+
+    DMA2VRAM TitleMenuBuf, VramTitleMenuA*$20, ((11*4)+(19*3))*$20, (a6)+
     move.l  a6, (DMABufEnd)
     
 @DontShowMenu:
@@ -350,6 +410,8 @@ RunTitleMenu:
 @NoUp:
     
     move.b  d1, (TitleOption)           ; Store new option
+    
+    subq.w  #1, (TimeToAttract)         ; Tick the attract mode countdown
     rts                                 ; End of subroutine
 
 ;****************************************************************************

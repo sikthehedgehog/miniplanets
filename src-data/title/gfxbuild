@@ -14,8 +14,11 @@ tiles 6 6 3 3
 output "src-data/title/menu.4bpp"
 input "src-data/title/menu.png"
 layout sprite
-tiles 0 0 10 2
+tiles 0 0 12 2
 tiles 0 2 10 2
+input "src-data/title/remix_ver.png"
+layout tilemap
+tiles 0 0 19 3
 
 output "src-data/title/other.4bpp"
 input "src-data/title/copyright.png"

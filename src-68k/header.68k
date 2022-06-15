@@ -12,7 +12,7 @@
     dc.l    ErrorIRQ,   ErrorIRQ,   ErrorIRQ,   ErrorIRQ
     dc.l    ErrorIRQ,   ErrorIRQ,   VBlank,     ErrorIRQ
 
-    dc.l    ErrorTrap,  ErrorTrap,  ErrorTrap,  ErrorTrap
+    dc.l    ErrorTrap,  ErrorSum,   ErrorTrap,  ErrorTrap
     dc.l    ErrorTrap,  ErrorTrap,  ErrorTrap,  ErrorTrap
     dc.l    ErrorTrap,  ErrorTrap,  ErrorTrap,  ErrorTrap
     dc.l    ErrorTrap,  ErrorTrap,  ErrorTrap,  ErrorTrap
@@ -27,12 +27,12 @@
 ;****************************************************************************
 
     dc.b    "SEGA MEGA DRIVE "
-    dc.b    "(C) SIK 2018.JUN"
+    dc.b    "(C) SIK 2022.MAR"
     dc.b    "MINIPLANETS"
     dcb.b   $150-*, $20
     dc.b    "MINIPLANETS"
     dcb.b   $180-*, $20
-    dc.b    "GM SIK-MINI-03"
+    dc.b    "GM SIK-MINI-04"
     dc.w    $0000
     dc.b    "J"
     dcb.b   $1A0-*, $20

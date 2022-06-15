@@ -32,14 +32,20 @@ ReadJoypads:
 ;----------------------------------------------------------------------------
 
 @DoIt:
-    move.b  #$40, (a6)                  ; Read all joypad buttons
+    Z80Request                          ; Read all joypad buttons
+    move.b  #$40, (a6)
+    nop
+    nop
     nop
     nop
     move.b  (a6), d7
     move.b  #$00, (a6)
     nop
     nop
+    nop
+    nop
     move.b  (a6), d6
+    Z80Release
     
     and.b   #$3F, d7                    ; Put everything together
     and.b   #$30, d6

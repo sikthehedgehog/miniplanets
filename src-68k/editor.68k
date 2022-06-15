@@ -1,0 +1,188 @@
+;****************************************************************************
+; StageEditor
+; Main loop for the stage editor.
+;----------------------------------------------------------------------------
+; notes: doesn't return
+;****************************************************************************
+
+StageEditor:
+    jsr     (StopBGM).w                 ; No music, please
+    bsr     LoadIngameGfx               ; Load common graphics
+    
+    clr.w   (Anim)                      ; Reset animations
+    clr.b   (ShakeTimer)                ; No shaking in the editor
+    st.b    (AnimToLoad)                ; Load animated tiles
+    move.b  #8, (EditorX)               ; Initial position of the cursor
+    move.b  #8, (EditorY)
+    clr.b   (EditorTile)                ; Default tile to place
+    
+    st.b    (Stage)                     ; Fake stage number
+    move.b  #$01, (StageName)
+    bsr     InitMinimalMap              ; Set up a blank map
+    bsr     InitObjects
+    bsr     InitBackground              ; Draw the background
+
+;----------------------------------------------------------------------------
+
+@MainLoop:
+    bsr     ScrollBackground            ; Update background position
+    bsr     DrawEditorTile              ; Update selected tile on screen
+    
+@LogicLoop:
+    bsr     UpdateEditor                ; Handle user input
+    addq.w  #1, (Anim)                  ; Update animation timer
+    
+    clr.b   (Joy1Press)                 ; Do NTSC/PAL speed correction
+    clr.b   (Joy2Press)
+    subq.b  #1, (NumFrames)
+    bne.s   @LogicLoop
+    
+    jsr     (ClearSprites).w            ; Draw everything
+    clr.w   (FrontSpriteOffset)
+    clr.w   (BackSpriteOffset)
+    
+    bsr     DrawObjects
+    bsr     DrawAllFrontSprites
+    bsr     DrawGlobe
+    bsr     DrawAllBackSprites
+    bsr     AnimGlobe
+    
+    jsr     (NextFrame).w               ; Wait for next frame
+    bra     @MainLoop
+
+;****************************************************************************
+; InitMinimalMap
+; Initializes the globe with a barebones map.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+InitMinimalMap:
+    lea     (GlobeMap), a6              ; Fill map with grass tiles
+    moveq   #$100/$10-1, d6
+    move.l  #(TILE_GR<<24)|(TILE_GR<<16)|(TILE_GR<<8)|TILE_GR, d7
+@Loop:
+    move.l  d7, (a6)+
+    move.l  d7, (a6)+
+    move.l  d7, (a6)+
+    move.l  d7, (a6)+
+    dbf     d6, @Loop
+    
+    clr.w   -$02(a6)                    ; Leave a 4x4 dirt block at the
+    clr.l   -$12(a6)                      ; start point
+    clr.w   -$20(a6)
+    clr.w   -$E2(a6)
+    clr.l   -$F2(a6)
+    clr.w   -$100(a6)
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; UpdateEditor
+; Handles user input in the stage editor.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+UpdateEditor:
+    move.b  (Joy1Hold), d0              ; Get joypad buttons
+    move.b  (EditorX), d1               ; Get cursor position
+    move.b  (EditorY), d2
+    
+    btst    #0, d0                      ; Go up?
+    beq.s   @NoUp
+    subq.b  #2, d2
+@NoUp:
+    btst    #1, d0                      ; Go down?
+    beq.s   @NoDown
+    addq.b  #2, d2
+@NoDown:
+    btst    #2, d0                      ; Go left?
+    beq.s   @NoLeft
+    subq.b  #2, d1
+@NoLeft:
+    btst    #3, d0                      ; Go right?
+    beq.s   @NoRight
+    addq.b  #2, d1
+@NoRight:
+    
+    move.b  d1, (EditorX)               ; Save new cursor position
+    move.b  d2, (EditorY)
+    
+    move.b  d1, d6                      ; Get pointer to tile under the
+    move.b  d2, d7                        ; cursor
+    and.w   #$F0, d7
+    lsr.b   #4, d6
+    or.b    d6, d7
+    lea     (GlobeMap), a6
+    lea     (a6,d7.w), a6
+    
+    btst    #5, d0                      ; Put tile?
+    beq.s   @NoPut
+    move.b  (EditorTile), (a6)
+@NoPut:
+    btst    #4, d0                      ; Copy tile?
+    beq.s   @NoCopy
+    move.b  (a6), (EditorTile)
+@NoCopy:
+    
+    btst    #6, (Joy1Press)             ; Next tile?
+    beq.s   @NoNext
+    move.b  (EditorTile), d7
+    addq.b  #1, d7
+    cmp.b   #NUM_EDITOR_TILES, d7
+    blo.s   @NextOk
+    moveq   #0, d7
+@NextOk:
+    move.b  d7, (EditorTile)
+@NoNext:
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawEditorTile
+; Redraws the icon for the current tile in the stage editor.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawEditorTile:
+    moveq   #0, d2                      ; Get graphic of current tile
+    move.b  (EditorTile), d2
+    add.w   d2, d2
+    lea     (GlobeTiles), a6
+    move.w  (a6,d2.w), d2
+    add.w   #4*(2*2), d2
+    
+    move.w  d2, d3                      ; Expand it to cover all the VDP
+    swap    d2                            ; tile IDs it uses
+    move.w  d3, d2
+    addq.w  #2, d2
+    move.l  d2, d3
+    add.l   #$00010001, d3
+    
+    lea     ($C00004), a0               ; VDP control port address
+    lea     ($C00000), a1               ; VDP data port address
+    SetVramAddr $CB08, d0               ; Initial VRAM address
+    move.l  #$80<<16, d4                ; Distance between rows
+    
+    move.l  d0, (a0)                    ; Draw 1st row
+    move.l  d2, (a1)
+    move.l  d2, (a1)
+    
+    add.l   d4, d0                      ; Draw 2nd row
+    move.l  d0, (a0)
+    move.l  d3, (a1)
+    move.l  d3, (a1)
+    
+    add.l   d4, d0                      ; Draw 3rd row
+    move.l  d0, (a0)
+    move.l  d2, (a1)
+    move.l  d2, (a1)
+    
+    add.l   d4, d0                      ; Draw 4th row
+    move.l  d0, (a0)
+    move.l  d3, (a1)
+    move.l  d3, (a1)
+    
+    rts                                 ; End of subroutine

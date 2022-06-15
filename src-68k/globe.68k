@@ -1,3 +1,20 @@
+MAX_3DSPRITES:          equ 32          ; Maximum 3D sprites allowed
+
+;****************************************************************************
+; SPR3D_*
+; Definition for the data stored for a 3D sprite.
+;****************************************************************************
+
+                        rsreset
+SPR3D_X:                rs.b 1          ; X coordinate
+SPR3D_Y:                rs.b 1          ; Y coordinate
+SPR3D_TILE:             rs.w 1          ; Tile ID
+                        if SORT_BY_DEPTH
+SPR3D_DEPTH:            rs.w 1          ; Depth for sorting
+                        endc
+
+SPR3D_SIZE:             rs.b 0          ; Size of one entry
+
 ;****************************************************************************
 ; TOLOAD_*
 ; Flags indicating which graphics to stream. Used for graphics which are
@@ -5,14 +22,9 @@
 ;****************************************************************************
 
                         rsreset
-TOLOAD_RAFTU:           rs.b 1          ; Raft going up
-TOLOAD_RAFTD:           rs.b 1          ; Raft going down
-TOLOAD_RAFTL:           rs.b 1          ; Raft going left
-TOLOAD_RAFTR:           rs.b 1          ; Raft going right
-TOLOAD_BELTU:           rs.b 1          ; Belt going up
-TOLOAD_BELTD:           rs.b 1          ; Belt going down
-TOLOAD_BELTL:           rs.b 1          ; Belt going left
-TOLOAD_BELTR:           rs.b 1          ; Belt going right
+TOLOAD_WATER:           rs.b 1          ; Water graphics
+TOLOAD_FIRE:            rs.b 1          ; Fire graphics
+TOLOAD_BELT:            rs.b 1          ; Belt graphics
 
 ;****************************************************************************
 ; InitGlobe
@@ -59,15 +71,31 @@ InitGlobe:
     move.w  (PalAutumn+2*2), (PaletteBuf+$13*2)
 @NoAutumn:
     
-    move.b  (StageName), d7             ; Animate belts in stage 3
-    and.b   #$F0, d7                      ; To-do: scan every belt type
-    cmp.b   #$30, d7                      ; Though we have spare CPU time
-    bne.s   @NoBelts                      ; anyway so it doesn't matter?
-    bset.b  #TOLOAD_BELTU, (AnimToLoad)
-    bset.b  #TOLOAD_BELTD, (AnimToLoad)
-    bset.b  #TOLOAD_BELTL, (AnimToLoad)
-    bset.b  #TOLOAD_BELTR, (AnimToLoad)
-@NoBelts:
+    moveq   #0, d0                      ; Go through every tile in the globe
+    lea     (GlobeMap), a0                ; to see what needs to be animated
+    move.w  #$100-1, d7
+@ScanGlobe:
+    move.b  (a0)+, d1                   ; Get tile
+    
+    cmp.b   #TILE_WA, d1                ; Do we need to load water graphics?
+    bne.s   @NoLoadWater                  ; Warning: mutually exclusive with
+    bset    #TOLOAD_WATER, d0             ; fire due to taking up the same
+@NoLoadWater:                             ; VRAM space
+    
+    cmp.b   #TILE_FI, d1                ; Do we need to load fire graphics?
+    bne.s   @NoLoadFire                   ; Warning: mutually exclusive with
+    bset    #TOLOAD_FIRE, d0              ; water due to taking up the same
+@NoLoadFire:                              ; VRAM space
+    
+    cmp.b   #TILE_CU, d1                ; Do we need to load belt graphics?
+    blo.s   @NoLoadBelts
+    cmp.b   #TILE_CR, d1
+    blo.s   @NoLoadBelts
+    bset    #TOLOAD_BELT, d0
+@NoLoadBelts:
+    
+    dbf     d7, @ScanGlobe              ; Check next tile
+    move.b  d0, (AnimToLoad)            ; Store loading flags
     
     rts                                 ; End of subroutine
 
@@ -96,6 +124,7 @@ DrawGlobe:
     lea     (a0,d7.w), a0
     lea     $4000(a0), a1
     lea     $4000(a1), a2
+    lea     $4000(a2), a5
     
     moveq   #0, d5                      ; Calculate tile-level offset
     move.b  (PlayerY), d5                 ; (i.e. not pixel-level)
@@ -123,9 +152,11 @@ DrawGlobe:
     lsr.w   #4, d7
     move.b  (a3,d7.w), d7
     add.w   d7, d7
-    move.w  (a4,d7.w), d2
+    moveq   #0, d2
+    move.b  (a5)+, d2
+    add.w   (a4,d7.w), d2
     
-    jsr     (AddSprite).w               ; Draw this sprite
+    jsr     (AddSpriteNoClip).w         ; Draw this sprite
     dbf     d4, @Loop                   ; Go for next sprite
     
     rts                                 ; End of subroutine
@@ -170,7 +201,7 @@ DrawEndingGlobe:
     or.w    #$2000, d2
     add.w   #VramEndingGlobe, d2
     
-    jsr     (AddSprite).w               ; Draw this sprite
+    jsr     (AddSpriteNoClip).w         ; Draw this sprite
     dbf     d4, @Loop                   ; Go for next sprite
     
     rts                                 ; End of subroutine
@@ -183,27 +214,43 @@ DrawEndingGlobe:
 ;****************************************************************************
 
 AnimGlobe:
-    move.l  (DMABufEnd), a6             ; Update water graphics
-    moveq   #0, d7
+    btst    #TOLOAD_WATER, (AnimToLoad) ; Does this map have water?
+    beq.s   @NoWater
+    
+    moveq   #0, d7                      ; Update water graphics
     move.w  (Anim), d7
     and.w   #$03<<3, d7
     lsl.w   #7-3, d7
+    move.w  d7, d6
+    lsl.w   #3, d7
+    add.w   d6, d7
+    
     add.l   #GfxWater, d7
-    move.w  #$20*2*2, d6
+    move.w  #$20*9*(2*2), d6
+    move.l  (DMABufEnd), a6
     DMA2VRAM_SL d7, VramWater*$20, d6, a6
     move.l  a6, (DMABufEnd)
+@NoWater:
 
 ;----------------------------------------------------------------------------
 
-    move.l  (DMABufEnd), a6             ; Update fire graphics
-    moveq   #0, d7
+    btst    #TOLOAD_FIRE, (AnimToLoad)  ; Does this map have fire?
+    beq.s   @NoFire
+    
+    moveq   #0, d7                      ; Update fire graphics
     move.w  (Anim), d7
     and.w   #$03<<2, d7
     lsl.w   #7-2, d7
+    move.w  d7, d6
+    lsl.w   #3, d7
+    add.w   d6, d7
+    
     add.l   #GfxFire, d7
-    move.w  #$20*2*2, d6
+    move.w  #$20*9*(2*2), d6
+    move.l  (DMABufEnd), a6
     DMA2VRAM_SL d7, VramFire*$20, d6, a6
     move.l  a6, (DMABufEnd)
+@NoFire:
 
 ;----------------------------------------------------------------------------
 
@@ -219,200 +266,92 @@ AnimGlobe:
 
 ;----------------------------------------------------------------------------
 
-    move.b  (AnimToLoad), d0            ; Now check expensive animations...
-
-;----------------------------------------------------------------------------
-
-    btst.l  #TOLOAD_RAFTU, d0           ; Stream rafts going up?
-    beq.s   @NoRaftUp
+    btst    #TOLOAD_BELT, (AnimToLoad)  ; Does this map have belts?
+    beq.s   @NoBelts
+    tst.b   (BeltOK)                    ; Are the belts powered on?
+    beq.s   @NoBelts
     
-    move.w  (Anim), d7
-    neg.w   d7
-    and.w   #$0F, d7
+    btst.b  #0, (Anim+1)                ; Alternate between loading vertical
+    beq.s   @NoVerBelt                    ; and horizontal belts every frame
+    bsr     UpdateVerticalBelts           ; because we ran out of bandwidth
+    bra.s   @NoHorBelt                    ; for DMA
+@NoVerBelt:
+    bsr     UpdateHorizontalBelts
+@NoHorBelt:
+@NoBelts:
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; UpdateVerticalBelts
+; Updates the graphics for vertical conveyor belts. Note that it queues a
+; DMA transfer to be executed later.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+UpdateVerticalBelts:
+    lea     (BeltBuf_V), a0             ; Pointer to graphics
+    move.l  (DMABufEnd), a6             ; Current DMA queue tail
+    
+    move.w  (Anim), d7                  ; Determine what frame to use
+    neg.w   d7                            ; for the upward belts
+    and.l   #$03<<1, d7
+    lsl.w   #6, d7
+    move.w  d7, d6
     lsl.w   #3, d7
-    add.w   #$80, d7
-    moveq   #8, d6
-    lea     (GfxRaft), a6
-    lea     (RaftBuf+(0*12+0)*$20), a5
-    jsr     DecompressUFTC
+    add.w   d6, d7
     
-    move.w  (Anim), d7
-    neg.w   d7
-    and.w   #$03, d7
-    lsl.w   #2, d7
-    add.w   #$110, d7
-    moveq   #4, d6
-    lea     (GfxRaft), a6
-    jsr     DecompressUFTC
+    add.l   a0, d7                      ; Queue up the DMA transfer
+    DMA2VRAM_S d7, VramBeltU*$20, 9*4*$20, a6
     
-    move.l  (DMABufEnd), a6
-    DMA2VRAM RaftBuf+0*12*$20, VramRaftU*$20, 12*$20, (a6)+
-    move.l  a6, (DMABufEnd)
-@NoRaftUp:
-
-;----------------------------------------------------------------------------
-
-    btst.l  #TOLOAD_RAFTD, d0           ; Stream rafts going down?
-    beq.s   @NoRaftDown
-    
-    move.w  (Anim), d7
-    and.w   #$0F, d7
+    move.w  (Anim), d7                  ; Determine what frame to use
+    and.l   #$03<<1, d7                   ; for the downward belts
+    lsl.w   #6, d7
+    move.w  d7, d6
     lsl.w   #3, d7
-    add.w   #$80, d7
-    moveq   #8, d6
-    lea     (GfxRaft), a6
-    lea     (RaftBuf+(1*12+0)*$20), a5
-    jsr     DecompressUFTC
+    add.w   d6, d7
     
-    move.w  (Anim), d7
-    and.w   #$03, d7
-    lsl.w   #2, d7
-    add.w   #$110, d7
-    moveq   #4, d6
-    lea     (GfxRaft), a6
-    jsr     DecompressUFTC
+    add.l   a0, d7                      ; Queue up the DMA transfer
+    DMA2VRAM_S d7, VramBeltD*$20, 9*4*$20, a6
     
-    move.l  (DMABufEnd), a6
-    DMA2VRAM RaftBuf+1*12*$20, VramRaftD*$20, 12*$20, (a6)+
-    move.l  a6, (DMABufEnd)
-@NoRaftDown:
+    move.l  a6, (DMABufEnd)             ; Store updated DMA queue tail
+    rts                                 ; End of subroutine
 
+;****************************************************************************
+; UpdateHorizontalBelts
+; Updates the graphics for horizontal conveyor belts. Note that it queues a
+; DMA transfer to be executed later.
 ;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
 
-    btst.l  #TOLOAD_RAFTL, d0           ; Stream rafts going left?
-    beq.s   @NoRaftLeft
+UpdateHorizontalBelts:
+    lea     (BeltBuf_H), a0             ; Pointer to graphics
+    move.l  (DMABufEnd), a6             ; Current DMA queue tail
     
-    move.w  (Anim), d7
-    neg.w   d7
-    and.w   #$0F, d7
+    move.w  (Anim), d7                  ; Determine what frame to use
+    neg.w   d7                            ; for the belts going left
+    and.l   #$03<<1, d7
+    lsl.w   #6, d7
+    move.w  d7, d6
     lsl.w   #3, d7
-    moveq   #8, d6
-    lea     (GfxRaft), a6
-    lea     (RaftBuf+(2*12+0)*$20), a5
-    jsr     DecompressUFTC
+    add.w   d6, d7
     
-    move.w  (Anim), d7
-    neg.w   d7
-    and.w   #$03, d7
-    lsl.w   #2, d7
-    add.w   #$100, d7
-    moveq   #4, d6
-    lea     (GfxRaft), a6
-    jsr     DecompressUFTC
+    add.l   a0, d7                      ; Queue up the DMA transfer
+    DMA2VRAM_S d7, VramBeltL*$20, 9*4*$20, a6
     
-    move.l  (DMABufEnd), a6
-    DMA2VRAM RaftBuf+2*12*$20, VramRaftL*$20, 12*$20, (a6)+
-    move.l  a6, (DMABufEnd)
-@NoRaftLeft:
-
-;----------------------------------------------------------------------------
-
-    btst.l  #TOLOAD_RAFTR, d0           ; Stream rafts going right?
-    beq.s   @NoRaftRight
-    
-    move.w  (Anim), d7
-    and.w   #$0F, d7
+    move.w  (Anim), d7                  ; Determine what frame to use
+    and.l   #$03<<1, d7                   ; for the belts going right
+    lsl.w   #6, d7
+    move.w  d7, d6
     lsl.w   #3, d7
-    moveq   #8, d6
-    lea     (GfxRaft), a6
-    lea     (RaftBuf+(3*12+0)*$20), a5
-    jsr     DecompressUFTC
+    add.w   d6, d7
     
-    move.w  (Anim), d7
-    and.w   #$03, d7
-    lsl.w   #2, d7
-    add.w   #$100, d7
-    moveq   #4, d6
-    lea     (GfxRaft), a6
-    jsr     DecompressUFTC
+    add.l   a0, d7                      ; Queue up the DMA transfer
+    DMA2VRAM_S d7, VramBeltR*$20, 9*4*$20, a6
     
-    move.l  (DMABufEnd), a6
-    DMA2VRAM RaftBuf+3*12*$20, VramRaftR*$20, 12*$20, (a6)+
-    move.l  a6, (DMABufEnd)
-@NoRaftRight:
-
-;----------------------------------------------------------------------------
-
-    btst.l  #TOLOAD_BELTU, d0           ; Stream belts going up?
-    beq.s   @NoBeltUp
-    
-    move.w  (Anim), d7
-    neg.w   d7
-    and.w   #$07, d7
-    addq.w  #8, d7
-    add.w   d7, d7
-    add.w   d7, d7
-    moveq   #4, d6
-    lea     (GfxBelt), a6
-    lea     (BeltBuf+0*4*$20), a5
-    jsr     DecompressUFTC
-    
-    move.l  (DMABufEnd), a6
-    DMA2VRAM BeltBuf+0*4*$20, VramBeltU*$20, 4*$20, (a6)+
-    move.l  a6, (DMABufEnd)
-@NoBeltUp:
-
-;----------------------------------------------------------------------------
-
-    btst.l  #TOLOAD_BELTD, d0           ; Stream belts going down?
-    beq.s   @NoBeltDown
-    
-    move.w  (Anim), d7
-    and.w   #$07, d7
-    addq.w  #8, d7
-    add.w   d7, d7
-    add.w   d7, d7
-    moveq   #4, d6
-    lea     (GfxBelt), a6
-    lea     (BeltBuf+1*4*$20), a5
-    jsr     DecompressUFTC
-    
-    move.l  (DMABufEnd), a6
-    DMA2VRAM BeltBuf+1*4*$20, VramBeltD*$20, 4*$20, (a6)+
-    move.l  a6, (DMABufEnd)
-@NoBeltDown:
-
-;----------------------------------------------------------------------------
-
-    btst.l  #TOLOAD_BELTL, d0           ; Stream belts going left?
-    beq.s   @NoBeltLeft
-    
-    move.w  (Anim), d7
-    neg.w   d7
-    and.w   #$07, d7
-    add.w   d7, d7
-    add.w   d7, d7
-    moveq   #4, d6
-    lea     (GfxBelt), a6
-    lea     (BeltBuf+2*4*$20), a5
-    jsr     DecompressUFTC
-    
-    move.l  (DMABufEnd), a6
-    DMA2VRAM BeltBuf+2*4*$20, VramBeltL*$20, 4*$20, (a6)+
-    move.l  a6, (DMABufEnd)
-@NoBeltLeft:
-
-;----------------------------------------------------------------------------
-
-    btst.l  #TOLOAD_BELTR, d0           ; Stream belts going right?
-    beq.s   @NoBeltRight
-    
-    move.w  (Anim), d7
-    and.w   #$07, d7
-    add.w   d7, d7
-    add.w   d7, d7
-    moveq   #4, d6
-    lea     (GfxBelt), a6
-    lea     (BeltBuf+3*4*$20), a5
-    jsr     DecompressUFTC
-    
-    move.l  (DMABufEnd), a6
-    DMA2VRAM BeltBuf+3*4*$20, VramBeltR*$20, 4*$20, (a6)+
-    move.l  a6, (DMABufEnd)
-@NoBeltRight:
-
-;----------------------------------------------------------------------------
-
+    move.l  a6, (DMABufEnd)             ; Store updated DMA queue tail
     rts                                 ; End of subroutine
 
 ;****************************************************************************
@@ -466,8 +405,8 @@ SetTile:
 ; Add3DSprite
 ; Adds a sprite object to the 3D world.
 ;----------------------------------------------------------------------------
-; input d7.b ... X coordinate (absolute)
-; input d6.b ... Y coordinate (absolute)
+; input d7.b ... X coordinate (in globe space)
+; input d6.b ... Y coordinate (in globe space)
 ; input d5.w ... Sprite tile ID
 ;----------------------------------------------------------------------------
 ; breaks: d5-d7, a4-a6
@@ -477,34 +416,225 @@ Add3DSprite:
     sub.b   (PlayerX), d7               ; Account for camera
     sub.b   (PlayerY), d6
     
-    cmp.b   #-$40, d7                   ; Do clipping
-    ble.s   @Skip
+    cmp.b   #-$40, d7                   ; Check for sprites that should be
+    ble.s   @Behind                       ; drawn behind the globe
     cmp.b   #$40, d7
-    bge.s   @Skip
+    bge.s   @Behind
     cmp.b   #-$40, d6
-    ble.s   @Skip
+    ble.s   @Behind
     cmp.b   #$40, d6
-    blt.s   @Add
+    bge.s   @Behind
+    
+    swap    d5                          ; We're out of usable registers so
+                                          ; let's borrow the upper half of
+                                          ; d5 for a bit
+    
+    move.w  (FrontSpriteOffset), d5     ; Get pointer to the next free slot
+    lea     (FrontSpriteList), a5         ; in the front sprites list and
+    lea     (a5,d5.w), a6                 ; reserve it
+    addq.w  #SPR3D_SIZE, d5
+    move.w  d5, (FrontSpriteOffset)
+    
+    if      SORT_BY_DEPTH
+    bra.s   @DoSort                     ; Figure out where in the list the
+                                          ; sprite should go going by its
+                                          ; depth
+    else
+    swap    d5                          ; Get tile ID back
+    
+    move.b  d7, (a6)+                   ; Store X coordinate
+    move.b  d6, (a6)+                   ; Store Y coordinate
+    move.w  d5, (a6)+                   ; Store tile ID
+    
+    rts                                 ; End of subroutine
+    endc
+
+;----------------------------------------------------------------------------
+
+@Behind:
+    cmp.b   #-$58, d7                   ; Check for sprites that are too far
+    ble.s   @Skip                         ; back and wouldn't be visible
+    cmp.b   #$58, d7                      ; anyway so we can skip them
+    bge.s   @Skip
+    cmp.b   #-$58, d6
+    ble.s   @Skip
+    cmp.b   #$58, d6
+    bge.s   @Skip
+    
+    swap    d5                          ; We're out of usable registers so
+                                          ; let's borrow the upper half of
+                                          ; d5 for a bit
+    
+    move.w  (BackSpriteOffset), d5      ; Get pointer to the next free slot
+    lea     (BackSpriteList), a5          ; in the back sprites list and
+    lea     (a5,d5.w), a6                 ; reserve it
+    addq.w  #SPR3D_SIZE, d5
+    move.w  d5, (BackSpriteOffset)
+    
+    if      SORT_BY_DEPTH
+    bra.s   @DoSort
+    else
+    swap    d5                          ; Get tile ID back
+    
+    move.b  d7, (a6)+                   ; Store X coordinate
+    move.b  d6, (a6)+                   ; Store Y coordinate
+    move.w  d5, (a6)+                   ; Store tile ID
+    endc
+    
 @Skip:
     rts
-@Add:
+
+;----------------------------------------------------------------------------
+
+    if SORT_BY_DEPTH
+
+@DoSort:
+    ext.w   d7                          ; Compute sprite depth for sorting
+    move.w  d7, d5                        ; purposes
+    bpl.s   @XIsOk
+    neg.w   d5
+@XIsOk:
+    ext.w   d6
+    move.w  d5, a4
+    move.w  d6, d5
+    bpl.s   @YIsOk
+    neg.w   d5
+@YIsOk:
+    add.w   a4, d5
     
-    add.b   #$40, d7                    ; Convert positions to 3D
+@SortLoop:
+    cmp.l   a5, a6                      ; No more sprites to compare against?
+    beq.s   @SortEnd
+    cmp.w   -SPR3D_SIZE+SPR3D_DEPTH(a6), d5 ; Is this sprite deeper?
+    bhs.s   @SortEnd
+    move.l  -(a6), SPR3D_SIZE(a6)       ; Move it forwards if deeper
+    move.w  -(a6), SPR3D_SIZE(a6)
+    bra.s   @SortLoop                   ; Try next sprite
+    
+@SortEnd:
+    move.b  d7, (a6)+                   ; Store X coordinate
+    move.b  d6, (a6)+                   ; Store Y coordinate
+    move.l  d5, (a6)+                   ; Store tile ID and depth
+    
+    rts                                 ; End of subroutine
+    endc
+
+;****************************************************************************
+; DrawAllFrontSprites
+; Draws all the 3D sprites in front of the globe.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawAllFrontSprites:
+    lea     (FrontSpriteList), a0       ; List of sprites to draw
+    lea     (ObjectTable), a1           ; Projection table
+    
+    moveq   #0, d0                      ; No offset needed
+    moveq   #0, d1
+    
+    move.w  (FrontSpriteOffset), d7     ; Get how many sprites to draw and
+    lea     (a0,d7.w), a2                 ; go loop through them (if any)
+    bra.s   @LoopEnd
+    
+@Loop:
+    move.b  (a0)+, d7                   ; Get X coordinate
+    move.b  (a0)+, d6                   ; Get Y coordinate
+    move.w  (a0)+, d5                   ; Get tile ID
+    if      SORT_BY_DEPTH
+    addq.l  #2, a0                      ; Skip depth
+    endc
+    
+    move.l  a1, a5                      ; Use same table for both X and Y
+    move.l  a1, a6
+    bsr     Draw3DSpriteBackend         ; Draw the sprite
+    
+@LoopEnd:
+    cmp.l   a2, a0                      ; Go for next sprite, if any
+    bne.s   @Loop
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawAllBackSprites
+; Draws all the 3D sprites behind the globe.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawAllBackSprites:
+    lea     (BackSpriteList), a0        ; List of sprites to draw
+    lea     (ObjectTable), a1           ; Projection table in front of globe
+    ;lea     (ObjectTable2), a2          ; Projection table behind globe
+    
+    moveq   #0, d0                      ; No offset needed
+    moveq   #0, d1
+    
+    move.w  (BackSpriteOffset), d7      ; Get how many sprites to draw and
+    lea     (a0,d7.w), a3                 ; go loop through them (if any)
+    bra.s   @LoopEnd
+    
+@Loop:
+    move.b  (a0)+, d7                   ; Get X coordinate
+    move.b  (a0)+, d6                   ; Get Y coordinate
+    move.w  (a0)+, d5                   ; Get tile ID
+    if      SORT_BY_DEPTH
+    addq.l  #2, a0                      ; Skip depth
+    endc
+    
+    move.l  a1, a5
+    move.l  a1, a6
+    bsr     Draw3DSpriteBackend         ; Draw the sprite
+    
+@LoopEnd:
+    cmp.l   a3, a0                      ; Go for next sprite, if any
+    bne.s   @Loop
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; Draw3DSpriteBackend
+; The subroutine that does the job for DrawAllFrontSprites,
+; DrawAllBackSprites and DrawAllRafts.
+;----------------------------------------------------------------------------
+; input d0.w ... X offset (in screen space)
+; input d1.w ... Y offset (in screen space)
+; input d7.b ... X coordinate (in camera space)
+; input d6.b ... Y coordinate (in camera space)
+; input d5.w ... Sprite tile ID
+; input a5.l ... Pointer to X look-up table
+; input a6.l ... Pointer to Y look-up table
+;----------------------------------------------------------------------------
+; breaks: d5-d7, a4-a6
+;****************************************************************************
+
+Draw3DSpriteBackend:
+    if      1
+    add.b   #$80, d7
+    add.b   #$80, d6
+    else
+    add.b   #$40, d7                    ; Normalize X and Y coordinates into
+    bpl.s   @FrontX                       ; the range used to index into the
+    not.b   d7                            ; look-up table
+@FrontX:
     add.b   #$40, d6
-    lsl.w   #8, d7
+    bpl.s   @FrontY
+    not.b   d6
+@FrontY:
+    endif
+    
+    and.l   #$FFFF, d7
+    lsl.w   #8, d7                      ; Convert positions to 3D
     move.b  d6, d7
     
-    add.b   d7, d7                      ; (x position)
-    lsr.w   #1, d7
-    lea     (ObjectTable), a6
-    lea     (a6,d7.w), a5
+    ;add.b   d7, d7                      ; (x position)
+    ;lsr.w   #1, d7
+    lea     (a5,d7.l), a5
     
-    add.w   d7, d7                      ; (y position)
-    lsr.b   #1, d7
+    ;add.w   d7, d7                      ; (y position)
+    ;lsr.b   #1, d7
     rol.w   #8, d7
-    add.b   d7, d7
-    lsr.w   #1, d7
-    lea     (a6,d7.w), a6
+    ;add.b   d7, d7
+    ;lsr.w   #1, d7
+    lea     (a6,d7.l), a6
     
     move.b  (a6), d7                    ; (fetch values)
     move.b  (a5), d6
@@ -513,12 +643,12 @@ Add3DSprite:
     add.w   #160-8, d7
     add.w   #112-8, d6
     
-    movem.l d0-d3, -(sp)
-    move.w  d7, d0                      ; For now... (this will work as long
-    move.w  d6, d1                        ; as there isn't overlap)
+    movem.l d0-d3, -(sp)                ; Finally draw the sprite
+    add.w   d7, d0
+    add.w   d6, d1
     move.w  d5, d2
     moveq   #%0101, d3
-    jsr     (AddSprite).w
+    jsr     (AddSpriteNoClip).w
     movem.l (sp)+, d0-d3
     
     rts                                 ; End of subroutine

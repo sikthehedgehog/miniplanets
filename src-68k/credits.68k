@@ -6,6 +6,16 @@
 ;****************************************************************************
 
 Credits:
+    if      !DEMO_VERSION
+    tst.b   (Invict)                    ; If the game was cleared from stage
+    beq.s   @NoStage7                     ; 1-1 without cheating and the
+    cmp.b   #STAGE_6_0, (Stage)           ; player never lost a life, go to
+    bne.s   @NoStage7                     ; the hidden planelago
+    move.b  #STAGE_7_1, (Stage)
+    bra     InGame
+@NoStage7:
+    endc
+    
     jsr     (ResetVideo).w              ; Reset graphics
     st.b    (FadeInFlag)                ; We want fade in
     
@@ -167,12 +177,23 @@ Credits:
     moveq   #BGM_ENDING, d7             ; Start playing music
     jsr     (PlayBGM).w
     
+    move.w  #600, (CreditsResetTimer)   ; Load up the timer that will be
+                                          ; used to reset the game when the
+                                          ; credits are over
+    
     clr.w   (Anim)
 @MainLoop:
 @LogicLoop:
     bsr     UpdateCreditsText           ; Update everything
     addq.w  #1, (Anim)
     addq.w  #1, (CreditsSpin)
+    
+    move.l  (CreditsSrc), a6            ; At the end of the credits yet?
+    cmp.b   #$FF, (a6)
+    bne.s   @StillGoing
+    subq.w  #1, (CreditsResetTimer)     ; Time to reset?
+    beq.s   @Quit
+@StillGoing:
     
     clr.b   (Joy1Press)                 ; Do NTSC/PAL speed correction
     clr.b   (Joy2Press)
@@ -190,6 +211,12 @@ Credits:
     
     jsr     (NextFrame).w               ; Wait for next frame
     bra     @MainLoop
+
+;----------------------------------------------------------------------------
+
+@Quit:
+    jsr     (FadeOut).w                 ; Turn off screen
+    bra     LogoSplash                  ; Reset game
 
 ;****************************************************************************
 ; DrawCreditsForeground

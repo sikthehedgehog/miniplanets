@@ -15,6 +15,12 @@ tiles 12 0 4 4
 tiles 16 0 4 4
 input "src-data/player/stun.png"
 tiles 0 0 4 4
+input "src-data/player/run.png"
+tiles 20 0 4 4
+tiles 24 0 4 4
+tiles 28 0 4 4
+input "src-data/player/jump.png"
+tiles 20 0 4 4
 
 output "src-data/player/player_h.4bpp"
 input "src-data/player/run.png"
@@ -31,6 +37,12 @@ tiles 12 4 4 4
 tiles 16 4 4 4
 input "src-data/player/stun.png"
 tiles 0 4 4 4
+input "src-data/player/run.png"
+tiles 20 4 4 4
+tiles 24 4 4 4
+tiles 28 4 4 4
+input "src-data/player/jump.png"
+tiles 20 4 4 4
 
 output "src-data/player/player_d.4bpp"
 input "src-data/player/run.png"
@@ -47,6 +59,12 @@ tiles 12 8 4 4
 tiles 16 8 4 4
 input "src-data/player/stun.png"
 tiles 0 8 4 4
+input "src-data/player/run.png"
+tiles 20 8 4 4
+tiles 24 8 4 4
+tiles 28 8 4 4
+input "src-data/player/jump.png"
+tiles 20 8 4 4
 
 output "src-data/player/player_x.4bpp"
 input "src-data/player/win.png"
@@ -91,3 +109,5 @@ tiles 0 4 4 4
 tiles 4 4 4 4
 tiles 8 4 4 4
 tiles 12 4 4 4
+input "src-data/player/lose.png"
+tiles 0 8 4 4

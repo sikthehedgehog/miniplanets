@@ -61,6 +61,12 @@ PalBelt:
 PalAutumn:
     dc.w    $4AE,$28E,$06C
 
+PalGrayBG:
+    dc.w    $AAA,$666,$444,$222
+
+PalBrownBG:
+    dc.w    $0AE,$06A,$026,$002
+
 PalRedBG:
     dc.w    $0AE,$04E,$00A,$006
 

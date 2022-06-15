@@ -122,10 +122,18 @@ DrawHUD:
     bsr     DrawHUDChar
 @TimeBlink:
     
-    moveq   #10, d7                     ; Draw key indicator
-    moveq   #16, d6
+    moveq   #13, d7                     ; In normal stages you collect keys
+    moveq   #$0F, d6                      ; while in boss stages you collect
+    and.b   (StageName), d6               ; crystals, pick the correct symbol
+    beq.s   @ShowCrystals
+    cmp.b   #$09, d6
+    beq.s   @ShowCrystals
+    moveq   #10, d7
+@ShowCrystals:
+    
+    moveq   #16, d6                     ; Draw key/crystal indicator
     bsr     DrawHUDChar
-    move.b  (KeysLeft), d7              ; Draw number of keys left
+    move.b  (KeysLeft), d7              ; Draw number of keys/crystals left
     moveq   #17, d6
     bsr     DrawHUDChar
     

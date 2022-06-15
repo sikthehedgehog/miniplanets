@@ -37,8 +37,26 @@ RunMace:
 ;****************************************************************************
 
 DrawMace:
-    bsr     GetMacePosition             ; Draw mace sprite
+    bsr     GetMacePosition             ; Draw mace itself
+    move.b  d7, d0
+    move.b  d6, d1
     move.w  #VramMace, d5
+    bsr     Add3DSprite
+    
+    move.b  OBJ_X(a0), d7               ; Draw chain link
+    move.b  OBJ_Y(a0), d6
+    sub.b   d7, d0
+    sub.b   d6, d1
+    asr.b   #1, d0
+    asr.b   #1, d1
+    add.b   d0, d7
+    add.b   d1, d6
+    move.w  #VramMaceChain, d5
+    bsr     Add3DSprite
+    
+    move.b  OBJ_X(a0), d7               ; Draw axis of the mace
+    move.b  OBJ_Y(a0), d6
+    move.w  #$2000+VramMaceAxis, d5
     bsr     Add3DSprite
     
     rts                                 ; End of subroutine

@@ -4,7 +4,7 @@ layout sprite
 tiles 0 0 20 3
 tiles 0 3 19 3
 tiles 0 6 19 3
-tiles 0 9 13 3
+tiles 0 9 19 3
 
 output "src-data/common/background.4bpp"
 input "src-data/common/background.png"

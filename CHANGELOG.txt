@@ -1,0 +1,44 @@
+REV 04 (REMIX Ver.)
+
+- Miniplanets are now more detailed and fluffy
+- Music and sound effects were overhauled
+- Added a whole new secret planelago (stage 7-*)
+- Continue screen on game over (planelagos with password only)
+- Added attract mode if you wait 12 seconds on the title screen
+- A+B+C+START while paused resets the game
+- Objects are now sorted by depth properly
+- You can see objects behind the horizon now
+- Every planelago has its own background
+- HUD reflects whether you have to collect keys or crystals
+- Qisha's animations have been cleaned up
+- Added some small details to some of the scenery
+- Staff roll returns to title screen at the end
+- Sound Test 00 now mutes instead of doing nothing
+- Sound Test now defaults to 01 (the first track)
+- Stage select's yellow color now matches the yellow used elsewhere
+- Stage numbers in stage select are now in "X-Y" format instead of "XY"
+- Added checksum verification on boot
+- Fixed diagonal speed being slightly wrong in 50Hz
+- Fixed score being garbage when using the stage select
+- Fixed potential Z80 and 68000 bus clash on real hardware
+- Fixed a bunch of bugs in the error handler
+
+
+REV 03
+
+- Fixed Z80 and DMA bus clash bug on real hardware
+
+
+REV 02 (PlayOnRetro release)
+
+- Fixed uninitialized graphics in stage intro screen
+
+
+REV 01
+
+- Fixed passwords displayed on screen (they were off by one)
+
+
+REV 00
+
+- Initial release

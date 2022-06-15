@@ -104,36 +104,6 @@ StageMap_3_4:
     StageEnd
 
 ;****************************************************************************
-; Stage 3-8 (that one level)
-;****************************************************************************
-
-StageMap_3_8:
-    StageDef    pl,pl,ME,cd,cd,ME,pl,go,go,pl,ME,cd,cd,ME,pl,pl
-    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cd,cd,ME,pl,pl
-    StageDef    ME,ME,ME,ME,ME,ME,ME,pl,pl,ME,ME,ME,ME,ME,ME,ME
-    StageDef    cr,cr,ME,VI,VI,ME,cr,cr,cr,cr,ME,VI,VI,ME,cr,cr
-    StageDef    cr,cr,ME,VI,VI,ME,cr,cr,cr,cr,ME,VI,VI,ME,cr,cr
-    StageDef    ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME
-    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cd,cd,ME,pl,pl
-    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cd,cd,ME,pl,pl
-    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cd,cd,ME,pl,pl
-    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cd,cd,ME,pl,pl
-    StageDef    pl,ME,ME,ME,ME,ME,ME,pl,pl,ME,ME,ME,ME,ME,ME,pl
-    StageDef    cr,cr,ME,VI,VI,ME,cr,cr,cr,cr,ME,VI,VI,ME,cr,cr
-    StageDef    cr,cr,ME,VI,VI,ME,cr,cr,cr,cr,ME,VI,VI,ME,cr,cr
-    StageDef    pl,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,pl
-    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cd,cd,ME,pl,pl
-    StageDef    pl,pl,ME,cd,cd,ME,pl,go,go,pl,ME,cd,cd,ME,pl,pl
-    
-    StageObj    KEY, $80, $80, $00
-    StageObj    SWITCH, $00, $80, $04
-    StageObj    BOMB, $40, $40, TILE_PI
-    StageObj    BOMB, $40, $C0, TILE_PI
-    StageObj    BOMB, $C0, $40, TILE_PI
-    StageObj    BOMB, $C0, $C0, TILE_PI
-    StageEnd
-
-;****************************************************************************
 ; Stage 3-5
 ;****************************************************************************
 
@@ -245,6 +215,36 @@ StageMap_3_7:
     StageObj    ELECTRH, $98, $30, $00
     StageObj    ELECTRH, $C8, $30, $00
     StageObj    ELECTRH, $D8, $30, $00
+    StageEnd
+
+;****************************************************************************
+; Stage 3-8 (that one level)
+;****************************************************************************
+
+StageMap_3_8:
+    StageDef    pl,pl,ME,cd,cd,ME,pl,go,go,pl,ME,cd,cd,ME,pl,pl
+    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cd,cd,ME,pl,pl
+    StageDef    ME,ME,ME,ME,ME,ME,ME,pl,pl,ME,ME,ME,ME,ME,ME,ME
+    StageDef    cr,cr,ME,VI,VI,ME,cr,cr,cr,cr,ME,VI,VI,ME,cr,cr
+    StageDef    cr,cr,ME,VI,VI,ME,cr,cr,cr,cr,ME,VI,VI,ME,cr,cr
+    StageDef    ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME
+    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cd,cd,ME,pl,pl
+    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cd,cd,ME,pl,pl
+    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cd,cd,ME,pl,pl
+    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cd,cd,ME,pl,pl
+    StageDef    pl,ME,ME,ME,ME,ME,ME,pl,pl,ME,ME,ME,ME,ME,ME,pl
+    StageDef    cr,cr,ME,VI,VI,ME,cr,cr,cr,cr,ME,VI,VI,ME,cr,cr
+    StageDef    cr,cr,ME,VI,VI,ME,cr,cr,cr,cr,ME,VI,VI,ME,cr,cr
+    StageDef    pl,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,ME,pl
+    StageDef    pl,pl,ME,cd,cd,ME,pl,pl,pl,pl,ME,cd,cd,ME,pl,pl
+    StageDef    pl,pl,ME,cd,cd,ME,pl,go,go,pl,ME,cd,cd,ME,pl,pl
+    
+    StageObj    KEY, $80, $80, $00
+    StageObj    SWITCH, $00, $80, $04
+    StageObj    BOMB, $40, $40, TILE_PI
+    StageObj    BOMB, $40, $C0, TILE_PI
+    StageObj    BOMB, $C0, $40, TILE_PI
+    StageObj    BOMB, $C0, $C0, TILE_PI
     StageEnd
 
 ;****************************************************************************

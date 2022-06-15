@@ -41,7 +41,7 @@ InitVideo:
     endc
     
     SetCRAMAddr $0000, (a0)             ; Clear palette
-    moveq   #$40/$10-1, d7
+    moveq   #$40/8-1, d7
 @ClearCRAM:
     move.l  d0, (a1)
     move.l  d0, (a1)
@@ -386,6 +386,55 @@ ClearVScroll:
     rts                                 ; End of subroutine
 
 ;****************************************************************************
+;----------------------------------------------------------------------------
+; input d0.w ...... X coordinate
+; input d1.w ...... Y coordinate
+; input d2.w ...... width
+; input d3.w ...... height
+; input d4.w ...... first tile ID
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawTilesA:
+    add.w   #$C000/2, d0
+    bra.s   DrawTilesX
+DrawTilesB:
+    add.w   #$E000/2, d0
+
+;----------------------------------------------------------------------------
+
+DrawTilesX:
+    and.w   #$FFFF, d0                  ; Convert the coordinates to a
+    lsl.w   #6, d1                        ; VRAM address and then into
+    add.w   d1, d0                        ; a VDP command
+    add.w   d0, d0
+    lsl.l   #2, d0
+    lsr.w   #2, d0
+    or.w    #$4000, d0
+    swap    d0
+    
+    subq.w  #1, d2                      ; Adjust X/Y counters for use with
+    subq.w  #1, d3                        ; DBF (which stops at -1, not 0)
+    
+    move.w  d2, d1                      ; Back up X counter since we need
+                                          ; to reload it on every row
+    
+    lea     ($C00000), a1               ; Pointer to VDP ports
+    
+@YLoop:
+    move.l  d0, 4(a1)                   ; Set VRAM address
+    move.w  d1, d2                      ; Reload X counter
+@XLoop:
+    move.w  d4, (a1)                    ; Draw tile
+    addq.w  #1, d4                      ; Increment tile ID
+    dbf     d2, @XLoop                  ; Next tile
+    add.l   #$40<<17, d0                ; Advance row address
+    dbf     d3, @YLoop                  ; Next row
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
 ; ClearSprites
 ; Clears the sprite table.
 ;----------------------------------------------------------------------------
@@ -412,20 +461,36 @@ ClearSprites:
 
 AddSprite:
     cmp.w   #-32, d0                    ; Check if the sprite is visible in
-    ble.s   @DontDraw                     ; the first place
+    ble.s   DontDrawSprite                ; the first place
     cmp.w   #320, d0
-    bge.s   @DontDraw
+    bge.s   DontDrawSprite
     cmp.w   #-32, d1
-    ble.s   @DontDraw
+    ble.s   DontDrawSprite
     cmp.w   #224, d1
-    bge.s   @DontDraw
+    bge.s   DontDrawSprite
     
+    ; fallthrough to AddSpriteNoClip...
+
+;****************************************************************************
+; AddSpriteNoClip
+; Adds a sprite to the sprite table even if it's off-screen (saves some time
+; by skipping some checks, useful for the sprites that make up the globe).
+;----------------------------------------------------------------------------
+; input d0.w ... X coordinate
+; input d1.w ... Y coordinate
+; input d2.w ... First tile
+; input d3.b ... Sprite size
+;----------------------------------------------------------------------------
+; breaks: d6-d7, a6
+;****************************************************************************
+
+AddSpriteNoClip:
     lea     (SpriteBuf), a6             ; Where the sprite buffer is located
     
     move.b  (NumSprites), d7            ; Get current number of sprites
     beq.s   @First                      ; First sprite?
     cmp.b   #80, d7                     ; Too many sprites?
-    beq.s   @DontDraw
+    beq.s   DontDrawSprite
     
     moveq   #0, d6                      ; Get address of new sprite
     move.b  d7, d6
@@ -451,7 +516,7 @@ AddSprite:
     addq.b  #1, d7                      ; Update sprite count
     move.b  d7, (NumSprites)
     
-@DontDraw:
+DontDrawSprite:
     rts                                 ; End of subroutine
 
 ;****************************************************************************

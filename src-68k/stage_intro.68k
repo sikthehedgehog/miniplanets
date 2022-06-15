@@ -87,22 +87,8 @@ StageIntro:
     cmp.b   #STAGE_1_1, (Stage)         ; Stage 1-1 has no password
     beq     @NoPassword
     
-    move.b  (StageName), d7             ; Generate string for the password
-    and.w   #$F0, d7
-    sub.w   #$10, d7
-    lsr.w   #2, d7
-    lea     PasswordList, a6
-    move.w  (a6,d7.w), d7
-    move.l  sp, a6
-    moveq   #4-1, d6
-@MakePassword:
-    rol.w   #4, d7
-    move.b  d7, d5
-    and.b   #$0F, d5
-    add.b   #"0", d5
-    move.b  d5, (a6)+
-    dbf     d6, @MakePassword
-    clr.b   (a6)
+    move.l  sp, a6                      ; Generate string for the password
+    bsr     GetPasswordAsText
     
     jsr     (ClearText).w               ; Draw password
     lea     (StrPassword), a6
@@ -183,6 +169,7 @@ StageIntro:
     dc.l    StrObor                     ; Stage 4
     dc.l    StrKastar                   ; Stage 5
     dc.l    StrTheVoid                  ; Stage 6
+    dc.l    StrQuQuQuQuQu               ; Stage 7
 
 ;****************************************************************************
 ; DrawIntroQisha

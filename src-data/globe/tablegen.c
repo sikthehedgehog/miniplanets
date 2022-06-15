@@ -3,12 +3,20 @@
 #include <stdlib.h>
 #include <math.h>
 
+#define PI                 (3.1415927)
+#define COS_OFFSET         (0.75)
+#define COS_SCALE          (1.0 - COS_OFFSET)
+#define GROUND_HEIGHT      (44.0)
+#define OBJECT_HEIGHT      (58.0)
+
 uint8_t xtable[0x4000];
 uint8_t ytable[0x4000];
 uint8_t otable[0x4000];
+uint8_t ttable[0x4000];
 
 int xpos[0x40];
 int ypos[0x40];
+int tiles[0x40];
 uint8_t offset[0x40];
 uint8_t order[0x40];
 
@@ -55,43 +63,80 @@ int main() {
       for (unsigned i = 0; i < 0x40; i++) {
          float basex = (0x08 + (xpos[i] << 4) - camx) / 64.0f;
          float basey = (0x08 + (ypos[i] << 4) - camy) / 64.0f;
-         float sinx = sin(basex * 3.1415926f * 0.5f);
-         float siny = sin(basey * 3.1415926f * 0.5f);
+         float sinx = sin(basex * PI * 0.5f);
+         float siny = sin(basey * PI * 0.5f);
          float circx = sinx * sqrt(1.0f - siny * siny * 0.5f);
          float circy = siny * sqrt(1.0f - sinx * sinx * 0.5f);
          
-         xpos[i] = (int)(44.0f * circx);
-         ypos[i] = (int)(44.0f * circy);
+         xpos[i] = (int)(GROUND_HEIGHT * circx);
+         ypos[i] = (int)(GROUND_HEIGHT * circy);
+         
+         int tile_id = 4*4;
+         if ((i & 0x07) == 0x00) { xpos[i] -= 6; tile_id -= 4; }
+         if ((i & 0x07) == 0x07) { xpos[i] += 6; tile_id += 4; }
+         if ((i & 0x38) == 0x00) { ypos[i] -= 6; tile_id -= 3*4; }
+         if ((i & 0x38) == 0x38) { ypos[i] += 6; tile_id += 3*4; }
+         tiles[i] = tile_id;
       }
       
       for (unsigned i = 0; i < 0x40; i++) {
          xtable[pos] = xpos[order[i]];
          ytable[pos] = ypos[order[i]];
          otable[pos] = offset[order[i]];
+         ttable[pos] = tiles[order[i]];
          pos++;
       }
    }
    
-   FILE *file = fopen("../../data/globe/table.lut", "wb");
+   FILE *file, *file2;
+   
+   file = fopen("../../data/globe/table.lut", "wb");
    fwrite(xtable, 1, 0x4000, file);
    fwrite(ytable, 1, 0x4000, file);
    fwrite(otable, 1, 0x4000, file);
+   fwrite(ttable, 1, 0x4000, file);
    fclose(file);
    
    file = fopen("../../data/globe/objects.lut", "wb");
+   file2 = fopen("../../data/globe/rafts.lut", "wb");
+   for (int objy = -0x80; objy < 0x80; objy++)
+   for (int objx = -0x80; objx < 0x80; objx++) {
+      float a = sin(objx * PI / 0x80);
+      float b = cos(objy * PI / 0x80);
+      float n = a * (COS_OFFSET + b * COS_SCALE);
+      
+      int8_t value;
+      value = (int)(OBJECT_HEIGHT * n);
+      fwrite(&value, 1, 1, file);
+      value = (int)(GROUND_HEIGHT * n);
+      fwrite(&value, 1, 1, file2);
+   }
+   fclose(file);
+   fclose(file2);
+   
+   /*
+   file = fopen("../../data/globe/objects2.lut", "wb");
    for (int objy = -0x40; objy < 0x40; objy++)
    for (int objx = -0x40; objx < 0x40; objx++) {
-      float basex = objx / 64.0f;
-      float basey = objy / 64.0f;
-      float sinx = sin(basex * 3.1415926f * 0.5f);
-      float siny = sin(basey * 3.1415926f * 0.5f);
-      float circx = sinx * sqrt(1.0f - siny * siny * 0.5f);
-      float circy = siny * sqrt(1.0f - sinx * sinx * 0.5f);
+      int realobjx = objx - 0x80;
+      int realobjy = objy - 0x80;
+      if (realobjx < -0x80) realobjx += 0x100;
+      if (realobjy < -0x80) realobjy += 0x100;
       
-      int8_t value = (int)(58.0f * circx);
+      float basex = realobjx / 64.0f;
+      float basey = realobjy / 64.0f;
+      float sinx = sin(basex * PI * 0.5f);
+      float siny = sin(basey * PI * 0.5f);
+      float circx = sinx * sqrt(0.5f - siny * siny * 0.5f);
+      float circy = siny * sqrt(0.5f - sinx * sinx * 0.5f);
+      
+      int8_t value;
+      
+      value = (int)(OBJECT_HEIGHT * circx);
       fwrite(&value, 1, 1, file);
    }
    fclose(file);
+   */
    
    return 0;
 }

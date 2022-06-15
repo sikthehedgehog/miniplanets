@@ -127,13 +127,13 @@ BallImpact:
     sub.b   (PlayerX), d7
     sub.b   (PlayerY), d6
     
-    cmp.b   #$40, d7                    ; Check if the ball is close enough
+    cmp.b   #$50, d7                    ; Check if the ball is close enough
     bgt.s   @TooFar                       ; to be visible on screen
-    cmp.b   #-$40, d7
+    cmp.b   #-$50, d7
     blt.s   @TooFar
-    cmp.b   #$40, d6
+    cmp.b   #$50, d6
     bgt.s   @TooFar
-    cmp.b   #-$40, d6
+    cmp.b   #-$50, d6
     blt.s   @TooFar
     
     moveq   #SFX_IMPACT, d7             ; Make noise if so
@@ -152,9 +152,12 @@ BallImpact:
 ;****************************************************************************
 
 DrawBall:
+    moveq   #$04, d5                    ; Animate the ball
+    and.w   (Anim), d5
+    add.w   #VramBall, d5
+    
     move.b  OBJ_X(a0), d7               ; Draw ball sprite
     move.b  OBJ_Y(a0), d6
-    move.w  #VramBall, d5
     bsr     Add3DSprite
     
     rts                                 ; End of subroutine

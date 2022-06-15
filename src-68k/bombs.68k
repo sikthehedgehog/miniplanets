@@ -16,11 +16,10 @@ RunBomb:
     tst.w   d7
     beq.s   @DontDetonate
     
-    moveq   #ACTION_BURN, d7            ; Blow up if so (ouch!)
+    moveq   #ACTION_BOMB, d7            ; Blow up if so (ouch!)
     bsr     HurtPlayerEx
     move.l  a0, a1
-    bsr     DetonateBomb
-    rts
+    bra     DetonateBomb
 @DontDetonate:
     
     rts                                 ; End of subroutine
@@ -47,7 +46,7 @@ DrawBomb:
 
 ;****************************************************************************
 ; DetonateBomb
-; Detonates a bomb when triggered by a switch.
+; Detonates a bomb when triggered by a switch or hit by the player.
 ;----------------------------------------------------------------------------
 ; input a1.l ... Pointer to bomb
 ;----------------------------------------------------------------------------
@@ -73,8 +72,10 @@ DetonateBomb:
     moveq   #SFX_EXPLOSION, d7          ; Boom!
     jsr     (PlaySFX).w
     
+    move.b  #OBJTYPE_BOMBFX, OBJ_TYPE(a1) ; Bomb is no more, leave smoke
+    clr.b   OBJ_DATA(a1)                    ; behind now
+    
     move.b  #$20, (ShakeTimer)          ; Make the world shake!
-    clr.b   OBJ_TYPE(a1)                ; Bomb is no more
     rts                                 ; End of subroutine
 
 ;----------------------------------------------------------------------------
@@ -84,3 +85,99 @@ DetonateBomb:
     dc.b    -$20,-$10, -$10,-$10,  $00,-$10,  $10,-$10
     dc.b    -$20, $00, -$10, $00,  $00, $00,  $10, $00
     dc.b    -$20, $10, -$10, $10,  $00, $10,  $10, $10
+
+;****************************************************************************
+; RunBombFx
+; Executes a detonated bomb's smoke effect game logic.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+RunBombFx:
+    addq.b  #1, OBJ_DATA(a0)            ; Increment distance
+    cmp.b   #32, OBJ_DATA(a0)           ; Traveled too far?
+    bls.s   @StillHere
+    clr.b   OBJ_TYPE(a0)                ; Smoke is gone if so
+@StillHere:
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawBombFx
+; Draws a detonated bomb's smoke effect.
+;----------------------------------------------------------------------------
+; input a0.l ... Pointer to object
+;----------------------------------------------------------------------------
+; breaks: all but a0
+;****************************************************************************
+
+DrawBombFx:
+    move.b  OBJ_X(a0), d0               ; Get explosion position
+    move.b  OBJ_Y(a0), d1
+    moveq   #8*2, d2                    ; Get traveled distance
+    add.b   OBJ_DATA(a0), d2
+    
+    move.w  d2, d3                      ; Compute the cosine (d2) and sine
+    mulu.w  #237<<7, d2                   ; (d3) of 22.5° for that distance
+    mulu.w  #100<<7, d3                   ; (reduced precision to save some
+    swap    d2                            ; cycles)
+    swap    d3
+    
+    move.w  #VramBombSmoke, d4          ; Tile ID for the sprites
+    
+    move.b  d0, d7                      ; Draw 1st sprite
+    move.b  d1, d6
+    add.b   d2, d7
+    add.b   d3, d6
+    move.w  d4, d5
+    bsr     Add3DSprite
+    
+    move.b  d0, d7                      ; Draw 2nd sprite
+    move.b  d1, d6
+    add.b   d3, d7
+    add.b   d2, d6
+    move.w  d4, d5
+    bsr     Add3DSprite
+    
+    move.b  d0, d7                      ; Draw 3rd sprite
+    move.b  d1, d6
+    add.b   d2, d7
+    sub.b   d3, d6
+    move.w  d4, d5
+    bsr     Add3DSprite
+    
+    move.b  d0, d7                      ; Draw 4th sprite
+    move.b  d1, d6
+    add.b   d3, d7
+    sub.b   d2, d6
+    move.w  d4, d5
+    bsr     Add3DSprite
+    
+    move.b  d0, d7                      ; Draw 5th sprite
+    move.b  d1, d6
+    sub.b   d2, d7
+    add.b   d3, d6
+    move.w  d4, d5
+    bsr     Add3DSprite
+    
+    move.b  d0, d7                      ; Draw 6th sprite
+    move.b  d1, d6
+    sub.b   d3, d7
+    add.b   d2, d6
+    move.w  d4, d5
+    bsr     Add3DSprite
+    
+    move.b  d0, d7                      ; Draw 7th sprite
+    move.b  d1, d6
+    sub.b   d2, d7
+    sub.b   d3, d6
+    move.w  d4, d5
+    bsr     Add3DSprite
+    
+    move.b  d0, d7                      ; Draw 8th sprite
+    move.b  d1, d6
+    sub.b   d3, d7
+    sub.b   d2, d6
+    move.w  d4, d5
+    bra     Add3DSprite

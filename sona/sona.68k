@@ -1,0 +1,554 @@
+;****************************************************************************
+; Sona_Init
+; Initializes the sound driver.
+;****************************************************************************
+
+Sona_Init:
+    movem.l d0-d1/a0-a1, -(sp)          ; Save registers
+    
+    move.w  #$100, (Sona_Z80BusReq)     ; Request the Z80 bus and deassert
+    move.w  #$100, (Sona_Z80Reset)      ; reset so we can access Z80 RAM
+                                        ; (we can't use the Sona_RequestBus
+                                        ; macro since the Z80 won't give up
+                                        ; the bus while reset)
+    
+    moveq   #0, d1                      ; Clear Z80 RAM just in case, and to
+    lea     (Sona_Z80Ram), a0           ; reset the communication addresses
+    move.w  #$2000-1, d0                ; and some other stuff that isn't
+@ClearLoop:                             ; explicitly initialized by the blob
+    move.b  d1, (a0)+
+    dbf     d0, @ClearLoop
+    
+    lea     (Sona_Blob), a0             ; Copy the Z80 program into Z80 RAM
+    lea     (Sona_Z80Ram), a1
+    move.w  #Sona_BlobSize-1, d0
+@BlobLoop:
+    move.b  (a0)+, (a1)+
+    dbf     d0, @BlobLoop
+    
+    move.w  #$000, (Sona_Z80Reset)      ; Reset the Z80 and YM2612 properly
+    move.w  #$000, (Sona_Z80BusReq)     ; now (the delay is because YM2612
+    moveq   #$7F, d0                    ; needs it). We let go of the bus
+    dbf     d0, *                       ; here too, so the sound driver will
+    move.w  #$100, (Sona_Z80Reset)      ; be running after this.
+                                        ;
+                                        ; We don't really need to wait this
+                                        ; long (looping 30 times will do),
+                                        ; but trying to stay friendly to
+                                        ; overclocking and we don't have any
+                                        ; way to measure if reset is ready.
+    
+    movem.l (sp)+, d0-d1/a0-a1          ; Restore registers
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; Sona_FindQueueSlot
+;
+; Retrieves a free slot in the command queue in Sona. If no slot is available
+; then it waits until one is (not a big deal if it's just the mutex, but if
+; the queue is full then ouch!). It returns a pointer to the free slot, with
+; the Z80 bus still requested.
+;----------------------------------------------------------------------------
+; output a1.l ... pointer to free slot
+;****************************************************************************
+
+Sona_FindQueueSlot:
+    move.w  d1, -(sp)                   ; Save register
+    
+@Retry:
+    Sona_RequestBus                     ; Request the Z80 bus
+    
+    tst.b   (Sona_QueueMutex)           ; Check if the queue can be modified
+    beq.s   @MutexOk
+    
+    Sona_ReleaseBus                     ; Um nope, give Sona some time to
+    moveq   #$3F, d1                    ; finish doing whatever it's doing
+    dbf     d1, *
+    bra.s   @Retry
+    
+@MutexOk:
+    lea     (Sona_QueueSlot1), a1       ; Try each of the queue slots to see
+    tst.b   (a1)                        ; if any of them is free
+    beq.s   @SlotOk
+    
+    lea     -Sona_QueueSlotSize(a1), a1 ; Try 2nd slot...
+    tst.b   (a1)
+    beq.s   @SlotOk
+    
+    lea     -Sona_QueueSlotSize(a1), a1 ; Try 3rd slot...
+    tst.b   (a1)
+    beq.s   @SlotOk
+    
+    Sona_ReleaseBus                     ; All slots used up :(
+    move.w  #$FF, d1                    ; Let Sona run again and hope it
+    dbf     d1, *                       ; frees up a slot when we're back
+    bra.s   @Retry
+    
+@SlotOk:
+    move.w  (sp)+, d1                   ; Restore register
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; Sona_SendCmd_NoArg
+; Sends a command to Sona that takes no arguments.
+;----------------------------------------------------------------------------
+; input d0.b ... command type (see SONA_CMD_*)
+;****************************************************************************
+
+Sona_SendCmd_NoArg:
+    movem.l d1/a1, -(sp)                ; Save registers
+    
+    bsr     Sona_FindQueueSlot          ; Ask for a free queue slot
+    move.b  d0, (a1)                    ; Store command type
+    
+    Sona_ReleaseBus                     ; Let Sona resume
+    movem.l (sp)+, d1/a1                ; Restore registers
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; Sona_SendCmd_1xAddr
+; Sends a command to Sona that takes a 68000 address as argument.
+;----------------------------------------------------------------------------
+; input d0.b .... command type (see SONA_CMD_*)
+; input a0.l .... argument
+;****************************************************************************
+
+Sona_SendCmd_1xAddr:
+    movem.l d1/a0-a1, -(sp)             ; Save registers
+    bsr     Sona_FindQueueSlot          ; Ask for a free queue slot
+    
+    move.b  d0, (a1)+                   ; Store command type
+    
+    move.l  a0, d1                      ; Store address argument
+    move.w  d1, -(sp)                   ; The bottom 24-bit of the address
+    move.b  1(sp), (a1)+                ; are stored, in little endian. We
+    move.b  (sp)+, (a1)+                ; need to write one byte at a time.
+    swap    d1
+    move.b  d1, (a1)+
+    
+    Sona_ReleaseBus                     ; Let Sona resume
+    movem.l (sp)+, d1/a0-a1             ; Restore registers
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; Sona_SendCmd_2xAddr_1xByte
+;
+; Sends a command to Sona that takes two 68000 addresses and one byte-sized
+; numeric value as arguments.
+;----------------------------------------------------------------------------
+; input d0.b .... command type (see SONA_CMD_*)
+; input a0.l .... 1st address argument
+; input a1.l .... 2nd address argument
+; input d1.b .... numeric argument
+;****************************************************************************
+
+Sona_SendCmd_2xAddr_1xByte:
+    movem.l d0-d1/d7/a0-a1, -(sp)       ; Save registers
+    
+    move.l  a1, d7                      ; We need a1's value later
+                                        ; Putting it in a data register since
+                                        ; we're gonna do some bit twiddling
+                                        ; and that can't be done on address
+                                        ; registers
+    
+    bsr     Sona_FindQueueSlot          ; Ask for a free queue slot
+    
+    move.b  d0, (a1)+                   ; Store command type
+    bsr     Sona_SendCmdHelper_2xAddr   ; Store address arguments
+    move.b  d1, (a1)+                   ; Store numeric argument
+    
+    Sona_ReleaseBus                     ; Let Sona resume
+    movem.l (sp)+, d0-d1/d7/a0-a1       ; Restore registers
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; Sona_SendCmd_2xAddr_5xByte
+;
+; Sends a command to Sona that takes two 68000 addresses and five byte-sized
+; numeric values as arguments.
+;----------------------------------------------------------------------------
+; input d0.b .... command type (see SONA_CMD_*)
+; input a0.l .... 1st address argument
+; input a1.l .... 2nd address argument
+; input d1.b .... 1st numeric argument
+; input d2.b .... 2nd numeric argument
+; input d3.b .... 3rd numeric argument
+; input d4.b .... 4th numeric argument
+; input d5.b .... 5th numeric argument
+;****************************************************************************
+
+Sona_SendCmd_2xAddr_5xByte:
+    movem.l d0-d1/d7/a0-a1, -(sp)       ; Save registers
+    
+    move.l  a1, d7                      ; We need a1's value later
+                                        ; Putting it in a data register since
+                                        ; we're gonna do some bit twiddling
+                                        ; and that can't be done on address
+                                        ; registers
+    
+    bsr     Sona_FindQueueSlot          ; Ask for a free queue slot
+    
+    move.b  d0, (a1)+                   ; Store command type
+    bsr     Sona_SendCmdHelper_2xAddr   ; Store address arguments
+    move.b  d1, (a1)+                   ; Store numeric arguments
+    move.b  d2, (a1)+
+    move.b  d3, (a1)+
+    move.b  d4, (a1)+
+    move.b  d5, (a1)+
+    
+    Sona_ReleaseBus                     ; Let Sona resume
+    movem.l (sp)+, d0-d1/d7/a0-a1       ; Restore registers
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; Sona_SendCmdHelper_2xAddr
+;
+; Helper subroutines for the Sona_SendCmd_2xAddr* API calls, it stores the
+; address arguments into the command queue.
+;----------------------------------------------------------------------------
+; input a0.l .... 1st address argument
+; input d7.l .... 2nd address argument
+; input a1.l .... pointer to 1st address value in command queue
+;----------------------------------------------------------------------------
+; output a1.l ... pointer to 1st byte value in command queue
+;----------------------------------------------------------------------------
+; modifies ...... d0,d7,a1
+;****************************************************************************
+
+Sona_SendCmdHelper_2xAddr:
+    move.l  a0, d0                      ; Store 1st address argument
+    move.w  d0, -(sp)                   ; The bottom 24-bit of the address
+    move.b  1(sp), (a1)+                ; are stored, in little endian. We
+    move.b  (sp)+, (a1)+                ; need to write one byte at a time.
+    swap    d0
+    move.b  d0, (a1)+
+    
+    move.w  d7, -(sp)                   ; Store 2nd address argument
+    move.b  1(sp), (a1)+
+    move.b  (sp)+, (a1)+
+    swap    d7
+    move.b  d7, (a1)+
+    
+    rts                                 ; Back to caller
+
+;****************************************************************************
+; Sona_SendCmd_1xByte
+; Sends a command to Sona that takes a byte-sized numeric value as argument.
+;----------------------------------------------------------------------------
+; input d0.b .... command type (see SONA_CMD_*)
+; input d1.b .... numeric argument
+;****************************************************************************
+
+Sona_SendCmd_1xByte:
+    move.l  a1, -(sp)                   ; Save a1 since we'll clobber it
+    
+    bsr     Sona_FindQueueSlot          ; Ask for a free queue slot
+    
+    move.b  d0, (a1)+                   ; Store command type
+    move.b  d1, (a1)+                   ; Store numeric argument
+    
+    Sona_ReleaseBus                     ; Let Sona resume
+    
+    move.l  (sp)+, a1                   ; Restore a1
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; Sona_PlayBgm
+; Starts playing a new BGM.
+;----------------------------------------------------------------------------
+; input a0.l .... pointer to BGM stream
+; input a1.l .... pointer to instrument list
+; input d0.b .... number of instruments
+;****************************************************************************
+
+Sona_PlayBgm:
+    move.w  d0, -(sp)                   ; Save registers
+    move.w  d1, -(sp)
+    
+    move.b  d0, d1                      ; This argument should be here
+    move.b  #SONA_CMD_PLAYBGM, d0       ; Set up command type
+    bsr     Sona_SendCmd_2xAddr_1xByte  ; Issue the command
+    
+    move.w  (sp)+, d1                   ; Restore registers
+    move.w  (sp)+, d0
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; Sona_PlaySfx
+; Starts playing a new SFX.
+;----------------------------------------------------------------------------
+; input a0.l .... pointer to BGM stream
+; input a1.l .... pointer to instrument list
+; input d0.b .... number of instruments
+; input d1.b .... SFX priority (1..255)
+;----------------------------------------------------------------------------
+; note: SFX priority 0 is *not* allowed, if you attempt to use priority = 0
+; the sound driver will explicitly refuse to play the sound effect.
+;----------------------------------------------------------------------------
+; note: the intention of this subroutine is to allocate a SFX stream
+; automatically depending on the current resource usage and priority, but
+; this isn't implemented in the driver yet so right now it's just always
+; stomping on SFX stream #0 instead.
+;----------------------------------------------------------------------------
+; to-do: optimize this subroutine to do the call inline, maybe?
+;****************************************************************************
+
+Sona_PlaySfx:
+    movem.l d2-d4, -(sp)                ; Save registers
+    
+    clr.b   d2                          ; For now always use SFX stream #0
+    clr.b   d3                          ; 1st parameter = $00
+    clr.b   d4                          ; 2nd parameter = $00
+    bsr.s   Sona_PlaySfxEx              ; Call the sound driver
+    
+    movem.l (sp)+, d2-d4                ; Restore registers
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; Sona_PlaySfxEx
+; Starts playing a new SFX.
+;----------------------------------------------------------------------------
+; input a0.l .... pointer to BGM stream
+; input a1.l .... pointer to instrument list
+; input d0.b .... number of instruments
+; input d1.b .... SFX priority (1..255)
+; input d2.b .... SFX channel (0..2)
+; input d3.b .... SFX parameter #1 (local VM variable 0)
+; input d4.b .... SFX parameter #2 (local VM variable 1)
+;----------------------------------------------------------------------------
+; note: SFX priority 0 is *not* allowed, if you attempt to use priority = 0
+; the sound driver will explicitly refuse to play the sound effect.
+;****************************************************************************
+
+Sona_PlaySfxEx:
+    movem.l d0-d5, -(sp)                ; Save registers
+    
+    move.b  d4, d5                      ; These arguments should be here
+    move.b  d3, d4
+    move.b  d2, d3
+    move.b  d1, d2
+    move.b  d0, d1
+    
+    moveq   #SONA_CMD_PLAYSFX, d0       ; Set up command type
+    bsr     Sona_SendCmd_2xAddr_5xByte  ; Issue the command
+    
+    movem.l (sp)+, d0-d5                ; Restore registers
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; Sona_Pause [UNSTABLE!!]
+; Pauses BGM playback. All SFX are cancelled.
+;----------------------------------------------------------------------------
+; Pausing feature is considered unstable, don't use it yet.
+;****************************************************************************
+
+Sona_Pause:
+    move.w  d0, -(sp)                   ; Save register
+    
+    move.b  #SONA_CMD_PAUSE, d0         ; Command type
+    bsr     Sona_SendCmd_NoArg          ; Issue the command
+    
+    move.w  (sp)+, d0                   ; Restore register
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; Sona_Unpause [UNSTABLE!!]
+; Resumes BGM playback. SFX are not restored.
+;----------------------------------------------------------------------------
+; Pausing feature is considered unstable, don't use it yet.
+;****************************************************************************
+
+Sona_Unpause:
+    move.w  d0, -(sp)                   ; Save register
+    
+    move.b  #SONA_CMD_UNPAUSE, d0       ; Command type
+    bsr     Sona_SendCmd_NoArg          ; Issue the command
+    
+    move.w  (sp)+, d0                   ; Restore register
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; Sona_StopAllSound
+; Stops all sound playback.
+;****************************************************************************
+
+Sona_StopAllSound:
+    move.w  d0, -(sp)                   ; Save register
+    
+    move.b  #SONA_CMD_STOPALL, d0       ; Command type
+    bsr     Sona_SendCmd_NoArg          ; Issue the command
+    
+    move.w  (sp)+, d0                   ; Restore register
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; Sona_PlayPcm
+; Plays a PCM instrument directly over a PCM channel.
+;----------------------------------------------------------------------------
+; input d0.b ... PCM channel (0..1)
+; input a0.l ... pointer to PCM instrument
+;----------------------------------------------------------------------------
+; notes: the PCM instrument is bound by the usual rules (must be in SonaWave
+; format and aligned to a 32 byte boundary)
+;****************************************************************************
+
+Sona_PlayPcm:
+    add.b   #SONA_CMD_PLAYPCM1, d0      ; Compute command type
+    bsr     Sona_SendCmd_1xAddr         ; Issue the command
+    sub.b   #SONA_CMD_PLAYPCM1, d0      ; Restore d0
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; Sona_StopPcm
+; Stops a PCM channel directly.
+;----------------------------------------------------------------------------
+; input d0.b ... PCM channel (0..1)
+;****************************************************************************
+
+Sona_StopPcm:
+    add.b   #SONA_CMD_STOPPCM1, d0      ; Compute command type
+    bsr     Sona_SendCmd_NoArg          ; Issue the command
+    sub.b   #SONA_CMD_STOPPCM1, d0      ; Restore d0
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; Sona_GetVariable
+; Retrieves the current value of a VM variable in Sona.
+;----------------------------------------------------------------------------
+; input d0.b .... variable's ID
+;----------------------------------------------------------------------------
+; output d0.b ... variable's value
+;****************************************************************************
+
+Sona_GetVariable:
+    move.l  a0, -(sp)                   ; Save register
+    
+    and.w   #$FF, d0                    ; Filter out irrelevant bits
+    lea     (Sona_VmVars), a0           ; Pointer to VM variables
+    
+    Sona_RequestBus                     ; Stop Z80 for a moment
+    move.b  (a0,d0.w), d0               ; Read variable off Z80 RAM
+    Sona_ReleaseBus                     ; Let Z80 resume
+    
+    move.l  (sp)+, a0                   ; Restore register
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; Sona_SetVariable
+; Changes the value of one of the VM variables in Sona.
+;----------------------------------------------------------------------------
+; input d0.b .... variable's ID
+; input d1.b .... variable's new value
+;****************************************************************************
+
+Sona_SetVariable:
+    move.w  d0, -(sp)                   ; Save registers
+    move.l  a0, -(sp)
+    
+    and.w   #$FF, d0                    ; Filter out irrelevant bits
+    lea     (Sona_VmVars), a0           ; Pointer to VM variables
+    
+    Sona_RequestBus                     ; Stop Z80 for a moment
+    move.b  d1, (a0,d0.w)               ; Write variable into Z80 RAM
+    Sona_ReleaseBus                     ; Let Z80 resume
+    
+    move.l  (sp)+, a0                   ; Restore registers
+    move.w  (sp)+, d0
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; Sona_GetStatus
+; Retrieves the playback status.
+;----------------------------------------------------------------------------
+; output d0.w ... status flags (see SONA_STATUS_*)
+;----------------------------------------------------------------------------
+; d0 bit SONA_STATUS_BGM .... BGM is playing
+;    bit SONA_STATUS_SFX1 ... SFX #1 is playing
+;    bit SONA_STATUS_SFX2 ... SFX #2 is playing
+;    bit SONA_STATUS_SFX3 ... SFX #3 is playing
+;    bit SONA_STATUS_PCM1 ... PCM ch1 is playing
+;    bit SONA_STATUS_PCM2 ... PCM ch2 is playing
+;****************************************************************************
+
+Sona_GetStatus:
+    moveq   #0, d0                      ; Clear upper bits (reserved)
+    Sona_RequestBus                     ; Request the Z80 bus
+    move.b  (Sona_StatusFlags), d0      ; Read status flags
+    Sona_ReleaseBus                     ; Release the Z80 bus
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; Sona_GetZ80Usage
+; Retrieves how busy is the Z80.
+;----------------------------------------------------------------------------
+; output d0.b ... Z80 CPU usage (lower = more busy, see notes)
+;----------------------------------------------------------------------------
+; The returned value isn't measured in any meaningful units and may vary
+; across versions (or even Sona's configuration). The only guarantee is that
+; closer to 0 = less free time left, and that it's more or less calibrated
+; to return high values when Z80 is mostly free.
+;
+; Note that an overclocked Z80 may result in the meter becoming garbage due
+; to overflow, so don't trust it too much and only use it for debugging.
+;****************************************************************************
+
+Sona_GetZ80Usage:
+    Sona_RequestBus                     ; Request the Z80 bus
+    move.b  (Sona_CpuMeter), d0         ; Read Z80 CPU meter
+    Sona_ReleaseBus                     ; Release the Z80 bus
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; Sona_SetStereo
+;
+; Toggles stereo/mono. If enabled, stereo will work as usual; if disabled,
+; output will be forced to both speakers.
+;----------------------------------------------------------------------------
+; input d0.b .... 0 to force mono, otherwise to enable stereo
+;----------------------------------------------------------------------------
+; KNOWN LIMITATIONS:
+; - May not take effect immediately (only when a track tries to set pan)
+; - Currently forcing mono fails to account for the loudness difference
+;   (channels panned to the side will sound louder than intended)
+; - Currently forcing mono fails to account for channels that disable both
+;   speakers (so they'll be forced to play when they really shouldn't)
+;****************************************************************************
+
+Sona_SetStereo:
+    move.l  d1, -(sp)                   ; Save d1 register
+    move.l  d0, d1                      ; Put argument where we need it
+    
+    moveq   #SONA_CMD_SETSTEREO, d0     ; Issue command
+    bsr     Sona_SendCmd_1xByte
+    
+    move.l  d1, d0                      ; Restore registers
+    move.l  (sp)+, d1
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; Sona_SetSsgEg
+;
+; Toggles SSG-EG. If disabled, Sona will skip writes to the SSG-EG registers
+; when loading FM instruments. Use this in case you want to support systems
+; or emulators where it's broken.
+;----------------------------------------------------------------------------
+; input d0.b .... 0 to disable SSG-EG, otherwise to enable it
+;----------------------------------------------------------------------------
+; KNOWN LIMITATIONS:
+; - It won't block direct FM register writes yet
+;****************************************************************************
+
+Sona_SetSsgEg:
+    move.l  d1, -(sp)                   ; Save d1 register
+    move.l  d0, d1                      ; Put argument where we need it
+    
+    moveq   #SONA_CMD_SETSSGEG, d0      ; Issue command
+    bsr     Sona_SendCmd_1xByte
+    
+    move.l  d1, d0                      ; Restore registers
+    move.l  (sp)+, d1
+    
+    rts                                 ; End of subroutine

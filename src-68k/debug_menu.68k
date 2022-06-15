@@ -8,6 +8,10 @@ DEBUGOPT_STAGE:     rs.b 1      ; Stage number
 DEBUGOPT_LIVES:     rs.b 1      ; Lives count
 DEBUGOPT_MUTEKI:    rs.b 1      ; Muteki mode
 DEBUGOPT_TIMER:     rs.b 1      ; Time toggle
+DEBUGOPT_BELT:      rs.b 1      ; Belt toggle
+                    if HAS_EDITOR
+DEBUGOPT_EDIT:      rs.b 1      ; Stage editor
+                    endc
 
 NUM_DEBUGOPT:       rs.b 0      ; Number of debug options
 
@@ -27,7 +31,7 @@ DebugMenu:
     move.w  #$444, (PaletteBuf+$01*2)
     move.w  #$EEE, (PaletteBuf+$02*2)
     move.w  #$444, (PaletteBuf+$11*2)
-    move.w  #$0EE, (PaletteBuf+$12*2)
+    move.w  #$0CE, (PaletteBuf+$12*2)
     
     clr.b   (DebugOption)               ; Reset selected option
     move.b  #$05, (Lives)               ; Hmmmmm...
@@ -80,18 +84,43 @@ DebugMenu:
 @NoLeft:
     
     btst.l  #7, d0                      ; Start playing?
-    beq.s   @NoStart
-    jsr     (FadeOff).w
-    bra     InGame
-@NoStart:
+    bne.s   @GoToGame
+    
+    if      HAS_EDITOR
+    and.b   #$70, d0                    ; A, B or C pressed?
+    beq.s   @NoGoToEditor
+    cmp.b   #DEBUGOPT_EDIT, (DebugOption) ; Stage editor selected?
+    beq.s   @GoToEditor                 ; Go to stage editor then
+@NoGoToEditor:
+    endc
     
     bsr     DebugDrawStage              ; Draw all options
     bsr     DebugDrawLives
     bsr     DebugDrawMuteki
     bsr     DebugDrawTimer
+    bsr     DebugDrawBelt
+    if      HAS_EDITOR
+    bsr     DebugDrawEdit
+    endc
     
     jsr     (NextFrame).w               ; Wait for next frame
     bra     @MainLoop
+
+;----------------------------------------------------------------------------
+
+@GoToGame:
+    if      HAS_EDITOR
+    cmp.b   #DEBUGOPT_EDIT, (DebugOption) ; Stage editor selected?
+    beq.s   @GoToEditor                 ; Go to stage editor then
+    endc
+    jsr     (FadeOff).w                 ; Shut off screen
+    bra     StartGameFromDebug          ; Start playing
+
+    if      HAS_EDITOR
+@GoToEditor:
+    jsr     (FadeOff).w                 ; Shut off screen
+    bra     StageEditor                 ; Go to stage editor
+    endc
 
 ;----------------------------------------------------------------------------
 
@@ -100,12 +129,23 @@ DebugMenu:
     dc.l    DebugIncLives               ; DEBUGOPT_LIVES
     dc.l    DebugToggleMuteki           ; DEBUGOPT_MUTEKI
     dc.l    DebugToggleTimer            ; DEBUGOPT_TIMER
+    dc.l    DebugToggleBelt             ; DEBUGOPT_BELT
+    if      HAS_EDITOR
+    dc.l    @DoNothing                  ; DEBUGOPT_EDIT
+    endc
 
 @LeftTable:
     dc.l    DebugDecStage               ; DEBUGOPT_STAGE
     dc.l    DebugDecLives               ; DEBUGOPT_LIVES
     dc.l    DebugToggleMuteki           ; DEBUGOPT_MUTEKI
     dc.l    DebugToggleTimer            ; DEBUGOPT_TIMER
+    dc.l    DebugToggleBelt             ; DEBUGOPT_BELT
+    if      HAS_EDITOR
+    dc.l    @DoNothing                  ; DEBUGOPT_EDIT
+    endc
+
+@DoNothing:
+    rts
 
 ;****************************************************************************
 ; DebugIncStage
@@ -116,7 +156,7 @@ DebugMenu:
 
 DebugIncStage:
     move.b  (Stage), d7
-    cmp.b   #STAGE_6_0, d7
+    cmp.b   #STAGE_7_9, d7
     blt.s   @NoWraparound
     moveq   #-1, d7
 @NoWraparound:
@@ -135,7 +175,7 @@ DebugDecStage:
     move.b  (Stage), d7
     subq.b  #1, d7
     bge.s   @NoWraparound
-    move.b  #STAGE_6_0, d7
+    move.b  #STAGE_7_9, d7
 @NoWraparound:
     move.b  d7, (Stage)
     rts
@@ -169,8 +209,9 @@ DebugDrawStage:
     add.b   #"0", d0
     add.b   #"0", d1
     move.b  d0, (a6)
-    move.b  d1, 1(a6)
-    clr.b   2(a6)
+    move.b  #"-", 1(a6)
+    move.b  d1, 2(a6)
+    clr.b   3(a6)
     
     moveq   #18, d7                     ; Draw stage name
     jsr     (DrawText).w
@@ -348,6 +389,78 @@ DebugDrawTimer:
     jsr     (UploadText).w
     
     rts                                 ; End of subroutine
+
+;****************************************************************************
+; DebugToggleBelt
+; Toggles conveyor belts.
+;----------------------------------------------------------------------------
+; breaks: all but d0-d1
+;****************************************************************************
+
+DebugToggleBelt:
+    not.b   (BeltOK)
+    rts
+
+;****************************************************************************
+; DebugDrawBelt
+; Draws the conveyor belt option in the debug menu.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DebugDrawBelt:
+    move.l  #DebugLineBelt, (TextBufAddr)
+    jsr     (ClearText).w               ; Clear text buffer
+    
+    moveq   #0, d7                      ; Draw label
+    lea     (StrBelt), a6
+    jsr     (DrawText).w
+    
+    lea     (StrOff), a6                ; Determine string for value
+    tst.b   (BeltOK)
+    beq.s   @BeltsOff
+    addq.l  #4, a6
+@BeltsOff:
+    
+    moveq   #18, d7                     ; Draw value
+    jsr     (DrawText).w
+    
+    cmp.b   #DEBUGOPT_BELT, (DebugOption) ; Selected?
+    bne.s   @NotSelected
+    bsr     DebugHighlight
+@NotSelected:
+    
+    move.w  #$C904, d7                  ; Get text on screen
+    jsr     (UploadText).w
+    
+    rts                                 ; End of subroutine
+
+;****************************************************************************
+; DebugDrawEdit
+; Draws the stage editor option in the debug menu.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+    if      HAS_EDITOR
+DebugDrawEdit:
+    move.l  #DebugLineEdit, (TextBufAddr)
+    jsr     (ClearText).w               ; Clear text buffer
+    
+    moveq   #0, d7                      ; Draw label
+    lea     (StrEdit), a6
+    jsr     (DrawText).w
+    
+    cmp.b   #DEBUGOPT_EDIT, (DebugOption) ; Selected?
+    bne.s   @NotSelected
+    bsr     DebugHighlight
+@NotSelected:
+    
+    move.w  #$CB04, d7                  ; Get text on screen
+    jsr     (UploadText).w
+    
+    rts                                 ; End of subroutine
+    endc
 
 ;****************************************************************************
 ; DebugHighlight

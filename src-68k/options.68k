@@ -217,7 +217,7 @@ DrawOptionTime:
     addq.w  #4, sp
     
     move.b  #OPTION_TIME, d7            ; Fix palette
-    bsr     FixOptionpalette
+    bsr     FixOptionPalette
     move.w  #$C204, d7                  ; Show text on screen
     jsr     (UploadText).w
     
@@ -301,7 +301,7 @@ DrawOption1up:
     addq.w  #6, sp
     
     move.b  #OPTION_1UP, d7             ; Fix palette
-    bsr     FixOptionpalette
+    bsr     FixOptionPalette
     move.w  #$C404, d7                  ; Show text on screen
     jsr     (UploadText).w
     
@@ -354,8 +354,8 @@ DecSoundTest:
 PlaySoundTest:
     move.b  (SoundTest), d7             ; Get currently selected sound
     
-    bne.s   @NotZero                    ; Is it $00? (i.e. nothing)
-    rts
+    bne.s   @NotZero                    ; Is it $00? (i.e. stop)
+    jmp     (StopBGM).w
 @NotZero:
     
     cmp.b   #NUM_BGM, d7                ; Is it a BGM?
@@ -403,7 +403,7 @@ DrawOptionSound:
     addq.w  #4, sp
     
     move.b  #OPTION_SOUND, d7           ; Fix palette
-    bsr     FixOptionpalette
+    bsr     FixOptionPalette
     move.w  #$C604, d7                  ; Show text on screen
     jsr     (UploadText).w
     
@@ -436,7 +436,7 @@ DrawOptionExit:
     jsr     (DrawText).w
     
     move.b  #OPTION_EXIT, d7            ; Fix palette
-    bsr     FixOptionpalette
+    bsr     FixOptionPalette
     move.w  #$C904, d7                  ; Show text on screen
     jsr     (UploadText).w
     

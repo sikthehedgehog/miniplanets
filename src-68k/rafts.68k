@@ -1,3 +1,5 @@
+MAX_RAFTS:          equ 5               ; Maximum rafts allowed
+
 ;****************************************************************************
 ; RunRaftU
 ; Executes the game logic of a raft going up.
@@ -147,4 +149,169 @@ RunRaftCommon:
     bsr     SetTile
     dbf     d4, @DrawTiles
     
+    move.w  #$2010+VramRaftV, d5        ; Horizontal or vertical raft? Pick
+    cmp.b   #OBJTYPE_RAFTL, OBJ_TYPE(a0)  ; the correct graphic
+    blo.s   @VerticalGfx
+    move.w  #$2010+VramRaftH, d5
+@VerticalGfx:
+    
+    moveq   #0, d7                      ; Add it to the list of rafts to draw
+    move.b  (NumRafts), d7
+    move.w  d7, d6
+    addq.b  #1, d7
+    move.b  d7, (NumRafts)
+    lea     (RaftList), a6
+    add.w   d6, d6
+    add.w   d6, d6
+    lea     (a6,d6.w), a6
+    move.b  OBJ_X(a0), (a6)+
+    move.b  OBJ_Y(a0), (a6)+
+    move.w  d5, (a6)+
+    
     rts                                 ; End of subroutine
+
+;****************************************************************************
+; DrawAllRafts
+; Draws all the rafts.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawAllRafts:
+    lea     (RaftList), a0              ; Pointer to list of rafts
+    moveq   #0, d0                      ; Number of rafts to draw
+    move.b  (NumRafts), d0
+    bra.s   @LoopEnd                    ; Scan every raft
+    
+@Loop:
+    move.b  (a0)+, d1                   ; Get raft X
+    move.b  (a0)+, d2                   ; Get raft Y
+    move.w  (a0)+, d3                   ; Get raft tile ID
+    
+    cmp.b   (PlayerX), d1               ; Left or right side of the globe?
+    bpl.s   @OnRight
+    
+@OnLeft:
+    cmp.b   (PlayerY), d2               ; Top left or bottom left?
+    bpl.s   @OnBottomLeft
+    
+@OnTopLeft:
+    bsr     @DrawBottomRight            ; Sort raft sprites for the top
+    bsr     @DrawBottomLeft               ; left quadrant of the globe
+    bsr     @DrawTopRight
+    bsr     @DrawTopLeft
+    bra.s   @LoopEnd
+    
+@OnBottomLeft:
+    bsr     @DrawTopRight               ; Sort raft sprites for the bottom
+    bsr     @DrawTopLeft                  ; left quadrant of the globe
+    bsr     @DrawBottomRight
+    bsr     @DrawBottomLeft
+    bra.s   @LoopEnd
+    
+@OnRight:
+    cmp.b   (PlayerY), d2               ; Top right or bottom right?
+    bpl.s   @OnBottomRight
+    
+@OnTopRight:
+    bsr     @DrawBottomLeft             ; Sort raft sprites for the top
+    bsr     @DrawBottomRight              ; right quadrant of the globe
+    bsr     @DrawTopLeft
+    bsr     @DrawTopRight
+    bra.s   @LoopEnd
+    
+@OnBottomRight:
+    bsr     @DrawTopLeft                ; Sort raft sprites for the bottom
+    bsr     @DrawTopRight                 ; right quadrant of the globe
+    bsr     @DrawBottomLeft
+    bsr     @DrawBottomRight
+    
+@LoopEnd:
+    dbf     d0, @Loop                   ; Draw next raft
+    rts                                 ; End of subroutine
+
+;----------------------------------------------------------------------------
+
+@DrawTopLeft:
+    move.b  d1, d7                      ; Draw top left part
+    move.b  d2, d6
+    subq.b  #8, d7
+    subq.b  #8, d6
+    move.w  d3, d5
+    bra     @AddRaftSprite
+
+@DrawTopRight:
+    move.b  d1, d7                      ; Draw top right part
+    move.b  d2, d6
+    addq.b  #8, d7
+    subq.b  #8, d6
+    move.w  d3, d5
+    bra     @AddRaftSprite
+    
+@DrawBottomLeft:
+    move.b  d1, d7                      ; Draw bottom left part
+    move.b  d2, d6
+    subq.b  #8, d7
+    addq.b  #8, d6
+    move.w  d3, d5
+    bra     @AddRaftSprite
+    
+@DrawBottomRight:
+    move.b  d1, d7                      ; Draw bottom right part
+    move.b  d2, d6
+    addq.b  #8, d7
+    addq.b  #8, d6
+    move.w  d3, d5
+    bra     @AddRaftSprite
+
+;----------------------------------------------------------------------------
+
+@AddRaftSprite:
+    sub.b   (PlayerX), d7               ; Account for camera
+    sub.b   (PlayerY), d6
+    
+    cmp.b   #-$40, d7                   ; Do clipping
+    ble.s   @Skip
+    cmp.b   #$40, d7
+    bge.s   @Skip
+    cmp.b   #-$40, d6
+    ble.s   @Skip
+    cmp.b   #$40, d6
+    bge.s   @Skip
+    
+    swap    d0                          ; Check if this portion of the raft
+    clr.w   d0                            ; is too close to the left or right
+    cmp.b   #-$38, d7                     ; sides and pick one of the border
+    bge.s   @NoLeftSide                   ; graphics if so (like we do for
+    subq.w  #6, d0                        ; the globe graphics)
+    subq.w  #4, d5
+@NoLeftSide:
+    cmp.b   #$38, d7
+    blt.s   @NoRightSide
+    addq.w  #6, d0
+    addq.w  #4, d5
+@NoRightSide:
+    
+    swap    d1                          ; Do the same as above but for the
+    clr.w   d1                            ; top and bottom sides
+    cmp.b   #-$38, d6
+    bge.s   @NoTopSide
+    subq.w  #6, d1
+    sub.w   #3*4, d5
+@NoTopSide:
+    cmp.b   #$38, d6
+    blt.s   @NoBottomSide
+    addq.w  #6, d1
+    add.w   #3*4, d5
+@NoBottomSide:
+    
+    lea     (RaftTable), a5             ; Use same table for both X and Y
+    move.l  a5, a6
+    
+    bsr     Draw3DSpriteBackend         ; Draw this portion of the raft
+    
+    swap    d0                          ; Restore these
+    swap    d1
+    
+@Skip:
+    rts                                 ; Skip this portion of the raft

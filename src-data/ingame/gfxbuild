@@ -1,7 +1,14 @@
 output "src-data/ingame/ingame.4bpp"
 
+layout tilemap
 input "src-data/ingame/background.png"
-tiles 0 0 2 1
+tiles 0 0 3 1
+input "src-data/ingame/background_2.png"
+tiles 0 0 4 3
+input "src-data/ingame/background_4.png"
+tiles 0 0 4 4
+input "src-data/ingame/background_7.png"
+tiles 0 0 4 4
 input "src-data/ingame/hud.png"
 tiles 0 0 2 3
 tiles 2 0 2 3
@@ -16,21 +23,27 @@ tiles 18 0 2 3
 tiles 20 0 2 3
 tiles 22 0 2 3
 tiles 24 0 2 3
+tiles 26 0 2 3
 
 layout sprite
 input "src-data/ingame/key.png"
 tiles 0 0 2 2
 input "src-data/ingame/mace.png"
 tiles 0 0 2 2
+tiles 2 0 2 2
+tiles 4 0 2 2
 input "src-data/ingame/switch.png"
 tiles 0 0 2 2
 input "src-data/ingame/bomb.png"
 tiles 2 0 8 2
+input "src-data/ingame/bomb_smoke.png"
+tiles 0 0 2 2
 input "src-data/ingame/electricity.png"
 tiles 2 0 2 2
 tiles 0 0 2 2
 input "src-data/ingame/ball.png"
 tiles 0 0 2 2
+tiles 2 0 2 2
 input "src-data/ingame/orb.png"
 tiles 0 0 6 2
 tiles 0 2 6 2
@@ -53,6 +66,9 @@ tiles 0 2 10 2
 tiles 0 4 10 2
 tiles 0 6 10 2
 tiles 0 8 10 2
+tiles 0 10 10 2
+input "src-data/ingame/spring.png"
+tiles 0 0 2 2
 
 layout tilemap
 input "src-data/ingame/stage6_bg.png"

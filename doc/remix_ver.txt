@@ -1,0 +1,57 @@
+REV 04 is an actual overhaul of Miniplanets instead of just a patch. I'm
+not gonna revert revision number to 00 because it's still essentially the
+same game.
+
+So, I had realized that Miniplanets had never *properly* released in Japan
+and Arkagis Revolution had showed it's a significant market so I may as well
+go and do it (lol), especially with all the issues I've been having with
+Arkagis Escape. But honestly the game wasn't in any presentable shape at all
+(even back then, sorry PlayOnRetro) so I decided to overhaul it quickly. In
+the end it still isn't much of a noticeable impact though... At least I think
+that over there for most customers it'll be the first time they see it anyway.
+
+The original idea for Miniplanets REMIX was to include a level editor to make
+it *actually* worth it, but besides not having much time to get it done (and
+all this was written with a mouse and an on-screen keyboard...) there's the
+problem of how to save and share the levels. The only cartridges with saving
+readily available use batteries and I don't want cartridges with corroded
+boards once people forget about them in a drawer, not to mention being a fire
+hazard which could restrict shipping (for good reason). Self-writing the
+cartridge memory is an option but it's entirely unexplored so far so I'm not
+sure if it's worth the risk yet. Flashcart solutions only would work for ROM
+downloads and every model has its own poorly documented interface (when they
+even expose it). There's still some barebones editor code (albeit disabled)
+written in about an hour or so.
+
+I guess some day there could be a release built entirely around editing, but
+triple dipping may be a bit too much :P There's a reason why modern platforms
+are moving away from physical distribution.
+
+Another "fun" fact: Miniplanets originally would fit in 256KB but this
+version needs 512KB. Part of the issue is that making the miniplanets rounder
+involved making every tile 9x as large (each tile drawn in different angles)
+which obviously eats up way more space. This in turn made the way rafts
+worked not scale up anymore so they had to be redone to work like most other
+objects (thankfully sprite limits turned out to be less of a problem than I
+originally expected back then), but they'd look like they were floating so I
+had to make another projection table *just* for them... On that note, making
+objects appear behind the horizon required making the table larger to make it
+look correct so that contributed to the size too (though it can be probably
+made leaner). The thunder sound (see stage 4) also eats up over 22KB, though
+trying to shorten it didn't really sound good...
+
+Not like any of this matters much when available cartridges are 4MB, but it's
+annoying when 512KB gives you something like Sonic 1.
+
+Redoing the music was kinda important (ESPECIALLY stage 4's) so I decided to
+switch the sound driver to Sona altogether. Biggest difference is support for
+mixing two PCM channels. This was never a big issue with Miniplanets (where
+the only PCM sound effect is bombs exploding) so I decided to let tracks take
+over both channels. This is most noticeable in stages 3 and 4 where drums can
+play alongside the ambience sound. By the way, the thunder is the bomb
+explosion slowed down to 25% speed lol (then shortened to try to save space).
+
+There's an attract mode now showcasing the different planelagos... Remember
+how I mentioned the on-screen keyboard earlier? Well, I can't press multiple
+buttons with that, so recording was a no-go. I resorted to manually entering
+the inputs instead.

@@ -39,14 +39,21 @@ NextLife:           rs.l 1          ; When next life comes in
 Lives:              rs.b 1          ; Number of lives left
 Stage:              rs.b 1          ; Current stage
 StageName:          rs.b 1          ; Stage name (one digit per nibble)
+DebugOK:            rs.b 1          ; Allow debug menu
 Muteki:             rs.b 1          ; Set when muteki mode is on
 TimerOK:            rs.b 1          ; Allow timer to work
-DebugOK:            rs.b 1          ; Allow debug menu
-
+BeltOK:             rs.b 1          ; Activate conveyor belts
 TimeSetting:        rs.b 1          ; Level duration setting
 LifeSetting:        rs.b 1          ; Extra life interval setting
 SoundTest:          rs.b 1          ; Current sound test value
+Invict:             rs.b 1          ; Invict game? (used to unlock stage 7)
                     rs.b 1
+
+AttractMode:        rs.b 1          ; Are we in attract mode?
+AttractSeq:         rs.b 1          ; Next attract replay ID to play
+AttractPtr:         rs.l 1          ; Pointer to next attract mode data
+AttractTimer:       rs.b 1          ; Time left to read more attract data
+AttractInput:       rs.b 1          ; Faked input for attract mode
 
 LocalRAM:           rs.b 0          ; Where local RAM starts
 
@@ -78,12 +85,31 @@ PlayerSpring:       rs.b 1          ; Timer to hold player in air (springs)
 PlayerWin:          rs.b 1          ; Timer for player's winning animation
 PlayerDie:          rs.b 1          ; Timer for player dying
 
+ObjectList:         rs.b OBJ_SIZE*MAX_OBJECTS ; Object list
+FrontSpriteList:    rs.b SPR3D_SIZE*MAX_3DSPRITES ; List of 3D sprites in front of globe
+BackSpriteList:     rs.l SPR3D_SIZE*MAX_3DSPRITES ; List of 3D sprites behind the globe
+RaftList:           rs.l MAX_RAFTS  ; List of every raft to draw
+FrontSpriteOffset:  rs.w 1          ; Offset within FrontSpriteList
+BackSpriteOffset:   rs.w 1          ; Offset within BackSpriteList
+NumRafts:           rs.b 1          ; Number of rafts to draw
+                    rs.b 1
+
 HUDBuf:             rs.w 40*3       ; Buffer for the HUD text
 PlayerBuf:          rs.b $200+$20   ; Buffer for the player graphics
-RaftBuf:            rs.b 4*12*$20   ; Buffer for the raft graphics
-BeltBuf:            rs.b 4*4*$20    ; Buffer for the belt graphics
+BeltBuf_H:          rs.b 4*9*4*$20  ; Buffer for horizontal belt graphics
+BeltBuf_V:          rs.b 4*9*4*$20  ; Buffer for vertical belt graphics
 
-ObjectList:         rs.b OBJ_SIZE*MAX_OBJECTS ; Object list
+EndOfIngameRAM:     rs.b 0
+
+;****************************************************************************
+; Variables used in the stage editor
+;****************************************************************************
+
+                    if HAS_EDITOR
+EditorX:            equ PlayerX         ; X coordinate of globe
+EditorY:            equ PlayerY         ; Y coordinate of globe
+EditorTile:         equ PlayerAngle     ; Tile ID to place
+                    endc
 
 ;****************************************************************************
 ; Variables used in the game over screen
@@ -93,6 +119,15 @@ ObjectList:         rs.b OBJ_SIZE*MAX_OBJECTS ; Object list
 
 GameOverAnim:       rs.b 8          ; Scaling for each letter
 GameOverTiles:      rs.b $20*17*3*8 ; To store the GAME OVER graphics
+
+;****************************************************************************
+; Variables used in the continue screen
+;****************************************************************************
+
+                    rsset LocalRAM
+ContinueTextBuf:    rs.w 36*8       ; Buffer for writing text
+ContinueOption:     rs.b 1          ; 0 = YES, 1 = NO
+                    rs.b 1
 
 ;****************************************************************************
 ; Variables used in the logo splash
@@ -115,9 +150,9 @@ LogoWait:           rs.b 1          ; Wait before logo quits
 TitleOption:        rs.b 1          ; Selected option
 TitleShowMenu:      rs.b 1          ; Set when menu is visible
 TitleLogoSize:      rs.b 11         ; To animate every letter in the logo
-                    rs.b 1
-
+RemixVerOffset:     rs.b 1          ; X offset of in "REMIX Ver." in tiles
 TitleCheat:         rs.b 8          ; Buffer for cheat code
+TimeToAttract:      rs.w 1          ; Time left until attract mode kicks in
 
 TitleMenuBuf:       rs.b 0          ; To hold the menu graphics
 TitleLogoOrig:      rs.b 9*9*$20    ; To hold the logo sprites (original)
@@ -196,6 +231,7 @@ CreditsBuffer2:     rs.w 36*3       ; Second line of text (tiles)
 
 CreditsScroll:      rs.w 1          ; Camera position
 CreditsSpin:        rs.w 1          ; Planelagos animation
+CreditsResetTimer:  rs.w 1          ; Time left before reset at the end
 
 ;****************************************************************************
 ; Variables used in the debug menu
@@ -207,6 +243,10 @@ DebugLineStage:     rs.w 36*3       ; "STAGE #-#"
 DebugLineLives:     rs.w 36*3       ; "LIVES X##"
 DebugLineMuteki:    rs.w 36*3       ; "MUTEKI XX"
 DebugLineTimer:     rs.w 36*3       ; "TIME XX"
+DebugLineBelt:      rs.w 36*3       ; "BELT XX"
+                    if HAS_EDITOR
+DebugLineEdit:      rs.w 36*3       ; "EDIT"
+                    endc
 
 DebugOption:        rs.b 1          ; Current selected option
                     rs.b 1
@@ -219,7 +259,7 @@ DebugOption:        rs.b 1          ; Current selected option
                     rs.b 1          ; (empty)
 VramUniverse:       rs.b 24         ; Background
 VramPlanets:        rs.b 5          ; Planelago planets
-VramText:           rs.b 213        ; Font graphics
+VramText:           rs.b 231        ; Font graphics
 
 VramCommonEnd:      rs.b 0
 
@@ -230,14 +270,20 @@ VramCommonEnd:      rs.b 0
                     rsreset
                     rs.b 1          ; (empty)
 
-VramBackground:     rs.b 2          ; Background
-VramHUD:            rs.b 2*3*13     ; HUD characters
+VramBackground:     rs.b 3          ; Main background
+VramCloudBg:        rs.b 4*3        ; Cloud in the sky
+VramStormBg:        rs.b 4*4        ; Storm background
+VramQuestionBg:     rs.b 4*4        ; "?" background
+VramHUD:            rs.b 2*3*14     ; HUD characters
 VramKey:            rs.b 2*2        ; Key
 VramMace:           rs.b 2*2        ; Mace
+VramMaceChain:      rs.b 2*2        ; Chain link
+VramMaceAxis:       rs.b 2*2        ; Mace axis
 VramSwitch:         rs.b 2*2        ; Switch
 VramBomb:           rs.b 2*2*4      ; Bomb
+VramBombSmoke:      rs.b 2*2        ; Bomb smoke FX
 VramElectricity:    rs.b 2*2*2      ; Electricity
-VramBall:           rs.b 2*2        ; Ball
+VramBall:           rs.b 2*2*2      ; Ball
 VramOrbR:           rs.b 2*2*3      ; Red orb
 VramOrbP:           rs.b 2*2*3      ; Pink orb
 VramOrbB:           rs.b 2*2*3      ; Blue orb
@@ -249,38 +295,41 @@ VramIyan:           rs.b 2*2*5      ; Child: Iyan
 VramShia:           rs.b 2*2*5      ; Child: Shia
 VramHoru:           rs.b 2*2*5      ; Child: Horu
 VramAxar:           rs.b 2*2*5      ; Child: Axar
+Vram6thChild:       rs.b 2*2*5      ; Stage 7 child
+VramSpringFx:       rs.b 2*2        ; Spring recoil effect
 VramStage6BG:       rs.b 20*14      ; Stage 6 background
 VramGameOver:       rs.b 8*6+3      ; Game Over message
 
-VramPlayer:         rs.b 4*4        ; Player
-
-VramGrass:          rs.b 2*2        ; Grass tile
-VramFlower:         rs.b 2*2        ; Flower tile
-VramDirt:           rs.b 2*2        ; Dirt tile
-VramBrick:          rs.b 2*2        ; Brick tile
-VramRaftH:          rs.b 2*2        ; Immobile raft (horizontal)
-VramRaftV:          rs.b 2*2        ; Immobile raft (vertical)
-VramWood:           rs.b 2*2        ; Wooden tile
-VramGoal:           rs.b 2*2        ; Goal tile
-VramSpring:         rs.b 2*2        ; Spring tile
-VramDark:           rs.b 2*2        ; Dark tile
-VramMetal:          rs.b 2*2        ; Metal wall tile
-VramPlate:          rs.b 2*2        ; Metal plate tile
-VramVisor:          rs.b 2*2        ; Visor tile
-VramMarble:         rs.b 2*2        ; Marble tile
+VramGrass:          rs.b 9*2*2      ; Grass tile
+VramFlower:         rs.b 9*2*2      ; Flower tile
+VramDirt:           rs.b 9*2*2      ; Dirt tile
+VramBrick:          rs.b 9*2*2      ; Brick tile
+VramRaftH:          rs.b 9*2*2      ; Immobile raft (horizontal)
+VramRaftV:          rs.b 9*2*2      ; Immobile raft (vertical)
+VramWood:           rs.b 9*2*2      ; Wooden tile
+VramGoal:           rs.b 9*2*2      ; Goal tile
+VramSpring:         rs.b 9*2*2      ; Spring tile
+VramDark:           rs.b 9*2*2      ; Dark tile
+VramMetal:          rs.b 9*2*2      ; Metal wall tile
+VramPlate:          rs.b 9*2*2      ; Metal plate tile
+VramVisor:          rs.b 9*2*2      ; Visor tile
+VramMarble:         rs.b 9*2*2      ; Marble tile
 
 VramEndingGlobe:    rs.b 2*2*12     ; Exploding globe
 
-VramWater:          rs.b 2*2        ; Water tile
-VramRaftU:          rs.b 3*2*2      ; Raft going up
-VramRaftD:          rs.b 3*2*2      ; Raft going down
-VramRaftL:          rs.b 3*2*2      ; Raft going left
-VramRaftR:          rs.b 3*2*2      ; Raft going right
-VramBeltU:          rs.b 2*2        ; Conveyor belt (going up)
-VramBeltD:          rs.b 2*2        ; Conveyor belt (going down)
-VramBeltL:          rs.b 2*2        ; Conveyor belt (going left)
-VramBeltR:          rs.b 2*2        ; Conveyor belt (going right)
-VramFire:           rs.b 2*2        ; Fire tile
+VramByStage:        rs.b 0          ; Tiles that may be reused depending on
+                                      ; the current srage setting start here
+
+                    rsset $D000/$20
+VramPlayer:         rs.b 4*4        ; Player
+VramBeltU:          rs.b 9*2*2      ; Conveyor belt (going up)
+VramBeltD:          rs.b 9*2*2      ; Conveyor belt (going down)
+VramBeltL:          rs.b 9*2*2      ; Conveyor belt (going left)
+                    rsset $F280/$20
+VramBeltR:          rs.b 9*2*2      ; Conveyor belt (going right)
+                    rsset $F820/$20
+VramWater:          rs.b 0          ; Water tile
+VramFire:           rs.b 9*2*2      ; Fire tile
 
 ;****************************************************************************
 ; Tile IDs used in the title screen
@@ -294,6 +343,7 @@ VramCopyright:      rs.b 15         ; Copyright notice
 VramTitleLogo:      rs.b 9*9        ; Title logo letters
 VramTitleMenuA:     rs.b 2*2        ; Menu letter: "A"
 VramTitleMenuD:     rs.b 2*2        ; Menu letter: "D"
+VramTitleMenuE:     rs.b 2*2        ; Menu letter: "E"
 VramTitleMenuI:     rs.b 2*2        ; Menu letter: "I"
 VramTitleMenuN:     rs.b 2*2        ; Menu letter: "N"
 VramTitleMenuO:     rs.b 2*2        ; Menu letter: "O"
@@ -302,6 +352,7 @@ VramTitleMenuR:     rs.b 2*2        ; Menu letter: "R"
 VramTitleMenuS:     rs.b 2*2        ; Menu letter: "S"
 VramTitleMenuT:     rs.b 2*2        ; Menu letter: "T"
 VramTitleMenuW:     rs.b 2*2        ; Menu letter: "W"
+VramRemixVer:       rs.b 19*3       ; "REMIX Ver."
 
 ;****************************************************************************
 ; Tile IDs used in the logo splash

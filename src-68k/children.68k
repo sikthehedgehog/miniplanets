@@ -9,6 +9,7 @@ CHILD_IYAN:     rs.b 1
 CHILD_SHIA:     rs.b 1
 CHILD_HORU:     rs.b 1
 CHILD_AXAR:     rs.b 1
+CHILD_6TH:      rs.b 1
 
 ;****************************************************************************
 ; RunChild
@@ -92,3 +93,4 @@ DrawChild:
     dc.w    $0000+VramShia
     dc.w    $0000+VramHoru
     dc.w    $0000+VramAxar
+    dc.w    $0000+Vram6thChild

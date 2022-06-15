@@ -1,0 +1,259 @@
+;****************************************************************************
+; AttractList
+; List of pointers to the attract mode replay data for every recorded stage.
+;****************************************************************************
+
+AttractList:
+    dc.l    AttractData_1_3
+    dc.l    AttractData_2_8
+    dc.l    AttractData_3_8
+    dc.l    AttractData_4_4
+    dc.l    AttractData_5_6
+    dc.l    AttractData_5_3
+
+NUM_ATTRACT: equ (*-AttractList)/4
+
+;****************************************************************************
+; Stage 1-3 attract mode data
+;****************************************************************************
+
+AttractData_1_3:
+    dc.b    STAGE_1_3                   ; Play stage 1-3
+    
+    dc.b    $20,$00                     ; Wait to land
+    dc.b    $20,$01                     ; Walk up
+    dc.b    $10,$00                     ; Wait for raft
+    dc.b    $30,$21                     ; Jump to raft
+    dc.b    $40,$00                     ; Wait for goal
+    dc.b    $50,$21                     ; Jump to goal
+    
+    dc.b    $30,$00                     ; Confused wait
+    dc.b    $20,$02                     ; Walk down
+    dc.b    $30,$00                     ; Wait for raft
+    dc.b    $30,$22                     ; Jump to raft
+    dc.b    $40,$00                     ; Wait for key
+    dc.b    $50,$22                     ; Jump to key
+    
+    dc.b    $08,$00                     ; Tiny delay
+    dc.b    $20,$01                     ; Walk up
+    dc.b    $58,$00                     ; Wait for raft
+    dc.b    $30,$21                     ; Jump to raft
+    dc.b    $40,$00                     ; Wait for key
+    dc.b    $50,$21                     ; Jump to key
+    
+    dc.b    $08,$00                     ; Tiny delay
+    dc.b    $20,$02                     ; Walk down
+    dc.b    $58,$00                     ; Wait for raft
+    dc.b    $30,$22                     ; Jump to raft
+    dc.b    $80,$00                     ; Wait for goal
+    dc.b    $50,$21                     ; Jump to goal
+    
+    dcb.b   $04,$00                     ; Score tally
+    dc.b    $00,$80                     ; Quit if still here
+    even
+
+;****************************************************************************
+; Stage 2-8 attract mode data
+;****************************************************************************
+
+AttractData_2_8:
+    dc.b    STAGE_2_8                   ; Play stage 2-8
+    
+    dc.b    $20,$00                     ; Wait to land
+    dc.b    $38,$01                     ; Walk up
+    dc.b    $30,$21                     ; Jump over bomb
+    dc.b    $38,$01                     ; Walk up more
+    dc.b    $60,$08                     ; Walk right
+    dc.b    $38,$02                     ; Walk down
+    dc.b    $30,$22                     ; Jump over bomb
+    dc.b    $38,$02                     ; Walk down more
+    
+    dc.b    $08,$00                     ; Hesitation
+    dc.b    $40,$08                     ; Walk right
+    dc.b    $30,$00                     ; Wait for explosion
+    
+    dc.b    $10,$08                     ; Walk right a bit
+    dc.b    $90,$01                     ; Jump over the lake
+    dc.b    $68,$00                     ; Wait to land
+    
+    dc.b    $08,$02                     ; Walk down a bit
+    dc.b    $10,$00                     ; Hesitation
+    dc.b    $10,$02                     ; Do the U-turn leap
+    dc.b    $10,$06                     ; (45°)
+    dc.b    $30,$04                     ; (90°)
+    dc.b    $10,$05                     ; (135°)
+    dc.b    $28,$01                     ; (180°)
+    
+    dc.b    $08,$00                     ; Hesitation
+    dc.b    $20,$04                     ; Walk to goal
+    dcb.b   $04,$00                     ; Score tally
+    dc.b    $00,$80                     ; Quit if still here
+    even
+
+;****************************************************************************
+; Stage 3-8 attract mode data
+;****************************************************************************
+
+AttractData_3_8:
+    dc.b    STAGE_3_8                   ; Play stage 3-8
+    
+    dc.b    $18,$00                     ; Wait to land
+    dc.b    $20,$01                     ; Walk up
+    dc.b    $40,$21                     ; Jump over belt
+    dc.b    $20,$01                     ; Walk to remote
+    dc.b    $30,$00                     ; Wait for explosion
+    
+    dc.b    $20,$02                     ; Walk down
+    dc.b    $18,$00                     ; Getting ready...
+    dc.b    $18,$02                     ; Walk to belt
+    dc.b    $08,$00                     ; Wait for border
+    dc.b    $20,$04                     ; Get ourselves ready...
+    dc.b    $34,$2A                     ; Jump down right
+    
+    dc.b    $10,$00                     ; Wait for next pit
+    dc.b    $04,$04
+    dc.b    $14,$00
+    dc.b    $18,$01                     ; Get a grip
+    dc.b    $34,$26                     ; Jump down left
+    dc.b    $18,$04                     ; Get a grip
+    dc.b    $10,$26
+    dc.b    $20,$00
+    dc.b    $08,$04
+    dc.b    $40,$2A                     ; Jump down right
+    
+    dc.b    $18,$00                     ; Wait for next pit
+    dc.b    $34,$2A                     ; Jump down right
+    dc.b    $20,$01                     ; Pick up the key!
+    dc.b    $08,$09
+    dc.b    $10,$01
+    
+    dc.b    $10,$00                     ; Wait a bit
+    dc.b    $3C,$02                     ; Go back to belt
+    dc.b    $08,$00                     ; Wait a bit
+    dc.b    $18,$04                     ; Get a grip
+    dc.b    $34,$2A                     ; Jump down right
+    
+    dc.b    $10,$00                     ; Wait for next pit
+    dc.b    $04,$04
+    dc.b    $14,$00
+    dc.b    $18,$01                     ; Get a grip
+    dc.b    $34,$26                     ; Jump down left
+    dc.b    $18,$04                     ; Get a grip
+    dc.b    $18,$24                     ; Hop forwards
+    dc.b    $18,$00
+    dc.b    $10,$04                     ; Get a grip
+    dc.b    $40,$21                     ; Jump to the goal
+    
+    dcb.b   $04,$00                     ; Score tally
+    dc.b    $00,$80                     ; Quit if still here
+    even
+
+;****************************************************************************
+; Stage 4-4 attract mode data
+;****************************************************************************
+
+AttractData_4_4:
+    dc.b    STAGE_4_4                   ; Play stage 4-4
+    dc.b    $20,$00                     ; Wait to land
+    
+    dc.b    $30,$01                     ; Walk up
+    dc.b    $40,$00                     ; Let cannonball pass by
+    dc.b    $10,$01                     ; Walk to road
+    dc.b    $40,$08                     ; Walk right
+    dc.b    $80,$01                     ; Walk up
+    dc.b    $40,$04                     ; Walk left
+    dc.b    $40,$02                     ; Walk down to key
+    
+    dc.b    $08,$00                     ; Wait a bit
+    dc.b    $30,$01                     ; Walk up
+    dc.b    $78,$00                     ; Let cannonball pass by
+    dc.b    $10,$01                     ; Walk to road
+    dc.b    $80,$04                     ; Walk left
+    dc.b    $40,$01                     ; Walk up to key
+    
+    dc.b    $08,$00                     ; Wait a bit
+    dc.b    $30,$02                     ; Walk down
+    dc.b    $78,$00                     ; Let cannonball pass by
+    dc.b    $10,$02                     ; Walk to road
+    dc.b    $40,$04                     ; Walk left
+    dc.b    $80,$01                     ; Walk up
+    dc.b    $40,$08                     ; Walk right
+    dc.b    $40,$01                     ; Walk up to goal
+    
+    dcb.b   $04,$00                     ; Score tally
+    dc.b    $00,$80                     ; Quit if still here
+    even
+
+;****************************************************************************
+; Stage 5-6 attract mode data
+;****************************************************************************
+
+AttractData_5_6:
+    dc.b    STAGE_5_6                   ; Play stage 5-6
+    
+    dc.b    $20,$00                     ; Wait to land
+    dc.b    $20,$01                     ; Walk up
+    dc.b    $80,$00                     ; Miss raft and wait for next one
+    dc.b    $30,$21                     ; Jump to raft
+    
+    dc.b    $A0,$00                     ; Wait for next stop
+    dc.b    $28,$22                     ; Jump to it... carefully
+    dc.b    $20,$00
+    dc.b    $28,$22                     ; Jump to key
+    dc.b    $18,$00
+    
+    dc.b    $28,$24                     ; Jump away from mace
+    dc.b    $60,$00                     ; Wait for raft
+    dc.b    $28,$24                     ; Jump to raft
+    
+    dc.b    $68,$00                     ; Wait for next stop
+    dc.b    $28,$24                     ; Jump to it... carefully
+    dc.b    $20,$00
+    dc.b    $28,$24                     ; Jump to key
+    dc.b    $18,$00
+    
+    dc.b    $28,$22                     ; Jump away from mace
+    dc.b    $60,$00                     ; Wait for raft
+    dc.b    $28,$22                     ; Jump to raft
+    
+    dc.b    $A8,$00                     ; Wait for next stop
+    dc.b    $50,$21                     ; Jump to goal
+    
+    dcb.b   $04,$00                     ; Score tally
+    dc.b    $00,$80                     ; Quit if still here
+    even
+
+;****************************************************************************
+; Stage 5-3 attract mode data
+;****************************************************************************
+
+AttractData_5_3:
+    dc.b    STAGE_5_3                   ; Play stage 5-3
+    
+    dc.b    $20,$00                     ; Wait to land
+    dc.b    $08,$08                     ; Align to the road
+    dc.b    $48,$01                     ; Walk up
+    dc.b    $40,$08                     ; Walk right to key
+    
+    dc.b    $08,$00                     ; Wait a bit
+    dc.b    $80,$04                     ; Walk left
+    dc.b    $40,$01                     ; Walk up
+    dc.b    $40,$04                     ; Walk left to key
+    
+    dc.b    $08,$00                     ; Wait a bit
+    dc.b    $40,$08                     ; Walk right
+    dc.b    $80,$02                     ; Walk down
+    dc.b    $40,$04                     ; Walk left to key
+    
+    dc.b    $08,$00                     ; Wait a bit
+    dc.b    $40,$08                     ; Walk right
+    dc.b    $40,$02                     ; Walk down
+    dc.b    $80,$08                     ; Walk right to key
+    
+    dc.b    $08,$00                     ; Wait a bit
+    dc.b    $40,$04                     ; Walk left
+    dc.b    $40,$02                     ; Walk down to goal
+    
+    dcb.b   $04,$00                     ; Score tally
+    dc.b    $00,$80                     ; Quit if still here
+    even

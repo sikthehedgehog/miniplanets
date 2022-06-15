@@ -31,6 +31,7 @@ StageEnd: macro
     include "data/stages/stage_4.68k"
     include "data/stages/stage_5.68k"
     include "data/stages/stage_6.68k"
+    include "data/stages/stage_7.68k"
     endc
 
 ;****************************************************************************
@@ -115,5 +116,15 @@ STAGE_\stage\_\substage\: rs.b 1
     @Entry  5,7                         ; Stage 5-7
     @Entry  5,8                         ; Stage 5-8
     @Entry  5,9                         ; Stage 5-9
-
+    
     @Entry  6,0                         ; Stage 6-0
+    
+    @Entry  7,1                         ; Stage 7-1
+    @Entry  7,2                         ; Stage 7-2
+    @Entry  7,3                         ; Stage 7-3
+    @Entry  7,4                         ; Stage 7-4
+    @Entry  7,5                         ; Stage 7-5
+    @Entry  7,6                         ; Stage 7-6
+    @Entry  7,7                         ; Stage 7-7
+    @Entry  7,8                         ; Stage 7-8
+    @Entry  7,9                         ; Stage 7-9

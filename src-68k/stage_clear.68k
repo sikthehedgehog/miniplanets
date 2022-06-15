@@ -590,3 +590,4 @@ DrawClearMessage:
     dc.l    StrHoruRescued,     StrGoQishaGo
     dc.l    StrAxarRescued,     StrGoQishaGo
     dc.l    StrVoidSealedBack,  StrLetsGoHome
+    dc.l    StrWhatWasThat,     StrLetsGoHome

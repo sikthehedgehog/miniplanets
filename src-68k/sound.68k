@@ -6,8 +6,7 @@
 ;****************************************************************************
 
 InitSound:
-    lea     (InstrumentList), a0        ; Boot up sound engine
-    bsr     Echo_Init
+    jsr     (Sona_Init).w               ; Boot up sound engine
     
     clr.b   (BGMToPlay)                 ; Playing nothing yet
     clr.b   (SFXToPlay)
@@ -24,7 +23,7 @@ InitSound:
 ;****************************************************************************
 
 UpdateSound:
-    movem.l d0-d1/a0, -(sp)             ; Save registers (blame Echo's API)
+    movem.l d0-d1/a0-a1, -(sp)          ; Save registers (blame Sona's API)
     
     moveq   #0, d7                      ; Check if a BGM should play
     move.b  (BGMToPlay), d7
@@ -35,14 +34,16 @@ UpdateSound:
     subq.w  #1, d7                      ; Play the BGM then
     add.w   d7, d7
     add.w   d7, d7
-    lea     @BGMList(pc), a6
+    lea     (BGMList), a6
     move.l  (a6,d7.w), a0
-    bsr     Echo_PlayBGM
+    lea     (InstrumentList), a1
+    moveq   #NUM_INSTRUMENTS, d0
+    jsr     (Sona_PlayBGM).w
     bra.s   @Done
     
 @StopBGM:
     clr.b   (BGMToPlay)                 ; Stop BGM instead?
-    bsr     Echo_StopBGM
+    jsr     (Sona_StopAllSound).w
     bra.s   @Done
     
 @NoBGM:
@@ -56,46 +57,24 @@ UpdateSound:
     subq.w  #1, d7                      ; Play the SFX then
     add.w   d7, d7
     add.w   d7, d7
-    lea     @SFXList(pc), a6
+    lea     (SFXList), a6
     move.l  (a6,d7.w), a0
-    bsr     Echo_PlaySFX
+    lea     (InstrumentList), a1
+    moveq   #NUM_INSTRUMENTS, d0
+    move.b  d7, d1
+    jsr     (Sona_PlaySfx).w
     bra.s   @Done
 @NoSFX:
     
-    bsr     Echo_GetStatus              ; Check if a SFX is playing yet
-    btst.l  #0, d0
+    jsr     (Sona_GetStatus).w          ; Check if a SFX is playing yet
+    btst.l  #SONA_STATUS_SFX1, d0
     bne.s   @SFXPlaying
     clr.b   (CurrentSFX)
 @SFXPlaying:
     
 @Done:
-    movem.l (sp)+, d0-d1/a0             ; Restore registers
+    movem.l (sp)+, d0-d1/a0-a1          ; Restore registers
     rts                                 ; End of subroutine
-
-;----------------------------------------------------------------------------
-
-@BGMList:
-    dc.l    BGMData_Stage1              ; BGM_STAGE1
-    dc.l    BGMData_Stage2              ; BGM_STAGE2
-    dc.l    BGMData_Stage3              ; BGM_STAGE3
-    dc.l    BGMData_Stage4              ; BGM_STAGE4
-    dc.l    BGMData_Stage5              ; BGM_STAGE5
-    dc.l    BGMData_Boss                ; BGM_BOSS
-    dc.l    BGMData_Title               ; BGM_TITLE
-    dc.l    BGMData_Ending              ; BGM_ENDING
-    dc.l    BGMData_Tally               ; BGM_TALLY
-    dc.l    BGMData_GameOver            ; BGM_GAMEOVER
-
-@SFXList:
-    dc.l    SFXData_Jump                ; SFX_JUMP
-    dc.l    SFXData_Impact              ; SFX_IMPACT
-    dc.l    SFXData_Spring              ; SFX_SPRING
-    dc.l    SFXData_Key                 ; SFX_KEY
-    dc.l    SFXData_Crystal             ; SFX_CRYSTAL
-    dc.l    SFXData_Ouch                ; SFX_OUCH
-    dc.l    SFXData_Explosion           ; SFX_EXPLOSION
-    dc.l    SFXData_1up                 ; SFX_1UP
-    dc.l    SFXData_Goal                ; SFX_GOAL
 
 ;****************************************************************************
 ; PlayBGM

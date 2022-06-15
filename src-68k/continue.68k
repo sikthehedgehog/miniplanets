@@ -1,0 +1,134 @@
+;****************************************************************************
+; ContinueScreen
+; Main loop for "CONTINUE?" prompt screen.
+;----------------------------------------------------------------------------
+; notes: doesn't return
+;****************************************************************************
+
+ContinueScreen:
+    jsr     (ResetVideo).w              ; Reset graphics
+    st.b    (FadeInFlag)                ; We want fade in
+    
+    SetVramAddr $F800, ($C00004)        ; Everything is misaligned because
+    move.w  #-4, ($C00000)                ; the width is an odd number so
+                                          ; scroll half a tile to compensate
+    
+    jsr     (LoadFont).w                ; Load generic font
+    
+    lea     (PalMenu+2*$20), a6         ; Load palette, but only the colors
+    lea     (PaletteBuf), a5              ; used by text
+    moveq   #$20/8, d7
+@LoadPalette:
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    move.l  (a6)+, (a5)+
+    dbf     d7, @LoadPalette
+    
+    move.l  #ContinueTextBuf, (TextBufAddr) ; Set up text buffer
+    
+    jsr     (ClearText).w               ; Write "CONTINUE?"
+    moveq   #10, d7
+    lea     (StrContinue), a6
+    jsr     (DrawText).w
+    move.w  #$C404, d7
+    jsr     (UploadText).w
+    jsr     (FlushDMABuffer).w
+    
+    subq.l  #6, sp                      ; We need a buffer
+    
+    move.l  sp, a6                      ; Generate string for the password
+    bsr     GetPasswordAsText
+    
+    jsr     (ClearText).w               ; Write "PASSWORD ####"
+    moveq   #5, d7
+    lea     (StrPassword), a6
+    jsr     (DrawText).w
+    moveq   #24, d7
+    move.l  sp, a6
+    jsr     (DrawText).w
+    move.w  #$C904, d7
+    jsr     (UploadText).w
+    jsr     (FlushDMABuffer).w
+    
+    addq.l  #6, sp                      ; Done with the buffer
+    
+    clr.b   (ContinueOption)            ; Default to "YES"
+    bsr     DrawContinueYesNo           ; Initial "YES NO" draw
+    
+    moveq   #BGM_CONTINUE, d7           ; Sad music
+    jsr     (PlayBgm).w
+
+;----------------------------------------------------------------------------
+
+@MainLoop:
+    move.b  (Joy1Press), d0             ; Get buttons
+    
+    btst    #7, d0                      ; Picked an option?
+    bne.s   @Quit
+    
+    and.b   #$0C, d0                    ; Press left or right to pick the
+    beq.s   @NoChange                     ; other option
+    bchg    #0, (ContinueOption)
+    bsr     DrawContinueYesNo
+@NoChange:
+    
+    jsr     (NextFrame).w               ; Wait for next frame
+    bra     @MainLoop
+
+;----------------------------------------------------------------------------
+
+@Quit:
+    jsr     (FadeOff).w                 ; Shut off screen
+    
+    tst.b   (ContinueOption)            ; Chose "NO"?
+    bne     LogoSplash                    ; Reset game if so
+    
+    moveq   #0, d7                      ; Return back to the first stage
+    move.b  (StageName), d7               ; of this planelago
+    lsr.b   #4, d7
+    subq.b  #1, d7
+    lsl.w   #2, d7
+    lea     (PasswordList), a6
+    move.b  3(a6,d7.w), (Stage)
+    
+    bra     StartGame                   ; Start playing again
+
+;****************************************************************************
+; DrawContinueYesNo
+; Redraws the "YES NO" in the continue screen.
+;----------------------------------------------------------------------------
+; breaks: all
+;****************************************************************************
+
+DrawContinueYesNo:
+    jsr     (ClearText).w               ; Erase whatever was in the buffer
+    
+    tst.b   (ContinueOption)            ; Which option is selected?
+    bne.s   @NoSelected
+    
+@YesSelected:
+    bsr.s   @WriteYes                   ; Write "YES" first
+    move.w  #$2000, d7                  ; Make it yellow
+    jsr     (ColorizeText).w
+    bsr.s   @WriteNo                    ; Write "NO" in white
+    move.w  #$C604, d7                  ; Upload it
+    jmp     (UploadText).w
+    
+@NoSelected:
+    bsr.s   @WriteNo                    ; Write "NO" first
+    move.w  #$2000, d7                  ; Make it yellow
+    jsr     (ColorizeText).w
+    bsr.s   @WriteYes                   ; Write "YES" in white
+    move.w  #$C604, d7                  ; Upload it
+    jmp     (UploadText).w
+
+@WriteYes:
+    moveq   #12, d7                     ; Write "YES" in the buffer
+    lea     (StrYes), a6
+    jmp     (DrawText).w
+
+@WriteNo:
+    moveq   #21, d7                     ; Write "NO" in the buffer
+    lea     (StrNo), a6
+    jmp     (DrawText).w

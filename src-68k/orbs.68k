@@ -64,6 +64,10 @@ RunOrb:
     and.w   #$03, d7
     bchg.l  #0, d7
     bclr.l  d7, d0
+    tst.b   d0                          ; ...unless there are no other
+    bne.s   @NoBackFix                    ; options (fixes trapped orbs going
+    bset.l  d7, d0                        ; through walls in stage 7-7)
+@NoBackFix:
     
     moveq   #0, d7                      ; Run AI for this orb
     move.b  OBJ_TYPE(a0), d7
@@ -79,7 +83,7 @@ RunOrb:
     btst.l  #0, d0
     beq.s   @CantGoUp
     move.b  OBJ_Y(a0), d2
-    sub.b   d7, d2
+    sub.b   d6, d2
 @CantGoUp:
     
     btst.l  #1, d0                      ; Consider going down
