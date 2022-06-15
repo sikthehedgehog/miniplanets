@@ -6,21 +6,34 @@ DEMO_VERSION:           equ 0       ; Build a demo version
 
 SHOW_LOGO:              equ 0       ; Show logo splash
 SHOW_PUBLISHER:         equ 0       ; Allow publisher logo
-SHOW_COPYRIGHT:         equ 0       ; Show copyright notice
+SHOW_COPYRIGHT:         equ 1       ; Show copyright notice
+SHOW_REMIXVER:          equ 1       ; Show "REMIX Ver."
+
+SORT_BY_DEPTH:          equ 1       ; Sort objects on top of the globe
+HAS_EDITOR:             equ 0       ; Include the stage editor
+FANCY_WIN:              equ 0       ; Fly between miniplanets instead of fade
 
 ;****************************************************************************
 ; Debug options
 ;****************************************************************************
 
-DEBUG_INIT:             equ 0       ; Debug initialization code
+DEBUG_INIT:             equ 0       ; Debug initialization code (used to
+                                      ; exaggerate some real hardware
+                                      ; conditions that may be hidden by
+                                      ; flashcarts or emulators)
+
 DEBUG_CPUUSAGE:         equ 0       ; Profile CPU time usage
+CPUUSAGE_INDEX:         equ $00     ; Color index to use to show CPU usage
+CPUUSAGE_COLOR:         equ $040    ; BGR value to use to show CPU usage
 
 ;****************************************************************************
 ; Program source code
 ;****************************************************************************
 
-    include "src-68k/header.68k"
     include "src-68k/macros.68k"
+    include "sona/sonadef.68k"
+    
+    include "src-68k/header.68k"
     
     include "src-68k/main.68k"
     include "src-68k/video.68k"
@@ -33,8 +46,7 @@ DEBUG_CPUUSAGE:         equ 0       ; Profile CPU time usage
     include "src-68k/universe.68k"
     include "src-68k/planelagos.68k"
     
-    include "src-68k/echo.68k"
-    include "src-68k/esf.68k"
+    include "sona/sona.68k"
     
     include "src-68k/logo.68k"
     include "src-68k/title.68k"
@@ -44,9 +56,15 @@ DEBUG_CPUUSAGE:         equ 0       ; Profile CPU time usage
     include "src-68k/stage_clear.68k"
     include "src-68k/credits.68k"
     include "src-68k/game_over.68k"
+    include "src-68k/continue.68k"
     include "src-68k/debug_menu.68k"
     
+    if      HAS_EDITOR
+    include "src-68k/editor.68k"
+    endc
+    
     include "src-68k/ingame.68k"
+    include "src-68k/attract.68k"
     include "src-68k/globe.68k"
     include "src-68k/background.68k"
     include "src-68k/hud.68k"
@@ -62,6 +80,7 @@ DEBUG_CPUUSAGE:         equ 0       ; Profile CPU time usage
     include "src-68k/orbs.68k"
     include "src-68k/fireballs.68k"
     include "src-68k/children.68k"
+    include "src-68k/springs.68k"
     
     include "src-68k/error.68k"
     include "src-68k/variables.68k"
@@ -90,12 +109,19 @@ DEBUG_CPUUSAGE:         equ 0       ; Profile CPU time usage
 ;****************************************************************************
 
     include "data/sound.68k"
+    include "sona/sonablob.68k"
 
 ;****************************************************************************
 ; Stage data
 ;****************************************************************************
 
     include "data/stages.68k"
+
+;****************************************************************************
+; Attract mode data
+;****************************************************************************
+
+    include "data/attract.68k"
 
 ;****************************************************************************
 ; Some look-up tables
@@ -112,10 +138,15 @@ ROMSize:        equ *
 ROMSizeKB:      equ ROMSize/1024
 ROMSizeKB2:     equ ROMSize*10/1024%10
 
-    inform 0, "ROM size: %d bytes (%d.%dKB)", ROMSize, ROMSizeKB, ROMSizeKB2
+RAMSize:        equ EndOfIngameRAM-$FF0000
+RAMSizeKB:      equ RAMSize/1024
+RAMSizeKB2:     equ RAMSize*10/1024%10
+
+    inform 0, "ROM usage: %d bytes (%d.%dKB)", ROMSize, ROMSizeKB, ROMSizeKB2
+    inform 0, "RAM usage: %d bytes (%d.%dKB)", RAMSize, RAMSizeKB, RAMSizeKB2
 
 ;****************************************************************************
 ; Padding
 ;****************************************************************************
 
-    dcb.b       (256*1024)-*, $FF
+    ;dcb.b       (256*1024)-*, $FF
